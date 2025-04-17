@@ -1,9 +1,9 @@
 
-import { User, UserRole, UserPermission } from "@/types";
+import { User, UserPermission } from "@/types";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
-export const useUserManagement = (users: User[], refreshUsers: () => void) => {
+export const useUserManagement = (users: User[], refreshUsers: () => Promise<void>) => {
   const updateUserTitle = async (userId: string, title: string) => {
     try {
       const { error } = await supabase
@@ -13,7 +13,7 @@ export const useUserManagement = (users: User[], refreshUsers: () => void) => {
 
       if (error) throw error;
       
-      refreshUsers();
+      await refreshUsers();
       return users;
     } catch (error: any) {
       toast.error('Failed to update user title');
@@ -31,7 +31,7 @@ export const useUserManagement = (users: User[], refreshUsers: () => void) => {
 
       if (error) throw error;
       
-      refreshUsers();
+      await refreshUsers();
       return users;
     } catch (error: any) {
       toast.error('Failed to update user role');
@@ -53,7 +53,7 @@ export const useUserManagement = (users: User[], refreshUsers: () => void) => {
 
       if (error) throw error;
       
-      refreshUsers();
+      await refreshUsers();
       return users;
     } catch (error: any) {
       toast.error('Failed to update user permissions');
@@ -71,7 +71,7 @@ export const useUserManagement = (users: User[], refreshUsers: () => void) => {
 
       if (error) throw error;
       
-      refreshUsers();
+      await refreshUsers();
     } catch (error: any) {
       toast.error('Failed to approve user');
       console.error('Error approving user:', error);
@@ -85,7 +85,7 @@ export const useUserManagement = (users: User[], refreshUsers: () => void) => {
 
       if (error) throw error;
       
-      refreshUsers();
+      await refreshUsers();
     } catch (error: any) {
       toast.error('Failed to reject user');
       console.error('Error rejecting user:', error);

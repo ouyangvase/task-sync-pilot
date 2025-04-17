@@ -1,19 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, UserRole } from '@/types';
+import { User } from '@/types';
 import { toast } from 'sonner';
-
-interface Profile {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatar?: string;
-  monthly_points?: number;
-  title?: string;
-  is_approved: boolean;
-}
+import { Profile, UserPermission } from '@/types/database';
 
 export const useSupabaseAuth = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -132,26 +122,24 @@ export const useSupabaseAuth = () => {
         .from('profiles')
         .select(`
           *,
-          user_permissions!user_permissions_user_id_fkey(
-            target_user_id,
-            can_view,
-            can_edit
-          )
+          user_permissions(*)
         `);
 
       if (error) throw error;
 
-      setUsers(profiles.map(profile => ({
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        role: profile.role,
-        avatar: profile.avatar,
-        monthlyPoints: profile.monthly_points,
-        title: profile.title,
-        isApproved: profile.is_approved,
-        permissions: profile.user_permissions || []
-      })));
+      if (profiles) {
+        setUsers(profiles.map(profile => ({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          role: profile.role,
+          avatar: profile.avatar,
+          monthlyPoints: profile.monthly_points,
+          title: profile.title,
+          isApproved: profile.is_approved,
+          permissions: profile.user_permissions || []
+        })));
+      }
     } catch (error: any) {
       toast.error('Failed to fetch users');
       console.error('Error fetching users:', error);
