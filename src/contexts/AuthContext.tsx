@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               role: roleData.role,
               avatar: userData.avatar_url,
               // Handle the potential missing department field
-              department: userData.department || ''
+              department: userData.department
             });
             
             // Fetch notifications for the user
@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               role: roleData.role,
               avatar: userData.avatar_url,
               // Handle the potential missing department field
-              department: userData.department || ''
+              department: userData.department
             });
             
             // Fetch notifications for the user
@@ -242,8 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: '',
             role: userRole?.role || 'employee',
             avatar: profile.avatar_url,
-            // Handle the potential missing department field
-            department: profile.department || ''
+            department: profile.department || '' // Safe access with default
           };
         });
         

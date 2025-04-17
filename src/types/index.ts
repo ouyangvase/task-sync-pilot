@@ -1,11 +1,11 @@
 
-export type UserRole = "admin" | "employee";
+export type UserRole = "admin" | "employee" | "tenant" | "landlord" | "merchant";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  role: UserRole | string;
   avatar?: string;
   monthlyPoints?: number;
   department?: string;
