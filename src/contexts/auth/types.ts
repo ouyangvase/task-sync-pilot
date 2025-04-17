@@ -15,6 +15,7 @@ export interface AuthContextType {
   updateUserRole: (userId: string, role: string) => User[];
   updateUserTitle: (userId: string, title: string) => User[];
   updateUserPermissions: (userId: string, targetUserId: string, permissions: Partial<UserPermission>) => void;
+  updateUserCustomPermissions: (userId: string, permissions: string[]) => User[];
   registerUser: (email: string, password: string, fullName: string) => Promise<void>;
   approveUser: (userId: string) => Promise<void>;
   rejectUser: (userId: string) => Promise<void>;

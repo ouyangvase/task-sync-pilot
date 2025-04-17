@@ -16,6 +16,7 @@ export interface User {
   monthlyPoints?: number;
   title?: string; // Added title property for employee titles
   permissions?: UserPermission[]; // Cross-user permissions
+  customPermissions?: string[]; // Custom granular permissions
   isApproved?: boolean; // Added for registration approval workflow
 }
 

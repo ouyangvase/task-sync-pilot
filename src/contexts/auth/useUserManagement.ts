@@ -30,6 +30,7 @@ export const useUserManagement = (initialUsers: User[]) => {
     initialUsers.map(user => ({
       ...user,
       permissions: user.permissions || [],
+      customPermissions: user.customPermissions || [],
       isApproved: user.isApproved !== undefined ? user.isApproved : true, // Default to true for existing users
     }))
   );
@@ -72,6 +73,20 @@ export const useUserManagement = (initialUsers: User[]) => {
     return updatedUsers;
   };
 
+  // New function to update custom permissions for a user
+  const updateUserCustomPermissions = (userId: string, permissions: string[]) => {
+    const updatedUsers = users.map(user => {
+      if (user.id === userId) {
+        return { ...user, customPermissions: permissions };
+      }
+      return user;
+    });
+    
+    setUsers(updatedUsers);
+    toast.success("User permissions updated");
+    return updatedUsers;
+  };
+
   const getPendingUsers = () => {
     return users.filter(user => user.isApproved === false);
   };
@@ -82,6 +97,7 @@ export const useUserManagement = (initialUsers: User[]) => {
     updateUserTitle,
     updateUserRole,
     updateUserPermissions,
+    updateUserCustomPermissions,
     getPendingUsers,
   };
 };
