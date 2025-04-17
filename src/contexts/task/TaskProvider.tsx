@@ -209,6 +209,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateMonthlyTarget,
         getUserReachedRewards,
         getUserMonthlyPoints,
+        setTasks, // Expose setTasks so it can be used for bulk operations
       }}
     >
       {children}

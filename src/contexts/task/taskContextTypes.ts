@@ -5,7 +5,7 @@ export interface TaskContextType {
   tasks: Task[];
   getUserTasks: (userId: string) => Task[];
   getTasksByCategory: (userId: string, category: string) => Task[];
-  addTask: (task: Omit<Task, "id" | "createdAt">) => void;
+  addTask: (taskData: Omit<Task, "id" | "createdAt">) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (taskId: string) => void;
   completeTask: (taskId: string) => void;
@@ -17,4 +17,5 @@ export interface TaskContextType {
   updateMonthlyTarget: (target: number) => void;
   getUserReachedRewards: (userId: string) => RewardTier[];
   getUserMonthlyPoints: (userId: string) => number;
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
 }

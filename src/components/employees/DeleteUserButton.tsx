@@ -15,6 +15,7 @@ import { Trash } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { User } from "@/types";
 import { toast } from "sonner";
+import { useTasks } from "@/contexts/TaskContext";
 
 interface DeleteUserButtonProps {
   user: User;
@@ -25,6 +26,7 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { currentUser, users, setUsers } = useAuth();
+  const { tasks, setTasks } = useTasks();
 
   // Check if current user is admin
   const isAdmin = currentUser?.role === "admin";
@@ -50,8 +52,12 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
       // Filter out the user to be deleted
       const updatedUsers = users.filter(u => u.id !== user.id);
       
-      // Update users state
+      // Also delete all tasks associated with this user
+      const updatedTasks = tasks.filter(task => task.assignee !== user.id);
+      
+      // Update users and tasks state
       setUsers(updatedUsers);
+      setTasks(updatedTasks);
       
       // Log the deletion action (in a real system, this would be sent to the backend)
       const logEntry = {
@@ -66,7 +72,7 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
       console.log("User deletion log:", logEntry);
       
       // Show success notification
-      toast.success(`User ${user.name} has been deleted`);
+      toast.success(`User ${user.name} has been deleted along with all associated tasks`);
       
       // Close the confirmation dialog
       handleCloseDialog();
@@ -89,9 +95,9 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
         variant="destructive" 
         size="sm" 
         onClick={handleOpenDialog}
-        className="flex items-center gap-1"
+        className="flex items-center gap-1 text-xs"
       >
-        <Trash className="h-4 w-4" />
+        <Trash className="h-3 w-3" />
         Delete
       </Button>
 
