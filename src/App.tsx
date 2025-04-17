@@ -6,14 +6,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TaskProvider } from "@/contexts/TaskContext";
 import AppLayout from "@/components/layout/AppLayout";
-import LoginPage from "@/pages/LoginPage";
+import AuthPage from "@/pages/AuthPage";
 import DashboardPage from "@/pages/DashboardPage";
 import TasksPage from "@/pages/TasksPage";
 import CalendarPage from "@/pages/CalendarPage";
 import CompletedPage from "@/pages/CompletedPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import ReportsPage from "@/pages/ReportsPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -26,18 +28,22 @@ const App = () => (
             <Toaster />
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<AppLayout />}>
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="tasks" element={<TasksPage />} />
-                <Route path="calendar" element={<CalendarPage />} />
-                <Route path="completed" element={<CompletedPage />} />
-                <Route path="employees" element={<EmployeesPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                {/* Placeholder routes for future implementation */}
-                <Route path="settings" element={<div className="py-10 text-center">Settings coming soon!</div>} />
-                <Route path="profile" element={<div className="py-10 text-center">Profile page coming soon!</div>} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/login" element={<Navigate to="/auth" replace />} />
+              
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<AppLayout />}>
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="tasks" element={<TasksPage />} />
+                  <Route path="calendar" element={<CalendarPage />} />
+                  <Route path="completed" element={<CompletedPage />} />
+                  <Route path="employees" element={<EmployeesPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="profile" element={<div className="py-10 text-center">Profile page coming soon!</div>} />
+                </Route>
               </Route>
+              
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>

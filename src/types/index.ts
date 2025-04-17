@@ -8,6 +8,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   monthlyPoints?: number;
+  department?: string;
 }
 
 export type TaskCategory = "daily" | "custom" | "completed";
@@ -48,4 +49,25 @@ export interface RewardTier {
   id: string;
   points: number;
   reward: string;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  department?: string;
+  avatar_url?: string;
+}
+
+export interface AuthSession {
+  user: User | null;
+  isLoading: boolean;
+  error: Error | null;
 }
