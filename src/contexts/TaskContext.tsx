@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Task, TaskStats, PointsStats, RewardTier } from "@/types";
+import { Task, TaskStats, PointsStats, RewardTier, TaskStatus } from "@/types";
 import { mockTasks } from "@/data/mockData";
 import { useAuth } from "./AuthContext";
 import { toast } from "@/components/ui/sonner";
@@ -63,7 +62,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { currentUser } = useAuth();
 
   useEffect(() => {
-    // In a real app, this would fetch tasks from an API
     const savedTasks = localStorage.getItem("tasks");
     if (savedTasks) {
       setTasks(JSON.parse(savedTasks));
@@ -72,7 +70,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("tasks", JSON.stringify(mockTasks));
     }
 
-    // Load saved reward tiers
     const savedRewardTiers = localStorage.getItem("rewardTiers");
     if (savedRewardTiers) {
       setRewardTiers(JSON.parse(savedRewardTiers));
@@ -80,7 +77,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("rewardTiers", JSON.stringify(defaultRewardTiers));
     }
 
-    // Load saved monthly target
     const savedMonthlyTarget = localStorage.getItem("monthlyTarget");
     if (savedMonthlyTarget) {
       setMonthlyTarget(JSON.parse(savedMonthlyTarget));
@@ -88,40 +84,33 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("monthlyTarget", JSON.stringify(DEFAULT_MONTHLY_TARGET));
     }
 
-    // Load saved user points
     const savedUserPoints = localStorage.getItem("userPoints");
     if (savedUserPoints) {
       setUserPoints(JSON.parse(savedUserPoints));
     }
   }, []);
 
-  // Save tasks to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("tasks", JSON.stringify(tasks));
   }, [tasks]);
 
-  // Save reward tiers to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("rewardTiers", JSON.stringify(rewardTiers));
   }, [rewardTiers]);
 
-  // Save monthly target to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("monthlyTarget", JSON.stringify(monthlyTarget));
   }, [monthlyTarget]);
 
-  // Save user points to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("userPoints", JSON.stringify(userPoints));
   }, [userPoints]);
 
-  // Calculate user points 
   const calculateUserPoints = (userId: string): number => {
     const completedTasks = tasks.filter(
       task => task.assignee === userId && task.status === "completed"
     );
     
-    // Only count points from tasks completed in the current month
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -153,7 +142,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...taskData,
       id: `task-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      assignedBy: currentUser.id,
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -176,13 +164,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTasks((prev) =>
       prev.map((task) => {
         if (task.id === taskId) {
-          const completedTask = {
+          const completedTask: Task = {
             ...task,
-            status: "completed",
+            status: "completed" as TaskStatus,
             completedAt: new Date().toISOString(),
           };
           
-          // Update user points when task is completed
           const userId = task.assignee;
           const taskPoints = task.points || 0;
           
@@ -191,12 +178,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [userId]: (prev[userId] || 0) + taskPoints
           }));
           
-          // Check if user reached milestones for notifications
           const currentPoints = getUserMonthlyPoints(userId);
           const newTotal = currentPoints + taskPoints;
           const percentComplete = (newTotal / monthlyTarget) * 100;
           
-          // Show notification at certain thresholds
           if (percentComplete >= 50 && percentComplete < 51) {
             toast.success(`You've reached 50% of your monthly points goal!`);
           } else if (percentComplete >= 80 && percentComplete < 81) {
@@ -258,8 +243,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getUserMonthlyPoints = (userId: string): number => {
-    // In a real app, this would calculate from completed tasks in the current month
-    // For now, we'll use our simple userPoints state
     return userPoints[userId] || 0;
   };
 

@@ -12,6 +12,8 @@ export interface User {
 
 export type TaskCategory = "daily" | "custom" | "completed";
 export type TaskRecurrence = "once" | "daily" | "weekly" | "monthly";
+export type TaskStatus = "pending" | "in-progress" | "completed";
+export type TaskPriority = "low" | "medium" | "high";
 
 export interface Task {
   id: string;
@@ -24,9 +26,9 @@ export interface Task {
   dueDate: string;
   createdAt: string;
   completedAt?: string;
-  priority: "low" | "medium" | "high";
-  status: "pending" | "in-progress" | "completed";
-  points: number; // New field for task points
+  priority: TaskPriority;
+  status: TaskStatus;
+  points: number;
 }
 
 export interface TaskStats {
