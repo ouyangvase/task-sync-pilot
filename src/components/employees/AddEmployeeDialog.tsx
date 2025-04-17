@@ -7,13 +7,9 @@ import { Label } from "@/components/ui/label";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth";
 import { EMPLOYEE_TITLES } from "./employee-details/constants";
-
-interface AddEmployeeDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onEmployeeCreated: () => void;
-}
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const nameSchema = z.string().min(3, "Name must be at least 3 characters");
@@ -25,6 +21,7 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
   const [title, setTitle] = useState("");
   const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { registerUser } = useAuth();
 
   const validateForm = (): boolean => {
     const newErrors: { name?: string; email?: string } = {};
@@ -49,7 +46,7 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -58,13 +55,36 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
     
     setIsSubmitting(true);
     
-    // In a real app, this would be an API call to create and invite the employee
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success(`Invitation sent to ${email}`);
+    try {
+      // Generate a temporary password
+      const tempPassword = Math.random().toString(36).slice(-8);
+      
+      // Register the user through Supabase auth
+      await registerUser(email, tempPassword, name);
+      
+      // Update user profile with role and title
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          role, 
+          title: title === "none" ? null : title,
+          is_approved: false  // Keep the user unapproved until admin approves
+        })
+        .eq('email', email);
+      
+      if (updateError) {
+        throw updateError;
+      }
+      
+      toast.success(`Invitation sent to ${email}. Awaiting admin approval.`);
       onEmployeeCreated();
       resetForm();
-    }, 1000);
+    } catch (error: any) {
+      console.error("User invitation error:", error);
+      toast.error(`Failed to invite user: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -155,7 +175,7 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
             </div>
 
             <p className="text-sm text-muted-foreground">
-              An invitation will be sent to the employee's email with instructions to complete registration.
+              An invitation will be sent to the employee's email. The admin must approve the account first.
             </p>
           </div>
           
