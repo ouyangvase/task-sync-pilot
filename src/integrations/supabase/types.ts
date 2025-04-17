@@ -1008,6 +1008,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          department: string | null
           elite_status: Database["public"]["Enums"]["elite_status"] | null
           elite_status_expiry: string | null
           email: string | null
@@ -1019,6 +1020,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          department?: string | null
           elite_status?: Database["public"]["Enums"]["elite_status"] | null
           elite_status_expiry?: string | null
           email?: string | null
@@ -1030,6 +1032,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          department?: string | null
           elite_status?: Database["public"]["Enums"]["elite_status"] | null
           elite_status_expiry?: string | null
           email?: string | null
