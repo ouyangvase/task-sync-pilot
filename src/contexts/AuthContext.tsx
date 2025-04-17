@@ -50,9 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mappedUsers: User[] = profiles.map((profile: any) => {
         const userRole = userRoles.find((r: any) => r.user_id === profile.id);
         // Check if the role is one of the allowed values in our UserRole type
+        const validRoles: string[] = ["admin", "employee"];
         let roleValue: "admin" | "employee" = "employee"; // Default to employee
         
-        if (userRole && (userRole.role === "admin" || userRole.role === "employee")) {
+        if (userRole && validRoles.includes(userRole.role)) {
           roleValue = userRole.role as "admin" | "employee";
         }
 
@@ -131,9 +132,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (roleError) throw roleError;
 
       // Ensure role is valid according to UserRole type
+      const validRoles: string[] = ["admin", "employee"];
       let roleValue: "admin" | "employee" = "employee"; // Default to employee
       
-      if (roleData && (roleData.role === "admin" || roleData.role === "employee")) {
+      if (roleData && validRoles.includes(roleData.role)) {
         roleValue = roleData.role as "admin" | "employee";
       }
 

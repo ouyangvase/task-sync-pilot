@@ -1,127 +1,145 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  LayoutDashboard,
-  Calendar,
-  ClipboardList,
-  Users,
-  BarChart3,
-  Settings,
-  LogOut,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { 
+  LayoutDashboard, 
+  CheckSquare, 
+  Calendar, 
+  ClipboardCheck, 
+  Users, 
+  BarChart, 
+  Settings,
+  User
+} from "lucide-react";
 
-interface SidebarProps {
+interface AppSidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
+const AppSidebar = ({ isOpen, onClose }: AppSidebarProps) => {
   const location = useLocation();
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
+  
+  if (!currentUser) return null;
+  
+  const isAdmin = currentUser.role === "admin";
+  
+  const navItems = [
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      name: "Tasks",
+      href: "/tasks",
+      icon: CheckSquare,
+    },
+    {
+      name: "Calendar",
+      href: "/calendar",
+      icon: Calendar,
+    },
+    {
+      name: "Completed",
+      href: "/completed",
+      icon: ClipboardCheck,
+    },
+    ...(isAdmin
+      ? [
+          {
+            name: "Employees",
+            href: "/employees",
+            icon: Users,
+          },
+          {
+            name: "Reports",
+            href: "/reports",
+            icon: BarChart,
+          },
+        ]
+      : []),
+    {
+      name: "Settings",
+      href: "/settings",
+      icon: Settings,
+    },
+    {
+      name: "My Profile",
+      href: "/profile",
+      icon: User,
+    },
+  ];
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  const NavLink = ({ item }: { item: typeof navItems[0] }) => {
+    const isActive = location.pathname === item.href;
+    const Icon = item.icon;
+
+    return (
+      <Link
+        to={item.href}
+        onClick={() => onClose()}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-base transition-all hover:text-primary",
+          isActive
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground"
+        )}
+      >
+        <Icon className="h-5 w-5" />
+        {item.name}
+      </Link>
+    );
   };
 
-  const adminLinks = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-    },
-    {
-      name: "All Tasks",
-      path: "/tasks",
-      icon: <ClipboardList className="h-5 w-5" />,
-    },
-    {
-      name: "Calendar",
-      path: "/calendar",
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    {
-      name: "Employees",
-      path: "/employees",
-      icon: <Users className="h-5 w-5" />,
-    },
-    {
-      name: "Reports",
-      path: "/reports",
-      icon: <BarChart3 className="h-5 w-5" />,
-    },
-    {
-      name: "Settings",
-      path: "/settings",
-      icon: <Settings className="h-5 w-5" />,
-    },
-  ];
-
-  const employeeLinks = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-    },
-    {
-      name: "My Tasks",
-      path: "/tasks",
-      icon: <ClipboardList className="h-5 w-5" />,
-    },
-    {
-      name: "Calendar",
-      path: "/calendar",
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    {
-      name: "Settings",
-      path: "/settings",
-      icon: <Settings className="h-5 w-5" />,
-    },
-  ];
-
-  const links = currentUser?.role === "admin" ? adminLinks : employeeLinks;
-
+  // For mobile, use Sheet component
+  // For desktop, use regular sidebar
   return (
-    <div
-      className={cn(
-        "fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-border/40 bg-sidebar pt-16 transition-transform duration-300 ease-in-out",
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      )}
-    >
-      <div className="flex-1 overflow-y-auto py-6 px-4">
-        <nav className="space-y-1">
-          {links.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              onClick={onClose}
-              className={cn(
-                "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all",
-                isActive(link.path)
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <span className="mr-3">{link.icon}</span>
-              {link.name}
-            </Link>
+    <>
+      {/* Mobile sidebar */}
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent side="left" className="w-64 p-0">
+          <div className="flex flex-col h-full">
+            <div className="p-6">
+              <h2 className="text-lg font-semibold">TaskSync Pilot</h2>
+            </div>
+            <nav className="flex-1 px-3 space-y-1">
+              {navItems.map((item) => (
+                <NavLink key={item.href} item={item} />
+              ))}
+            </nav>
+            <div className="p-4 border-t">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  // Handle logout
+                }}
+              >
+                <span>Log out</span>
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop sidebar */}
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r bg-background pt-16 md:flex transition-transform duration-300",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <nav className="flex-1 space-y-1 p-4">
+          {navItems.map((item) => (
+            <NavLink key={item.href} item={item} />
           ))}
         </nav>
       </div>
-      <div className="border-t border-border/40 p-4">
-        <Button 
-          variant="outline" 
-          className="w-full justify-start text-muted-foreground hover:text-red-500 hover:border-red-200" 
-          onClick={() => logout()}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Log out
-        </Button>
-      </div>
-    </div>
+    </>
   );
 };
 
