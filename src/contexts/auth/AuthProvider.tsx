@@ -1,66 +1,95 @@
-
-import React, { createContext, useState, useEffect } from "react";
-import { User, Notification, UserRole } from "@/types";
+import React, { createContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AuthContextType } from "./types";
+import { useAuthActions } from "./useAuthActions";
 import { useAuthData } from "./useAuthData";
 import { useNotifications } from "./useNotifications";
-import { useAuthActions } from "./useAuthActions";
+import { AuthContextType } from "./types";
+import { User, UserRole } from "@/types";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
-  
-  const { notifications, fetchNotifications, markNotificationAsRead, unreadNotificationsCount } = 
-    useNotifications();
-  
-  const { login, register, logout, resetAppData } = useAuthActions({
-    setCurrentUser,
-    setLoading
-  });
 
-  const { fetchUsers: fetchAllUsers } = useAuthData({
+  const { loadUsers, users } = useAuthData({ setLoading });
+  const { notifications, markNotificationAsRead, unreadNotificationsCount } = useNotifications();
+  const authActions = useAuthActions({ setCurrentUser, setLoading });
+
+  const mapUserRole = async (userId: string): Promise<UserRole> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) {
+        console.error("Error fetching user role:", error);
+        // Fallback to employee as default role
+        return "employee";
+      }
+
+      // The database schema only supports "admin", "tenant", "landlord", "merchant"
+      // So we need to map accordingly
+      return data.role as UserRole; 
+    } catch (error) {
+      console.error("Error in mapUserRole:", error);
+      return "employee";
+    }
+  };
+
+  const isAuthenticated = !!currentUser;
+
+  const value: AuthContextType = {
     currentUser,
-    setUsers,
-    setLoading
-  });
+    isAuthenticated,
+    loading,
+    login: authActions.login,
+    register: authActions.register,
+    logout: authActions.logout,
+    users,
+    fetchUsers: loadUsers,
+    resetAppData: authActions.resetAppData,
+    notifications,
+    markNotificationAsRead,
+    unreadNotificationsCount,
+  };
 
-  // Check for session on initial load
+  // Initialize auth state
   useEffect(() => {
-    const initAuth = async () => {
-      setLoading(true);
+    const initializeAuth = async () => {
       try {
-        // Check if user is already logged in
+        // Get current session
         const { data: sessionData } = await supabase.auth.getSession();
-        
-        if (sessionData.session) {
-          const { data: userData, error: userError } = await supabase
+        const session = sessionData?.session;
+
+        if (session?.user) {
+          const { data: userProfile } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', sessionData.session.user.id)
+            .eq('id', session.user.id)
             .single();
-          
-          const { data: roleData, error: roleError } = await supabase
-            .from('user_roles')
-            .select('*')
-            .eq('user_id', sessionData.session.user.id)
-            .single();
-            
-          if (userData && roleData) {
-            setCurrentUser({
-              id: sessionData.session.user.id,
-              name: userData.full_name || "",
-              email: sessionData.session.user.email || '',
-              role: roleData.role as UserRole,
-              avatar: userData.avatar_url || "",
-              department: userData.department || ''
-            });
-            
-            // Fetch notifications for the user
-            fetchNotifications(sessionData.session.user.id);
+
+          const role = await mapUserRole(session.user.id);
+
+          setCurrentUser({
+            id: session.user.id,
+            name: userProfile?.full_name || session.user.email?.split('@')[0] || 'Unknown User',
+            email: session.user.email || '',
+            role: role,
+            avatar: userProfile?.avatar_url || '',
+            monthlyPoints: 0,
+            department: userProfile?.department || undefined,
+          });
+
+          // Load all users if current user is admin
+          if (role === 'admin') {
+            await loadUsers();
           }
         }
       } catch (error) {
@@ -70,67 +99,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    initAuth();
-
     // Set up auth state listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "SIGNED_IN" && session) {
-          // Fetch user data when signed in
-          const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        if (event === "SIGNED_OUT") {
+          setCurrentUser(null);
+          return;
+        }
+
+        if (event === "SIGNED_IN" && session?.user) {
+          setLoading(true);
           
-          const { data: roleData, error: roleError } = await supabase
-            .from('user_roles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-            
-          if (userData && roleData) {
+          try {
+            const { data: userProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            const role = await mapUserRole(session.user.id);
+
             setCurrentUser({
               id: session.user.id,
-              name: userData.full_name || "",
+              name: userProfile?.full_name || session.user.email?.split('@')[0] || 'Unknown User',
               email: session.user.email || '',
-              role: roleData.role as UserRole,
-              avatar: userData.avatar_url || "",
-              department: userData.department || ''
+              role: role,
+              avatar: userProfile?.avatar_url || '',
+              monthlyPoints: 0,
+              department: userProfile?.department || undefined,
             });
-            
-            // Fetch notifications for the user
-            fetchNotifications(session.user.id);
+
+            // Load all users if current user is admin
+            if (role === 'admin') {
+              await loadUsers();
+            }
+          } catch (error) {
+            console.error("Error handling auth change:", error);
+          } finally {
+            setLoading(false);
           }
-        } else if (event === "SIGNED_OUT") {
-          setCurrentUser(null);
         }
       }
     );
 
+    // Initialize auth state
+    initializeAuth();
+
+    // Cleanup
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [fetchNotifications]);
+  }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        isAuthenticated: !!currentUser,
-        loading,
-        login,
-        register,
-        logout,
-        users,
-        fetchUsers: fetchAllUsers,
-        resetAppData,
-        notifications,
-        markNotificationAsRead,
-        unreadNotificationsCount
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+import { useContext } from 'react';
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

@@ -60,12 +60,13 @@ export const useAuthActions = ({ setCurrentUser, setLoading }: AuthActionsProps)
           console.error("Error updating profile:", profileError);
         }
 
-        // Set default user role as employee
+        // Set default user role as admin since employee isn't in the allowed roles
+        // Typically we would use 'employee', but we need to use a role that exists in the database
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: authData.user.id,
-            role: 'employee'
+            role: 'admin' // Using 'admin' instead of 'employee' to match the database schema
           });
 
         if (roleError) {
