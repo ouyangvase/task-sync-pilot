@@ -31,7 +31,7 @@ export function CalendarDateRangePicker({
             variant={"outline"}
             className={cn(
               "w-full justify-start text-left font-normal sm:w-[260px]",
-              !date && "text-muted-foreground"
+              !date?.from && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -55,7 +55,7 @@ export function CalendarDateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={(newDate) => onDateChange(newDate as DateRange)}
+            onSelect={onDateChange}
             numberOfMonths={2}
           />
         </PopoverContent>

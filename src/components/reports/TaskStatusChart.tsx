@@ -84,12 +84,25 @@ export function TaskStatusChart({ dateRange, filters }: TaskStatusChartProps) {
                 ))}
               </Pie>
               <Tooltip
-                content={(props) => (
-                  <ChartTooltipContent
-                    {...props}
-                    indicator="dot"
-                  />
-                )}
+                content={({ payload }) => {
+                  if (payload && payload.length) {
+                    const { name, value, color } = payload[0].payload;
+                    return (
+                      <ChartTooltipContent
+                        items={[
+                          {
+                            label: name,
+                            value: String(value),
+                            color: color
+                          }
+                        ]}
+                        formattedValue={String(value)}
+                        label={name}
+                      />
+                    );
+                  }
+                  return null;
+                }}
               />
             </PieChart>
           </ResponsiveContainer>

@@ -15,6 +15,15 @@ interface PointsTimeChartProps {
   showTasksInstead?: boolean;
 }
 
+// Define the type for our chart data
+interface ChartDataPoint {
+  date: string;
+  points: number;
+  tasks: number;
+  cumulativePoints: number;
+  cumulativeTasks: number;
+}
+
 export function PointsTimeChart({ dateRange, filters, showTasksInstead = false }: PointsTimeChartProps) {
   const { tasks } = useTasks();
   
@@ -27,10 +36,12 @@ export function PointsTimeChart({ dateRange, filters, showTasksInstead = false }
   });
   
   // Initialize data with all days in the range
-  const chartData = daysInRange.map(day => ({
+  const chartData: ChartDataPoint[] = daysInRange.map(day => ({
     date: format(day, "yyyy-MM-dd"),
     points: 0,
     tasks: 0,
+    cumulativePoints: 0,
+    cumulativeTasks: 0,
   }));
   
   // Process tasks and accumulate points/tasks per day
@@ -102,19 +113,26 @@ export function PointsTimeChart({ dateRange, filters, showTasksInstead = false }
             />
             <YAxis />
             <Tooltip
-              content={(props) => (
-                <ChartTooltipContent
-                  {...props}
-                  formatter={(value, name) => {
-                    const date = props.payload?.[0]?.payload?.date;
-                    return [
-                      value, 
-                      showTasksInstead ? "Tasks" : "Points",
-                      date ? format(new Date(date), "MMM dd, yyyy") : ""
-                    ];
-                  }}
-                />
-              )}
+              content={({ payload, label }) => {
+                if (payload && payload.length) {
+                  const date = payload[0]?.payload?.date;
+                  const value = payload[0]?.value;
+                  return (
+                    <ChartTooltipContent
+                      items={[
+                        {
+                          label: showTasksInstead ? "Tasks" : "Points",
+                          value: String(value),
+                          color: chartColor
+                        }
+                      ]}
+                      formattedValue={String(value)}
+                      label={date ? format(new Date(date), "MMM dd, yyyy") : ""}
+                    />
+                  );
+                }
+                return null;
+              }}
             />
             <Area 
               type="monotone" 

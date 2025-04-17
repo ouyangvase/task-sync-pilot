@@ -10,6 +10,12 @@ interface TopEmployeesChartProps {
   dateRange: DateRange;
 }
 
+interface EmployeeData {
+  name: string;
+  points: number;
+  userId: string;
+}
+
 export function TopEmployeesChart({ dateRange }: TopEmployeesChartProps) {
   const { users } = useAuth();
   const { tasks } = useTasks();
@@ -32,7 +38,7 @@ export function TopEmployeesChart({ dateRange }: TopEmployeesChartProps) {
   });
   
   // Create data for chart
-  const employeeData = Object.entries(employeePoints)
+  const employeeData: EmployeeData[] = Object.entries(employeePoints)
     .map(([userId, points]) => {
       const user = users.find(u => u.id === userId);
       return {
@@ -65,15 +71,25 @@ export function TopEmployeesChart({ dateRange }: TopEmployeesChartProps) {
                 }}
               />
               <Tooltip
-                content={(props) => (
-                  <ChartTooltipContent
-                    {...props}
-                    formatter={(value, name, item) => {
-                      const employee = item?.payload?.name;
-                      return [value, "Points", employee];
-                    }}
-                  />
-                )}
+                content={({ payload }) => {
+                  if (payload && payload.length) {
+                    const { name, points } = payload[0].payload;
+                    return (
+                      <ChartTooltipContent
+                        items={[
+                          {
+                            label: "Points",
+                            value: String(points),
+                            color: "#8b5cf6"
+                          }
+                        ]}
+                        formattedValue={String(points)}
+                        label={name}
+                      />
+                    );
+                  }
+                  return null;
+                }}
               />
               <Bar dataKey="points" fill="#8b5cf6" name="Points" />
             </BarChart>

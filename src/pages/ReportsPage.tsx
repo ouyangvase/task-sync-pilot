@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -11,10 +10,11 @@ import { EmployeeLeaderboard } from "@/components/reports/EmployeeLeaderboard";
 import { TaskStatusChart } from "@/components/reports/TaskStatusChart";
 import { PointsTimeChart } from "@/components/reports/PointsTimeChart";
 import { TopEmployeesChart } from "@/components/reports/TopEmployeesChart";
-import { Export } from "lucide-react";
+import { Download } from "lucide-react";
 import { useTasks } from "@/contexts/TaskContext";
 import { ReportFilters } from "@/components/reports/ReportFilters";
 import { addDays, format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 const ReportsPage = () => {
   const { currentUser } = useAuth();
@@ -22,10 +22,7 @@ const ReportsPage = () => {
   const { tasks } = useTasks();
   
   // Default date range - last 30 days
-  const [dateRange, setDateRange] = useState<{
-    from: Date;
-    to: Date;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: addDays(new Date(), -30),
     to: new Date(),
   });
@@ -42,10 +39,21 @@ const ReportsPage = () => {
     return <Navigate to="/dashboard" />;
   }
 
+  // Handler for date range changes that ensures both from and to are set
+  const handleDateRangeChange = (range: DateRange) => {
+    // Make sure we have both from and to dates
+    if (range.from && !range.to) {
+      // If only from is set, keep the current to date
+      setDateRange({ ...range, to: dateRange.to });
+    } else {
+      setDateRange(range);
+    }
+  };
+
   const handleExportReport = () => {
     // In a real app, this would generate a PDF or CSV
     console.log("Exporting report for date range:", dateRange);
-    const fileName = `report-${format(dateRange.from, "yyyy-MM-dd")}-to-${format(dateRange.to, "yyyy-MM-dd")}`;
+    const fileName = `report-${format(dateRange.from!, "yyyy-MM-dd")}-to-${format(dateRange.to!, "yyyy-MM-dd")}`;
     
     // Mock export functionality
     setTimeout(() => {
@@ -67,10 +75,10 @@ const ReportsPage = () => {
         <div className="flex flex-col sm:flex-row gap-2">
           <CalendarDateRangePicker 
             date={dateRange} 
-            onDateChange={setDateRange} 
+            onDateChange={handleDateRangeChange} 
           />
           <Button onClick={handleExportReport} className="gap-1">
-            <Export className="h-4 w-4" />
+            <Download className="h-4 w-4" />
             Export
           </Button>
         </div>
