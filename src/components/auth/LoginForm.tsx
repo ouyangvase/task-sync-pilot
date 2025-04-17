@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -47,7 +48,14 @@ const LoginForm = () => {
       // Add debug logs
       console.log("Login attempt with:", data.email);
       
-      await login(data.email, data.password);
+      // Direct Supabase Auth call
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password
+      });
+      
+      if (error) throw error;
+      
       toast.success("Login successful");
       navigate("/dashboard");
     } catch (error: any) {

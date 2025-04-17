@@ -10,6 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { EMPLOYEE_TITLES } from "./employee-details/constants";
+import { UserRole } from "@/types";
+
+interface AddEmployeeDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onEmployeeCreated: () => void;
+}
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const nameSchema = z.string().min(3, "Name must be at least 3 characters");
@@ -17,7 +24,7 @@ const nameSchema = z.string().min(3, "Name must be at least 3 characters");
 const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDialogProps) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("employee");
+  const [role, setRole] = useState<UserRole>("employee");
   const [title, setTitle] = useState("");
   const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,7 +150,7 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
               <Label htmlFor="role">Role</Label>
               <Select 
                 value={role} 
-                onValueChange={setRole}
+                onValueChange={(value) => setRole(value as UserRole)}
               >
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
