@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/contexts/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -26,7 +26,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { login, loading } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,23 +42,26 @@ const LoginForm = () => {
     try {
       setIsSubmitting(true);
       await login(data.email, data.password);
+      toast.success("Login successful");
       navigate("/dashboard");
     } catch (error) {
-      // Error is handled in the login function
+      toast.error("Invalid email or password");
       console.error(error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // For demo purposes, provide quick login buttons
   const quickLogin = async (role: "admin" | "employee") => {
     setIsSubmitting(true);
     try {
       const email = role === "admin" ? "admin@tasksync.com" : "john@tasksync.com";
       await login(email, "password123");
+      toast.success("Login successful");
       navigate("/dashboard");
     } catch (error) {
-      // Error is handled in the login function
+      toast.error("Login failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -101,8 +104,8 @@ const LoginForm = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isSubmitting || loading}>
-              {isSubmitting || loading ? "Logging in..." : "Log In"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Logging in..." : "Log In"}
             </Button>
           </form>
         </Form>
@@ -117,7 +120,7 @@ const LoginForm = () => {
             size="sm"
             className="flex-1"
             onClick={() => quickLogin("admin")}
-            disabled={isSubmitting || loading}
+            disabled={isSubmitting}
           >
             Login as Admin
           </Button>
@@ -126,7 +129,7 @@ const LoginForm = () => {
             size="sm"
             className="flex-1"
             onClick={() => quickLogin("employee")}
-            disabled={isSubmitting || loading}
+            disabled={isSubmitting}
           >
             Login as Employee
           </Button>

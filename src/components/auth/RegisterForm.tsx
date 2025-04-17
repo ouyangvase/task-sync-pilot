@@ -13,7 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/contexts/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -43,7 +43,7 @@ const formSchema = z.object({
 type RegisterFormValues = z.infer<typeof formSchema>;
 
 const RegisterForm = () => {
-  const { register, loading } = useAuth();
+  const { register } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -185,8 +185,8 @@ const RegisterForm = () => {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isSubmitting || loading}>
-              {isSubmitting || loading ? (
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
                 </>
