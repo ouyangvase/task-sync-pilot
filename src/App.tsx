@@ -2,7 +2,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TaskProvider } from "@/contexts/TaskContext";
 import AppLayout from "@/components/layout/AppLayout";
@@ -16,15 +15,16 @@ import ReportsPage from "@/pages/ReportsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import AchievementsPage from "@/pages/AchievementsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <TaskProvider>
-          <BrowserRouter>
+    <AuthProvider>
+      <TaskProvider>
+        <BrowserRouter>
+          <TooltipProvider>
             <Toaster />
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -43,10 +43,10 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
-          </BrowserRouter>
-        </TaskProvider>
-      </AuthProvider>
-    </TooltipProvider>
+          </TooltipProvider>
+        </BrowserRouter>
+      </TaskProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
