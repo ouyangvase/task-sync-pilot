@@ -1,23 +1,35 @@
-import React, { createContext, useState, useEffect } from "react";
-import { User, UserRole, UserPermission } from "@/types";
+
+import React, { createContext, useEffect } from "react";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
-import { toast } from "sonner";
 import { AuthContextType } from "./types";
-import { canViewUser, canEditUser, getAccessibleUsers, updateUserPermissionsHelper } from "./authUtils";
+import { canViewUser, canEditUser, getAccessibleUsers } from "./authUtils";
+import { useUserManagement } from "./useUserManagement";
+import { useAuthOperations } from "./useAuthOperations";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>(
-    // Initialize with empty permissions arrays if not already present
-    mockUsers.map(user => ({
-      ...user,
-      permissions: user.permissions || [],
-      isApproved: user.isApproved !== undefined ? user.isApproved : true,
-    }))
-  );
+  const {
+    users,
+    setUsers,
+    updateUserTitle,
+    updateUserRole,
+    updateUserPermissions,
+    getPendingUsers
+  } = useUserManagement(mockUsers);
+
+  const {
+    currentUser,
+    setCurrentUser,
+    loading,
+    setLoading,
+    login,
+    logout,
+    registerUser,
+    approveUser,
+    rejectUser,
+    syncCurrentUser
+  } = useAuthOperations(users, setUsers);
 
   useEffect(() => {
     // Check for saved user in localStorage
@@ -40,153 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
-    // In a real app, this would validate with a backend
-    setLoading(true);
+  // Sync currentUser when user permissions change
+  const handleUpdateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<any>) => {
+    const updatedUsers = updateUserPermissions(userId, targetUserId, newPermissions);
     
-    try {
-      // Debug logs to see what's happening
-      console.log("Attempting login for:", email);
-      console.log("Available users:", users);
-      
-      const user = users.find((u) => u.email === email);
-      
-      if (!user) {
-        console.log("User not found:", email);
-        throw new Error("Invalid email or password");
-      }
-
-      // Debug log for user found
-      console.log("Found user:", user);
-
-      if (user.isApproved === false) {
-        console.log("User not approved:", email);
-        throw new Error("Your account is pending admin approval");
-      }
-      
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      const enhancedUser = {
-        ...user,
-        permissions: user.permissions || []
-      };
-      
-      setCurrentUser(enhancedUser);
-      localStorage.setItem("currentUser", JSON.stringify(enhancedUser));
-      
-      // Debug log to verify login success
-      console.log("Login successful:", enhancedUser);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem("currentUser");
-  };
-
-  const registerUser = async (email: string, password: string, fullName: string): Promise<void> => {
-    // Check if email already exists
-    const existingUser = users.find((u) => u.email === email);
-    if (existingUser) {
-      throw new Error("Email already registered");
-    }
-
-    // Create a new user with pending approval
-    const newUser: User = {
-      id: `user_${Date.now()}`,
-      email,
-      name: fullName,
-      role: "employee", // Default role
-      isApproved: false,
-      permissions: [],
-    };
-
-    // Debug log
-    console.log("Registering new user:", newUser);
-
-    // Update users array
-    setUsers(prevUsers => [...prevUsers, newUser]);
-    
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  };
-
-  const approveUser = async (userId: string): Promise<void> => {
-    console.log("Approving user:", userId);
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, isApproved: true };
-      }
-      return user;
-    });
-    
-    setUsers(updatedUsers);
-    
-    // Debug log to verify user approval
-    console.log("Updated users after approval:", updatedUsers);
-
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  };
-
-  const rejectUser = async (userId: string) => {
-    const updatedUsers = users.filter(user => user.id !== userId);
-    setUsers(updatedUsers);
-
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  };
-
-  const getPendingUsers = () => {
-    return users.filter(user => user.isApproved === false);
-  };
-
-  const updateUserTitle = (userId: string, title: string) => {
-    // Update users array with the new title
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, title: title === "none" ? "" : title };
-      }
-      return user;
-    });
-    
-    setUsers(updatedUsers);
-    
-    // Also update currentUser if it's the same user
-    if (currentUser && currentUser.id === userId) {
-      const updatedUser = { ...currentUser, title: title === "none" ? "" : title };
-      setCurrentUser(updatedUser);
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    }
-  };
-
-  const updateUserRole = (userId: string, role: string) => {
-    // Update users array with the new role
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, role: role as UserRole };
-      }
-      return user;
-    });
-    
-    setUsers(updatedUsers);
-    
-    // Also update currentUser if it's the same user
-    if (currentUser && currentUser.id === userId) {
-      const updatedUser = { ...currentUser, role: role as UserRole };
-      setCurrentUser(updatedUser);
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    }
-  };
-
-  const updateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
-    const updatedUsers = updateUserPermissionsHelper(users, userId, targetUserId, newPermissions);
-    setUsers(updatedUsers);
-    
-    // Also update currentUser if it's the same user
+    // Update currentUser if it's the same user
     if (currentUser && currentUser.id === userId) {
       const currentPermissions = [...(currentUser.permissions || [])];
       
@@ -209,8 +79,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
+  };
+
+  // Sync currentUser when user title changes
+  const handleUpdateUserTitle = (userId: string, title: string) => {
+    const updatedUsers = updateUserTitle(userId, title);
     
-    toast.success("User permissions updated");
+    // Update currentUser if it's the same user
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = { ...currentUser, title: title === "none" ? "" : title };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+    }
+  };
+
+  // Sync currentUser when user role changes
+  const handleUpdateUserRole = (userId: string, role: string) => {
+    const updatedUsers = updateUserRole(userId, role);
+    
+    // Update currentUser if it's the same user
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = { ...currentUser, role: role as any };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+    }
   };
 
   return (
@@ -222,9 +114,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         users,
-        updateUserTitle,
-        updateUserRole,
-        updateUserPermissions,
+        updateUserTitle: handleUpdateUserTitle,
+        updateUserRole: handleUpdateUserRole,
+        updateUserPermissions: handleUpdateUserPermissions,
         canViewUser: (viewerId, targetUserId) => canViewUser(users, viewerId, targetUserId),
         canEditUser: (editorId, targetUserId) => canEditUser(users, editorId, targetUserId),
         getAccessibleUsers: (userId) => getAccessibleUsers(users, userId),

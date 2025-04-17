@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth";
 import { 
@@ -56,12 +57,12 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       
       // Then update role if selected
       const role = selectedRoles[user.id] || "employee";
-      await updateUserRole(user.id, role);
+      updateUserRole(user.id, role);
       
       // Update title if selected
       const title = selectedTitles[user.id];
       if (title) {
-        await updateUserTitle(user.id, title);
+        updateUserTitle(user.id, title);
       }
       
       // Send approval email via Supabase Edge Function
