@@ -11,6 +11,7 @@ import {
   LogOut,
   Trophy,
   User,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,11 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Achievements",
       path: "/achievements",
       icon: <Trophy className="h-5 w-5" />,
+    },
+    {
+      name: "Role Permissions",
+      path: "/settings/roles",
+      icon: <Shield className="h-5 w-5" />,
     },
     {
       name: "Settings",

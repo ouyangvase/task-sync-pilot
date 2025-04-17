@@ -14,6 +14,7 @@ import EmployeesPage from "@/pages/EmployeesPage";
 import ReportsPage from "@/pages/ReportsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import AchievementsPage from "@/pages/AchievementsPage";
+import RolesSettingsPage from "@/pages/RolesSettingsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="achievements" element={<AchievementsPage />} />
+                <Route path="settings/roles" element={<RolesSettingsPage />} />
                 {/* Placeholder routes for future implementation */}
                 <Route path="settings" element={<div className="py-10 text-center">Settings coming soon!</div>} />
               </Route>
