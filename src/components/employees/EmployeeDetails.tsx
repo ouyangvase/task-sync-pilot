@@ -47,11 +47,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
     setIsTaskDialogOpen(true);
   };
 
-  const handleTaskSubmit = (formData: any) => {
-    addTask({
-      ...formData,
-      assignee: employee.id,
-    });
+  const handleCloseDialog = () => {
     setIsTaskDialogOpen(false);
   };
 
@@ -95,9 +91,10 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
                       Create a new task for this employee
                     </DialogDescription>
                   </DialogHeader>
+                  {/* Pass the correct props to TaskForm */}
                   <TaskForm 
-                    onSubmit={handleTaskSubmit}
-                    initialAssignee={employee.id}
+                    task={null}
+                    onClose={handleCloseDialog}
                   />
                 </DialogContent>
               </Dialog>
