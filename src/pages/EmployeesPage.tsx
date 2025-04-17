@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -51,10 +50,12 @@ const EmployeesPage = () => {
   useEffect(() => {
     if (currentUser?.role === "admin") {
       handleRefreshPendingUsers();
-    } else if (currentUser && 
-        !["admin", "manager", "team_lead"].includes(currentUser.role as UserRole)) {
-      toast.error("You don't have permission to access this page");
-      setRedirectToLogin(true);
+    } else if (currentUser) {
+      const allowedRoles: UserRole[] = ["admin", "manager", "team_lead"];
+      if (!allowedRoles.includes(currentUser.role as UserRole)) {
+        toast.error("You don't have permission to access this page");
+        setRedirectToLogin(true);
+      }
     }
   }, [currentUser]);
 
