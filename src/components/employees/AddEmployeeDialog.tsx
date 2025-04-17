@@ -146,7 +146,7 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
                   <SelectValue placeholder="Select a title (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Title</SelectItem>
+                  <SelectItem value="none">No Title</SelectItem>
                   {EMPLOYEE_TITLES.map(title => (
                     <SelectItem key={title} value={title}>{title}</SelectItem>
                   ))}

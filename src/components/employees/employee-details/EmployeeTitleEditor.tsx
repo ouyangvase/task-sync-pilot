@@ -53,7 +53,7 @@ export function EmployeeTitleEditor({
               <SelectValue placeholder="Select a title" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Title</SelectItem>
+              <SelectItem value="none">No Title</SelectItem>
               {EMPLOYEE_TITLES.map((title) => (
                 <SelectItem key={title} value={title}>
                   <div className="flex items-center gap-2">
