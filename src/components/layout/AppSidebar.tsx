@@ -9,6 +9,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Trophy,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,11 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: <BarChart3 className="h-5 w-5" />,
     },
     {
+      name: "Achievements",
+      path: "/achievements",
+      icon: <Trophy className="h-5 w-5" />,
+    },
+    {
       name: "Settings",
       path: "/settings",
       icon: <Settings className="h-5 w-5" />,
@@ -74,6 +81,11 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Calendar",
       path: "/calendar",
       icon: <Calendar className="h-5 w-5" />,
+    },
+    {
+      name: "Achievements",
+      path: "/achievements",
+      icon: <Trophy className="h-5 w-5" />,
     },
     {
       name: "Settings",
@@ -110,6 +122,21 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
             </Link>
           ))}
         </nav>
+      </div>
+      <div className="space-y-1 px-4 mb-2">
+        <Link
+          to="/profile"
+          onClick={onClose}
+          className={cn(
+            "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-all",
+            isActive("/profile")
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <span className="mr-3"><User className="h-5 w-5" /></span>
+          Profile
+        </Link>
       </div>
       <div className="border-t border-border/40 p-4">
         <Button 

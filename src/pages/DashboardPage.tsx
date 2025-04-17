@@ -7,6 +7,7 @@ import TaskSummaryCard from "@/components/dashboard/TaskSummaryCard";
 import TaskList from "@/components/tasks/TaskList";
 import PointsProgressCard from "@/components/dashboard/PointsProgressCard";
 import RewardsManager from "@/components/rewards/RewardsManager";
+import AchievementsSection from "@/components/dashboard/AchievementsSection";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
 
@@ -97,6 +98,9 @@ const DashboardPage = () => {
           rewards={reachedRewards.length ? reachedRewards : rewardTiers.slice(0, 1)}
         />
       </div>
+
+      {/* Add Achievements Section */}
+      <AchievementsSection />
       
       <div className="grid gap-8">
         <TaskList

@@ -13,6 +13,8 @@ import CalendarPage from "@/pages/CalendarPage";
 import CompletedPage from "@/pages/CompletedPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import ReportsPage from "@/pages/ReportsPage";
+import ProfilePage from "@/pages/ProfilePage";
+import AchievementsPage from "@/pages/AchievementsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const queryClient = new QueryClient();
@@ -34,9 +36,10 @@ const App = () => (
                 <Route path="completed" element={<CompletedPage />} />
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="reports" element={<ReportsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="achievements" element={<AchievementsPage />} />
                 {/* Placeholder routes for future implementation */}
                 <Route path="settings" element={<div className="py-10 text-center">Settings coming soon!</div>} />
-                <Route path="profile" element={<div className="py-10 text-center">Profile page coming soon!</div>} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

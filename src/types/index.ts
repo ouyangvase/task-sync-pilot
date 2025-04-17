@@ -49,3 +49,14 @@ export interface RewardTier {
   points: number;
   reward: string;
 }
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  pointsRequired: number;
+  isUnlocked?: boolean;
+  unlockedDate?: string;
+  currentPoints?: number;
+}

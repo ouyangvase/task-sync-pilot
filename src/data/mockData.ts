@@ -1,4 +1,3 @@
-
 import { Task, User, RewardTier } from "@/types";
 
 // Mock Users
@@ -126,3 +125,51 @@ export const mockTasks: Task[] = [
 
 // Mock current user
 export const currentUser = mockUsers[0]; // Default to admin
+
+export const mockAchievements = [
+  {
+    id: "1",
+    title: "Task Master",
+    description: "Completed 50 tasks",
+    icon: "🏆",
+    pointsRequired: 500,
+    isUnlocked: true,
+    unlockedDate: "2023-12-15",
+  },
+  {
+    id: "2",
+    title: "Early Bird",
+    description: "Completed 10 tasks before their due date",
+    icon: "🐦",
+    pointsRequired: 250,
+    isUnlocked: true,
+    unlockedDate: "2024-01-22", 
+  },
+  {
+    id: "3",
+    title: "Perfectionist",
+    description: "Achieved 100% completion rate for a month",
+    icon: "🌟",
+    pointsRequired: 1000,
+    isUnlocked: false,
+    currentPoints: 750,
+  },
+  {
+    id: "4",
+    title: "Team Player",
+    description: "Helped teammates complete 20 tasks",
+    icon: "👥",
+    pointsRequired: 800,
+    isUnlocked: false,
+    currentPoints: 350,
+  },
+  {
+    id: "5",
+    title: "Efficiency Expert",
+    description: "Completed 5 tasks in a single day",
+    icon: "⚡",
+    pointsRequired: 300,
+    isUnlocked: true,
+    unlockedDate: "2024-02-10",
+  }
+];
