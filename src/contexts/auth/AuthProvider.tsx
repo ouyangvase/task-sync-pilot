@@ -1,3 +1,4 @@
+
 import React, { createContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthActions } from "./useAuthActions";
@@ -14,11 +15,12 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { loadUsers, users } = useAuthData({ setLoading });
-  const { notifications, markNotificationAsRead, unreadNotificationsCount } = useNotifications();
+  const { notifications, markNotificationAsRead, unreadNotificationsCount, fetchNotifications } = useNotifications();
   const authActions = useAuthActions({ setCurrentUser, setLoading });
+  const { fetchUsers } = useAuthData({ currentUser, setUsers, setLoading });
 
   const mapUserRole = async (userId: string): Promise<UserRole> => {
     try {
@@ -53,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register: authActions.register,
     logout: authActions.logout,
     users,
-    fetchUsers: loadUsers,
+    fetchUsers,
     resetAppData: authActions.resetAppData,
     notifications,
     markNotificationAsRead,
@@ -89,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // Load all users if current user is admin
           if (role === 'admin') {
-            await loadUsers();
+            await fetchUsers();
           }
         }
       } catch (error) {
@@ -131,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             // Load all users if current user is admin
             if (role === 'admin') {
-              await loadUsers();
+              await fetchUsers();
             }
           } catch (error) {
             console.error("Error handling auth change:", error);
