@@ -44,25 +44,35 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
     setSelectedRoles(prev => ({ ...prev, [userId]: role }));
   };
 
-  const handleTitleChange = async (userId: string, title: string) => {
+  const handleTitleChange = (userId: string, title: string) => {
     setSelectedTitles(prev => ({ ...prev, [userId]: title }));
-    try {
-      await updateUserTitle(userId, title);
-      toast.success("Title updated successfully");
-    } catch (error) {
-      toast.error(`Failed to update title: ${error}`);
-    }
   };
 
   const handleApprove = async (user: User) => {
     try {
       setProcessingIds(prev => ({ ...prev, [user.id]: true }));
-      await approveUser(user.id);
+      
+      // First approve the user
+      const updatedUser = await approveUser(user.id);
+      
+      if (!updatedUser) {
+        throw new Error("Failed to update user approval status");
+      }
+      
+      // Then update role if selected
       const role = selectedRoles[user.id] || "employee";
       await updateUserRole(user.id, role);
       
+      // Update title if selected
+      const title = selectedTitles[user.id];
+      if (title) {
+        await updateUserTitle(user.id, title);
+      }
+      
       // Send approval email via Supabase Edge Function
       try {
+        console.log("Sending approval email for user:", user.name, user.email, role);
+        
         const { error } = await supabase.functions.invoke("send-approval-email", {
           body: {
             name: user.name,
@@ -73,6 +83,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
         
         if (error) {
           console.error("Error sending approval email:", error);
+          toast.error("Approved user but failed to send notification email");
         }
       } catch (emailError) {
         console.error("Failed to send approval email:", emailError);
@@ -82,6 +93,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       toast.success(`User ${user.name} has been approved as ${role}`);
       onRefresh();
     } catch (error) {
+      console.error("Error in handleApprove:", error);
       toast.error(`Failed to approve user: ${error}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [user.id]: false }));

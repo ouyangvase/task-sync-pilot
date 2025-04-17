@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
@@ -16,7 +15,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mockUsers.map(user => ({
       ...user,
       permissions: user.permissions || [],
-      isApproved: true,
+      isApproved: user.isApproved !== undefined ? user.isApproved : true,
     }))
   );
 
@@ -52,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error("Invalid email or password");
       }
 
-      if (!user.isApproved) {
+      if (user.isApproved === false) {
         throw new Error("Your account is pending admin approval");
       }
       
@@ -66,6 +65,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setCurrentUser(enhancedUser);
       localStorage.setItem("currentUser", JSON.stringify(enhancedUser));
+      
+      // Debug log to verify login success
+      console.log("Login successful:", enhancedUser);
+      
+      return enhancedUser;
     } finally {
       setLoading(false);
     }
@@ -76,7 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("currentUser");
   };
 
-  // Register a new user
   const registerUser = async (email: string, password: string, fullName: string) => {
     // Check if email already exists
     const existingUser = users.find((u) => u.email === email);
@@ -103,8 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return;
   };
 
-  // Approve a pending user
   const approveUser = async (userId: string) => {
+    console.log("Approving user:", userId);
     const updatedUsers = users.map(user => {
       if (user.id === userId) {
         return { ...user, isApproved: true };
@@ -113,12 +116,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     setUsers(updatedUsers);
+    
+    // Debug log to verify user approval
+    console.log("Updated users after approval:", updatedUsers);
 
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    return updatedUsers.find(user => user.id === userId);
   };
 
-  // Reject and remove a pending user
   const rejectUser = async (userId: string) => {
     const updatedUsers = users.filter(user => user.id !== userId);
     setUsers(updatedUsers);
@@ -127,7 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
-  // Get all pending users
   const getPendingUsers = () => {
     return users.filter(user => user.isApproved === false);
   };
@@ -170,7 +176,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Function to update cross-user permissions
   const updateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
     const updatedUsers = updateUserPermissionsHelper(users, userId, targetUserId, newPermissions);
     setUsers(updatedUsers);

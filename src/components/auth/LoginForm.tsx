@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -41,12 +41,16 @@ const LoginForm = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Add debug logs
+      console.log("Login attempt with:", data.email);
+      
       await login(data.email, data.password);
       toast.success("Login successful");
       navigate("/dashboard");
-    } catch (error) {
-      toast.error("Invalid email or password");
-      console.error(error);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error.message || "Invalid email or password");
     } finally {
       setIsSubmitting(false);
     }
