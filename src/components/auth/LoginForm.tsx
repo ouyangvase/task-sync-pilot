@@ -15,7 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 
 const formSchema = z.object({
@@ -52,12 +52,10 @@ const LoginForm = () => {
     }
   };
 
-  // For demo purposes, provide quick login buttons
-  const quickLogin = async (role: "admin" | "employee") => {
+  const quickLogin = async () => {
     setIsSubmitting(true);
     try {
-      const email = role === "admin" ? "admin@tasksync.com" : "john@tasksync.com";
-      await login(email, "password123");
+      await login("admin@tasksync.com", "password123");
       toast.success("Login successful");
       navigate("/dashboard");
     } catch (error) {
@@ -109,32 +107,19 @@ const LoginForm = () => {
             </Button>
           </form>
         </Form>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-2">
-        <div className="text-sm text-muted-foreground text-center w-full mb-2">
-          For demo purposes:
-        </div>
-        <div className="flex gap-2 w-full">
+
+        <div className="mt-4 text-center">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
-            onClick={() => quickLogin("admin")}
+            className="w-full"
+            onClick={quickLogin}
             disabled={isSubmitting}
           >
             Login as Admin
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => quickLogin("employee")}
-            disabled={isSubmitting}
-          >
-            Login as Employee
-          </Button>
         </div>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 };
