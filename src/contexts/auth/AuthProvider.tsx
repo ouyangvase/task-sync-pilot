@@ -1,4 +1,3 @@
-
 import React, { createContext, useEffect } from "react";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
 import { AuthContextType } from "./types";
@@ -9,6 +8,10 @@ import { useAuthOperations } from "./useAuthOperations";
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Load users from localStorage if available
+  const storedUsers = localStorage.getItem("users");
+  const initialUsers = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+
   const {
     users,
     setUsers,
@@ -16,7 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateUserRole,
     updateUserPermissions,
     getPendingUsers
-  } = useUserManagement(mockUsers);
+  } = useUserManagement(initialUsers);
 
   const {
     currentUser,
@@ -56,6 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setLoading(false);
   }, []);
+
+  // Debug users list
+  useEffect(() => {
+    console.log("Current users in AuthProvider:", users);
+  }, [users]);
 
   // Sync currentUser when user permissions change
   const handleUpdateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<any>) => {

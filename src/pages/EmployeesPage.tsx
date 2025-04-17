@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -19,9 +20,21 @@ const EmployeesPage = () => {
   const [activeTab, setActiveTab] = useState("employees");
   const [redirectToLogin, setRedirectToLogin] = useState(false);
 
+  // Debug users
+  useEffect(() => {
+    console.log("All users in EmployeesPage:", users);
+  }, [users]);
+
   // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
-  const employees = accessibleUsers.filter(user => user.role === "employee");
+  console.log("Accessible users:", accessibleUsers);
+  
+  // For admin, display team_lead users as well
+  const employees = accessibleUsers.filter(user => 
+    user.role === "employee" || 
+    (currentUser?.role === "admin" && ["employee", "team_lead", "manager"].includes(user.role))
+  );
+  console.log("Filtered employees to display:", employees);
   
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);

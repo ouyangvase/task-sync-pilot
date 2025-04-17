@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
 import { toast } from "sonner";
 import { updateUserPermissionsHelper } from "./authUtils";
@@ -33,6 +33,11 @@ export const useUserManagement = (initialUsers: User[]) => {
       isApproved: user.isApproved !== undefined ? user.isApproved : true, // Default to true for existing users
     }))
   );
+
+  // Effect to ensure any changes to users are saved to localStorage
+  useEffect(() => {
+    localStorage.setItem("users", JSON.stringify(users));
+  }, [users]);
 
   const updateUserTitle = (userId: string, title: string) => {
     // Update users array with the new title
