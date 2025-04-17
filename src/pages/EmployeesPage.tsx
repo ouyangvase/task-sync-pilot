@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -32,6 +33,33 @@ const EmployeesPage = () => {
   const userPermissions = rolePermissions[userRole] || [];
   const canViewEmployees = userPermissions.includes("view_employees");
   const canManageUsers = userPermissions.includes("manage_users");
+
+  // Delete user with email unmap@live.com
+  useEffect(() => {
+    if (currentUser?.role === "admin" && users.length > 0) {
+      const userToDelete = users.find(user => user.email === "unmap@live.com");
+      
+      if (userToDelete) {
+        // Remove the user from the users list
+        const updatedUsers = users.filter(user => user.email !== "unmap@live.com");
+        
+        // Remove all tasks associated with this user
+        const updatedTasks = tasks.filter(task => task.assignee !== userToDelete.id);
+        
+        // Update state
+        setUsers(updatedUsers);
+        setTasks(updatedTasks);
+        
+        // Show notification
+        toast.success(`User ${userToDelete.name || userToDelete.email} has been deleted along with all associated tasks`);
+        
+        // Log the deletion action
+        console.log(`User with email unmap@live.com has been deleted by admin ${currentUser.name}`);
+      } else {
+        console.log("User with email unmap@live.com not found");
+      }
+    }
+  }, [currentUser, users, tasks, setUsers, setTasks]);
 
   // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];

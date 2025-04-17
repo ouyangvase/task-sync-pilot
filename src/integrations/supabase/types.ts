@@ -1014,7 +1014,6 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
-          is_approved: boolean | null
           updated_at: string
           username: string | null
         }
@@ -1027,7 +1026,6 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
-          is_approved?: boolean | null
           updated_at?: string
           username?: string | null
         }
@@ -1040,7 +1038,6 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
-          is_approved?: boolean | null
           updated_at?: string
           username?: string | null
         }
@@ -1641,38 +1638,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_custom_permissions: {
-        Row: {
-          created_at: string | null
-          id: string
-          permission: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          permission: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          permission?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_custom_permissions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_favorite_merchants: {
         Row: {
           created_at: string
@@ -1746,51 +1711,6 @@ export type Database = {
             columns: ["mission_id"]
             isOneToOne: false
             referencedRelation: "missions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_permissions: {
-        Row: {
-          can_edit: boolean | null
-          can_view: boolean | null
-          created_at: string | null
-          id: string
-          target_user_id: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          can_edit?: boolean | null
-          can_view?: boolean | null
-          created_at?: string | null
-          id?: string
-          target_user_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          can_edit?: boolean | null
-          can_view?: boolean | null
-          created_at?: string | null
-          id?: string
-          target_user_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_permissions_target_user_id_fkey"
-            columns: ["target_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_permissions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
