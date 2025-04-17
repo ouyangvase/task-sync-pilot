@@ -12,6 +12,7 @@ interface AuthContextType {
   logout: () => void;
   users: User[];
   updateUserTitle: (userId: string, title: string) => void;
+  updateUserRole: (userId: string, role: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -87,6 +88,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserRole = (userId: string, role: string) => {
+    // Update users array with the new role
+    const updatedUsers = users.map(user => {
+      if (user.id === userId) {
+        return { ...user, role };
+      }
+      return user;
+    });
+    
+    setUsers(updatedUsers);
+    
+    // Also update currentUser if it's the same user
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = { ...currentUser, role };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -97,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         users,
         updateUserTitle,
+        updateUserRole,
       }}
     >
       {children}

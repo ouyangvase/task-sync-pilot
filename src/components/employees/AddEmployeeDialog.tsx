@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EMPLOYEE_TITLES } from "./employee-details/constants";
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -19,6 +21,8 @@ const nameSchema = z.string().min(3, "Name must be at least 3 characters");
 const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDialogProps) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState("employee");
+  const [title, setTitle] = useState("");
   const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,10 +58,10 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
     
     setIsSubmitting(true);
     
-    // In a real app, this would be an API call to create the employee
+    // In a real app, this would be an API call to create and invite the employee
     setTimeout(() => {
       setIsSubmitting(false);
-      toast.success(`Employee ${name} would be created in a real app`);
+      toast.success(`Invitation sent to ${email}`);
       onEmployeeCreated();
       resetForm();
     }, 1000);
@@ -66,6 +70,8 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
   const resetForm = () => {
     setName("");
     setEmail("");
+    setRole("employee");
+    setTitle("");
     setErrors({});
   };
 
@@ -78,9 +84,9 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Employee</DialogTitle>
+          <DialogTitle>Invite New Employee</DialogTitle>
           <DialogDescription>
-            Add a new employee to your organization.
+            Send an invitation to a new employee to join your organization.
           </DialogDescription>
         </DialogHeader>
         
@@ -113,8 +119,43 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select 
+                value={role} 
+                onValueChange={setRole}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="team_lead">Team Lead</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Optional Title</Label>
+              <Select 
+                value={title} 
+                onValueChange={setTitle}
+              >
+                <SelectTrigger id="title">
+                  <SelectValue placeholder="Select a title (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Title</SelectItem>
+                  {EMPLOYEE_TITLES.map(title => (
+                    <SelectItem key={title} value={title}>{title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <p className="text-sm text-muted-foreground">
-              A random password will be generated and sent to the employee's email.
+              An invitation will be sent to the employee's email with instructions to complete registration.
             </p>
           </div>
           
@@ -123,7 +164,7 @@ const AddEmployeeDialog = ({ open, onClose, onEmployeeCreated }: AddEmployeeDial
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Employee"}
+              {isSubmitting ? "Sending Invitation..." : "Send Invitation"}
             </Button>
           </DialogFooter>
         </form>

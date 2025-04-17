@@ -14,6 +14,7 @@ import { EmployeeTitleEditor } from "./employee-details/EmployeeTitleEditor";
 import { EmployeeTaskList } from "./employee-details/EmployeeTaskList";
 import { ActionButtons } from "./employee-details/ActionButtons";
 import { getTitleIcons } from "./employee-details/constants";
+import { RolePermissionEditor } from "./employee-details/RolePermissionEditor";
 
 interface EmployeeDetailsProps {
   employee: User;
@@ -21,7 +22,7 @@ interface EmployeeDetailsProps {
 
 const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const { getUserTasks, getUserTaskStats, getUserPointsStats } = useTasks();
-  const { currentUser, updateUserTitle } = useAuth();
+  const { currentUser, updateUserTitle, updateUserRole } = useAuth();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
   const isAdmin = currentUser?.role === "admin";
@@ -76,6 +77,12 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
           />
         </CardContent>
       </Card>
+      
+      <RolePermissionEditor 
+        employee={employee}
+        isAdmin={isAdmin}
+        onUpdateRole={updateUserRole}
+      />
       
       <EmployeeTaskList 
         pendingTasks={pendingTasks}
