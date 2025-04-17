@@ -18,12 +18,7 @@ const EmployeesPage = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState("employees");
-
-  // Redirect non-admin and non-manager users away from this page
-  if (!currentUser || (currentUser?.role !== "admin" && currentUser?.role !== "manager" && currentUser?.role !== "team_lead")) {
-    toast.error("You don't have permission to access this page");
-    return <Navigate to="/dashboard" />;
-  }
+  const [redirectToLogin, setRedirectToLogin] = useState(false);
 
   // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
@@ -56,10 +51,18 @@ const EmployeesPage = () => {
   useEffect(() => {
     if (currentUser?.role === "admin") {
       handleRefreshPendingUsers();
+    } else if (!currentUser || (currentUser?.role !== "admin" && currentUser?.role !== "manager" && currentUser?.role !== "team_lead")) {
+      toast.error("You don't have permission to access this page");
+      setRedirectToLogin(true);
     }
   }, [currentUser]);
 
   document.title = "Employee Management | TaskSync Pilot";
+
+  // Redirect non-admin and non-manager users away from this page
+  if (redirectToLogin) {
+    return <Navigate to="/dashboard" />;
+  }
 
   return (
     <div className="space-y-6">

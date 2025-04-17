@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { User, UserRole } from "@/types";
 import { toast } from "sonner";
 import { EMPLOYEE_TITLES } from "../employees/employee-details/constants";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PendingUsersListProps {
   pendingUsers: User[];
@@ -39,12 +40,45 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
 
+  const handleRoleChange = (userId: string, role: UserRole) => {
+    setSelectedRoles(prev => ({ ...prev, [userId]: role }));
+  };
+
+  const handleTitleChange = async (userId: string, title: string) => {
+    setSelectedTitles(prev => ({ ...prev, [userId]: title }));
+    try {
+      await updateUserTitle(userId, title);
+      toast.success("Title updated successfully");
+    } catch (error) {
+      toast.error(`Failed to update title: ${error}`);
+    }
+  };
+
   const handleApprove = async (user: User) => {
     try {
       setProcessingIds(prev => ({ ...prev, [user.id]: true }));
       await approveUser(user.id);
       const role = selectedRoles[user.id] || "employee";
       await updateUserRole(user.id, role);
+      
+      // Send approval email via Supabase Edge Function
+      try {
+        const { error } = await supabase.functions.invoke("send-approval-email", {
+          body: {
+            name: user.name,
+            email: user.email,
+            role: role
+          }
+        });
+        
+        if (error) {
+          console.error("Error sending approval email:", error);
+        }
+      } catch (emailError) {
+        console.error("Failed to send approval email:", emailError);
+        // Continue with approval process even if email fails
+      }
+      
       toast.success(`User ${user.name} has been approved as ${role}`);
       onRefresh();
     } catch (error) {
@@ -64,20 +98,6 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       toast.error(`Failed to reject user: ${error}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [userId]: false }));
-    }
-  };
-
-  const handleRoleChange = (userId: string, role: UserRole) => {
-    setSelectedRoles(prev => ({ ...prev, [userId]: role }));
-  };
-
-  const handleTitleChange = async (userId: string, title: string) => {
-    setSelectedTitles(prev => ({ ...prev, [userId]: title }));
-    try {
-      await updateUserTitle(userId, title);
-      toast.success("Title updated successfully");
-    } catch (error) {
-      toast.error(`Failed to update title: ${error}`);
     }
   };
 
