@@ -20,9 +20,19 @@ export const useAuthData = ({ currentUser, setUsers, setLoading }: AuthDataProps
         .from('profiles')
         .select('*');
       
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        return;
+      }
+      
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*');
+      
+      if (rolesError) {
+        console.error("Error fetching roles:", rolesError);
+        return;
+      }
       
       if (profiles && roles) {
         const mappedUsers: User[] = profiles.map(profile => {
@@ -30,7 +40,7 @@ export const useAuthData = ({ currentUser, setUsers, setLoading }: AuthDataProps
           return {
             id: profile.id,
             name: profile.full_name,
-            email: '',
+            email: profile.email || '',
             role: (userRole?.role as UserRole) || 'employee',
             avatar: profile.avatar_url,
             department: profile.department || ''

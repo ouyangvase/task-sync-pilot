@@ -1,3 +1,4 @@
+
 import React, { createContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthActions } from "./useAuthActions";
@@ -15,9 +16,10 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
 
-  const { loadUsers, users } = useAuthData({ setLoading });
   const { notifications, markNotificationAsRead, unreadNotificationsCount } = useNotifications();
+  const authData = useAuthData({ currentUser, setUsers, setLoading });
   const authActions = useAuthActions({ setCurrentUser, setLoading });
 
   const mapUserRole = async (userId: string): Promise<UserRole> => {
@@ -53,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register: authActions.register,
     logout: authActions.logout,
     users,
-    fetchUsers: loadUsers,
+    fetchUsers: authData.fetchUsers,
     resetAppData: authActions.resetAppData,
     notifications,
     markNotificationAsRead,
@@ -62,8 +64,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Initialize auth state
   useEffect(() => {
+    let authListener: { subscription: { unsubscribe: () => void } };
+    
     const initializeAuth = async () => {
       try {
+        setLoading(true);
         // Get current session
         const { data: sessionData } = await supabase.auth.getSession();
         const session = sessionData?.session;
@@ -89,7 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // Load all users if current user is admin
           if (role === 'admin') {
-            await loadUsers();
+            await authData.fetchUsers();
           }
         }
       } catch (error) {
@@ -100,54 +105,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     // Set up auth state listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_OUT") {
-          setCurrentUser(null);
-          return;
-        }
-
-        if (event === "SIGNED_IN" && session?.user) {
-          setLoading(true);
+    const setupAuthListener = () => {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log("Auth state changed:", event);
           
-          try {
-            const { data: userProfile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            const role = await mapUserRole(session.user.id);
-
-            setCurrentUser({
-              id: session.user.id,
-              name: userProfile?.full_name || session.user.email?.split('@')[0] || 'Unknown User',
-              email: session.user.email || '',
-              role: role,
-              avatar: userProfile?.avatar_url || '',
-              monthlyPoints: 0,
-              department: userProfile?.department || undefined,
-            });
-
-            // Load all users if current user is admin
-            if (role === 'admin') {
-              await loadUsers();
-            }
-          } catch (error) {
-            console.error("Error handling auth change:", error);
-          } finally {
+          if (event === "SIGNED_OUT") {
+            setCurrentUser(null);
             setLoading(false);
+            return;
+          }
+
+          if (event === "SIGNED_IN" && session?.user) {
+            setLoading(true);
+            
+            try {
+              const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              const role = await mapUserRole(session.user.id);
+
+              setCurrentUser({
+                id: session.user.id,
+                name: userProfile?.full_name || session.user.email?.split('@')[0] || 'Unknown User',
+                email: session.user.email || '',
+                role: role,
+                avatar: userProfile?.avatar_url || '',
+                monthlyPoints: 0,
+                department: userProfile?.department || undefined,
+              });
+
+              // Load all users if current user is admin
+              if (role === 'admin') {
+                await authData.fetchUsers();
+              }
+            } catch (error) {
+              console.error("Error handling auth change:", error);
+            } finally {
+              setLoading(false);
+            }
           }
         }
-      }
-    );
+      );
+      
+      return data;
+    };
 
+    authListener = setupAuthListener();
+    
     // Initialize auth state
     initializeAuth();
 
     // Cleanup
     return () => {
-      authListener.subscription.unsubscribe();
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
     };
   }, []);
 
