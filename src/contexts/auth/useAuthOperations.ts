@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient"; // ✅ 加入 admin client
 import { User } from "@/types";
 
 export const useAuthOperations = () => {
@@ -21,20 +22,28 @@ export const useAuthOperations = () => {
         }
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Auth SignUp Error:", error);
+        throw new Error(error.message);
+      }
 
       const userId = data.user?.id;
       if (!userId) throw new Error("User ID not returned from Supabase");
 
-      const { error: insertError } = await supabase.from("users").insert({
-        id: userId,
-        email,
-        full_name: fullName,
-        role: "employee",
-        is_approved: false
-      });
+      const { error: insertError } = await supabaseAdmin // ✅ 使用后台 admin client 写入
+        .from("users")
+        .insert({
+          id: userId,
+          email,
+          full_name: fullName,
+          role: "employee",
+          is_approved: false
+        });
 
-      if (insertError) throw new Error("Database error saving new user: " + insertError.message);
+      if (insertError) {
+        console.error("Insert User Error:", insertError);
+        throw new Error("Database error saving new user: " + insertError.message);
+      }
     } finally {
       setLoading(false);
     }
