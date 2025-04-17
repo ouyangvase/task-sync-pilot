@@ -7,14 +7,12 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { TaskProvider } from "@/contexts/TaskContext";
 import AppLayout from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import TasksPage from "@/pages/TasksPage";
 import CalendarPage from "@/pages/CalendarPage";
 import CompletedPage from "@/pages/CompletedPage";
 import EmployeesPage from "@/pages/EmployeesPage";
 import ReportsPage from "@/pages/ReportsPage";
-import ProfilePage from "@/pages/ProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const queryClient = new QueryClient();
@@ -29,7 +27,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
               <Route path="/" element={<AppLayout />}>
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="tasks" element={<TasksPage />} />
@@ -37,9 +34,9 @@ const App = () => (
                 <Route path="completed" element={<CompletedPage />} />
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="reports" element={<ReportsPage />} />
-                <Route path="profile" element={<ProfilePage />} />
                 {/* Placeholder routes for future implementation */}
                 <Route path="settings" element={<div className="py-10 text-center">Settings coming soon!</div>} />
+                <Route path="profile" element={<div className="py-10 text-center">Profile page coming soon!</div>} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

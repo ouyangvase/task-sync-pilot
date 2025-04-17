@@ -8,7 +8,6 @@ export interface User {
   role: UserRole;
   avatar?: string;
   monthlyPoints?: number;
-  department?: string;
 }
 
 export type TaskCategory = "daily" | "custom" | "completed";
