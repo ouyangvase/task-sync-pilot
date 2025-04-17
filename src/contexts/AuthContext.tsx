@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: sessionData.session.user.id,
               name: userData.full_name,
               email: sessionData.session.user.email || '',
-              role: roleData.role,
+              role: roleData.role as UserRole,
               avatar: userData.avatar_url,
               department: userData.department
             });
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: session.user.id,
               name: userData.full_name,
               email: session.user.email || '',
-              role: roleData.role,
+              role: roleData.role as UserRole,
               avatar: userData.avatar_url,
               department: userData.department
             });
@@ -232,13 +232,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*');
       
       if (profiles && roles) {
-        const mappedUsers = profiles.map(profile => {
+        const mappedUsers: User[] = profiles.map(profile => {
           const userRole = roles.find(r => r.user_id === profile.id);
           return {
             id: profile.id,
             name: profile.full_name,
             email: '',
-            role: userRole?.role || 'employee',
+            role: (userRole?.role || 'employee') as UserRole,
             avatar: profile.avatar_url,
             department: profile.department
           };
