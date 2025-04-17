@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
 import EmployeesList from "@/components/employees/EmployeesList";
 import EmployeeDetails from "@/components/employees/EmployeeDetails";
@@ -20,7 +20,7 @@ const EmployeesPage = () => {
   const [activeTab, setActiveTab] = useState("employees");
 
   // Redirect non-admin and non-manager users away from this page
-  if (currentUser?.role !== "admin" && currentUser?.role !== "manager" && currentUser?.role !== "team_lead") {
+  if (!currentUser || (currentUser?.role !== "admin" && currentUser?.role !== "manager" && currentUser?.role !== "team_lead")) {
     toast.error("You don't have permission to access this page");
     return <Navigate to="/dashboard" />;
   }
@@ -52,7 +52,7 @@ const EmployeesPage = () => {
     }
   };
 
-  // Load pending users on mount
+  // Load pending users on mount and when current user changes
   useEffect(() => {
     if (currentUser?.role === "admin") {
       handleRefreshPendingUsers();

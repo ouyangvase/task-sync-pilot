@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { 
   Card, 
   CardContent, 
@@ -27,7 +27,6 @@ import { Button } from "@/components/ui/button";
 import { User, UserRole } from "@/types";
 import { toast } from "sonner";
 import { EMPLOYEE_TITLES } from "../employees/employee-details/constants";
-import { Badge } from "@/components/ui/badge";
 
 interface PendingUsersListProps {
   pendingUsers: User[];
@@ -37,11 +36,14 @@ interface PendingUsersListProps {
 const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) => {
   const { approveUser, rejectUser, updateUserRole, updateUserTitle } = useAuth();
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
+  const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
 
-  const handleApprove = async (user: User, role: UserRole) => {
+  const handleApprove = async (user: User) => {
     try {
       setProcessingIds(prev => ({ ...prev, [user.id]: true }));
       await approveUser(user.id);
+      const role = selectedRoles[user.id] || "employee";
       await updateUserRole(user.id, role);
       toast.success(`User ${user.name} has been approved as ${role}`);
       onRefresh();
@@ -65,7 +67,12 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
     }
   };
 
+  const handleRoleChange = (userId: string, role: UserRole) => {
+    setSelectedRoles(prev => ({ ...prev, [userId]: role }));
+  };
+
   const handleTitleChange = async (userId: string, title: string) => {
+    setSelectedTitles(prev => ({ ...prev, [userId]: title }));
     try {
       await updateUserTitle(userId, title);
       toast.success("Title updated successfully");
@@ -110,15 +117,18 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
           <TableBody>
             {pendingUsers.map((user) => {
               const isProcessing = processingIds[user.id] || false;
-              const [selectedRole, setSelectedRole] = useState<UserRole>("employee");
-              const [selectedTitle, setSelectedTitle] = useState<string>("none");
+              const selectedRole = selectedRoles[user.id] || "employee";
+              const selectedTitle = selectedTitles[user.id] || "none";
 
               return (
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Select defaultValue="employee" onValueChange={(value) => setSelectedRole(value as UserRole)}>
+                    <Select 
+                      value={selectedRole} 
+                      onValueChange={(value) => handleRoleChange(user.id, value as UserRole)}
+                    >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
@@ -130,12 +140,10 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <Select defaultValue="none" onValueChange={(value) => {
-                      setSelectedTitle(value);
-                      if (user.id) {
-                        handleTitleChange(user.id, value);
-                      }
-                    }}>
+                    <Select 
+                      value={selectedTitle} 
+                      onValueChange={(value) => handleTitleChange(user.id, value)}
+                    >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select title (optional)" />
                       </SelectTrigger>
@@ -151,7 +159,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
                     <div className="flex items-center gap-2">
                       <Button 
                         size="sm" 
-                        onClick={() => handleApprove(user, selectedRole)}
+                        onClick={() => handleApprove(user)}
                         disabled={isProcessing}
                       >
                         Approve
