@@ -1,4 +1,3 @@
-
 import React, { createContext, useEffect } from "react";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
 import { AuthContextType } from "./types";
@@ -19,6 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateUserTitle,
     updateUserRole,
     updateUserPermissions,
+    updateUserCustomPermissions,
     getPendingUsers
   } = useUserManagement(initialUsers);
 
@@ -134,10 +134,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         users,
-        setUsers, // Make setUsers available in the context
+        setUsers,
         updateUserTitle: handleUpdateUserTitle,
         updateUserRole: handleUpdateUserRole,
         updateUserPermissions: handleUpdateUserPermissions,
+        updateUserCustomPermissions,
         canViewUser: (viewerId, targetUserId) => canViewUser(users, viewerId, targetUserId),
         canEditUser: (editorId, targetUserId) => canEditUser(users, editorId, targetUserId),
         getAccessibleUsers: (userId) => getAccessibleUsers(users, userId),

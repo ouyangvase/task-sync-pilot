@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/auth";
 import { 
   Card, 
@@ -25,20 +25,6 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
 
-  // Initialize selected roles and titles for each pending user
-  useEffect(() => {
-    const initialRoles: Record<string, UserRole> = {};
-    const initialTitles: Record<string, string> = {};
-    
-    pendingUsers.forEach(user => {
-      initialRoles[user.id] = user.role || "employee";
-      initialTitles[user.id] = user.title || "none";
-    });
-    
-    setSelectedRoles(initialRoles);
-    setSelectedTitles(initialTitles);
-  }, [pendingUsers]);
-
   const handleRoleChange = (userId: string, role: UserRole) => {
     setSelectedRoles(prev => ({ ...prev, [userId]: role }));
   };
@@ -60,7 +46,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       
       // Update title if selected
       const title = selectedTitles[user.id];
-      if (title && title !== "none") {
+      if (title) {
         updateUserTitle(user.id, title);
       }
       
@@ -86,7 +72,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       }
       
       toast.success(`User ${user.name} has been approved as ${role}`);
-      onRefresh(); // Refresh the list of pending users
+      onRefresh();
     } catch (error) {
       console.error("Error in handleApprove:", error);
       toast.error(`Failed to approve user: ${error}`);
@@ -100,7 +86,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       setProcessingIds(prev => ({ ...prev, [userId]: true }));
       await rejectUser(userId);
       toast.success("User has been rejected");
-      onRefresh(); // Refresh the list of pending users
+      onRefresh();
     } catch (error) {
       toast.error(`Failed to reject user: ${error}`);
     } finally {

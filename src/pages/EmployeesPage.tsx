@@ -106,9 +106,7 @@ const EmployeesPage = () => {
 
   const handleRefreshPendingUsers = () => {
     if (currentUser && canManageUsers) {
-      const latestPendingUsers = getPendingUsers();
-      console.log("Refreshed pending users:", latestPendingUsers);
-      setPendingUsers(latestPendingUsers);
+      setPendingUsers(getPendingUsers());
     }
   };
 
@@ -122,7 +120,7 @@ const EmployeesPage = () => {
         setRedirectToLogin(true);
       }
     }
-  }, [currentUser, users]); // Add users as dependency to update when users change
+  }, [currentUser]);
 
   document.title = "Employee Management | TaskSync Pilot";
 
