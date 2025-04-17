@@ -12,11 +12,16 @@ export const usePendingUsers = () => {
       setIsProcessing(prev => ({ ...prev, [user.id]: true }));
       console.log("Approving user:", user.id, "with role:", role, "and title:", title);
 
-      const { error } = await supabase.rpc('approve_user', {
-        user_id: user.id,
-        new_role: role,
-        new_title: title || null
-      });
+      // Update the user's profile in the profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_approved: true, 
+          role: role, 
+          title: title || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
 
       if (error) {
         throw error;
