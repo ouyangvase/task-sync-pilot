@@ -7,6 +7,7 @@ import { useTasks } from "@/contexts/TaskContext";
 import { useAuth } from "@/contexts/AuthContext";
 import TaskForm from "@/components/tasks/TaskForm";
 import { ShieldOff } from "lucide-react";
+import { rolePermissions } from "./employee-details/role-permissions/constants";
 
 // Import refactored components
 import { EmployeeHeader } from "./employee-details/EmployeeHeader";
@@ -46,6 +47,12 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
 
   const isAdmin = currentUser?.role === "admin";
   const canEdit = currentUser && canEditUser(currentUser.id, employee.id);
+  const userRole = currentUser?.role || "employee";
+  const userPermissions = rolePermissions[userRole] || [];
+  
+  // Check for specific permissions
+  const canManageUsers = isAdmin || userPermissions.includes("manage_users");
+  const canAssignTasks = isAdmin || userPermissions.includes("assign_tasks");
   
   const tasks = getUserTasks(employee.id);
   const taskStats = getUserTaskStats(employee.id);
@@ -79,11 +86,13 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <EmployeeHeader employee={employee} titleIcons={titleIcons} />
-            <ActionButtons 
-              employee={employee} 
-              onTaskDialogOpen={handleTaskDialogOpen} 
-              canEdit={canEdit}
-            />
+            {canAssignTasks && (
+              <ActionButtons 
+                employee={employee} 
+                onTaskDialogOpen={handleTaskDialogOpen} 
+                canEdit={canEdit}
+              />
+            )}
           </div>
           
           <EmployeeTitleEditor 
@@ -104,13 +113,15 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
         </CardContent>
       </Card>
       
-      <RolePermissionEditor 
-        employee={employee}
-        isAdmin={isAdmin}
-        onUpdateRole={updateUserRole}
-      />
+      {canManageUsers && (
+        <RolePermissionEditor 
+          employee={employee}
+          isAdmin={isAdmin}
+          onUpdateRole={updateUserRole}
+        />
+      )}
       
-      <UserAccessControl employee={employee} />
+      {canManageUsers && <UserAccessControl employee={employee} />}
       
       <EmployeeTaskList 
         pendingTasks={pendingTasks}

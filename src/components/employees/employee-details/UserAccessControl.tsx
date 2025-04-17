@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Shield, UserCheck, ShieldOff } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { rolePermissions } from "./role-permissions/constants";
 
 interface UserAccessControlProps {
   employee: User;
@@ -19,10 +20,13 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
-  // Only admins can edit access permissions
+  // Check permissions for managing user access
   const isAdmin = currentUser?.role === "admin";
+  const userRole = currentUser?.role || "employee";
+  const userPermissions = rolePermissions[userRole] || [];
+  const canManageUsers = isAdmin || userPermissions.includes("manage_users");
   
-  if (!isAdmin) return null;
+  if (!canManageUsers) return null;
   
   // Get all other users except current and admin users
   const otherUsers = users.filter(user => 

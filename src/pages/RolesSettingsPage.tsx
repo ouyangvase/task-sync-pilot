@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Shield, ShieldAlert } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 // Define permission types
 type Permission = {
@@ -46,16 +47,19 @@ const RolesSettingsPage = () => {
   const { currentUser } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
+  const [rolePermissionsMapping, setRolePermissionsMapping] = useState<RolePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   // Check if user is admin
   const isAdmin = currentUser?.role === "admin";
+  const canManageUsers = isAdmin || 
+    (currentUser?.permissions?.some(p => p.canEdit) && 
+     rolePermissions[currentUser?.role || '']?.includes('manage_users'));
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canManageUsers) return;
     
     // Load roles and permissions data
     // In a real app, this would come from an API
@@ -121,7 +125,7 @@ const RolesSettingsPage = () => {
         
         setRoles(mockRoles);
         setPermissions(mockPermissions);
-        setRolePermissions(initialRolePermissions);
+        setRolePermissionsMapping(initialRolePermissions);
       } catch (error) {
         console.error("Error loading roles and permissions:", error);
         toast.error("Failed to load roles and permissions");
@@ -131,16 +135,16 @@ const RolesSettingsPage = () => {
     };
     
     loadData();
-  }, [isAdmin]);
+  }, [canManageUsers]);
 
-  // If user is not admin, redirect to dashboard
-  if (!isAdmin) {
+  // If user is not admin or doesn't have manage_users permission, redirect to dashboard
+  if (!canManageUsers) {
     toast.error("You don't have permission to access this page");
     return <Navigate to="/dashboard" replace />;
   }
 
   const handlePermissionToggle = (roleId: string, permissionId: string) => {
-    setRolePermissions(prev => {
+    setRolePermissionsMapping(prev => {
       const updated = prev.map(rp => {
         if (rp.roleId === roleId && rp.permissionId === permissionId) {
           return { ...rp, enabled: !rp.enabled };
@@ -153,7 +157,7 @@ const RolesSettingsPage = () => {
   };
 
   const isPermissionEnabled = (roleId: string, permissionId: string): boolean => {
-    const rolePermission = rolePermissions.find(
+    const rolePermission = rolePermissionsMapping.find(
       rp => rp.roleId === roleId && rp.permissionId === permissionId
     );
     return rolePermission?.enabled || false;
