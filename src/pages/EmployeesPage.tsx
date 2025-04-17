@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
 import EmployeesList from "@/components/employees/EmployeesList";
 import EmployeeDetails from "@/components/employees/EmployeeDetails";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
@@ -51,7 +51,8 @@ const EmployeesPage = () => {
   useEffect(() => {
     if (currentUser?.role === "admin") {
       handleRefreshPendingUsers();
-    } else if (!currentUser || (currentUser?.role !== "admin" && currentUser?.role !== "manager" && currentUser?.role !== "team_lead")) {
+    } else if (currentUser && 
+        !["admin", "manager", "team_lead"].includes(currentUser.role as UserRole)) {
       toast.error("You don't have permission to access this page");
       setRedirectToLogin(true);
     }
