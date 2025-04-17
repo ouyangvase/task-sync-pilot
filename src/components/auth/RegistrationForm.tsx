@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -16,6 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth";
+import { supabase } from "@/integrations/supabase/client"; // Direct import for error handling
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -54,12 +56,18 @@ const RegistrationForm = () => {
       
       console.log("Registering with:", data.email, data.fullName);
       
+      // Use the registerUser function from the auth context
       await registerUser(data.email, data.password, data.fullName);
       toast.success("Registration successful. Your account is pending admin approval.");
       navigate("/login");
     } catch (error: any) {
       console.error("Registration error:", error);
-      setErrorMessage(error.message || "Registration failed");
+      // More descriptive error message
+      if (error.message.includes("saving new user")) {
+        setErrorMessage("Registration failed. There was an issue saving your account information. Please try again later.");
+      } else {
+        setErrorMessage(error.message || "Registration failed");
+      }
       toast.error(error.message || "Registration failed");
     } finally {
       setIsSubmitting(false);

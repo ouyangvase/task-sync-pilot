@@ -48,7 +48,25 @@ const LoginForm = () => {
       // Add debug logs
       console.log("Login attempt with:", data.email);
       
-      // Direct Supabase Auth call
+      // First check if this user is approved
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_approved, email')
+        .eq('email', data.email)
+        .single();
+      
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error("Error checking approval status:", profileError);
+        throw new Error("Failed to verify account status");
+      }
+      
+      // If user exists but is not approved, show appropriate error
+      if (profileData && profileData.is_approved === false) {
+        throw new Error("Your account is pending approval by an administrator");
+      }
+      
+      // If we get here, the user is either approved or doesn't exist
+      // Sign in attempt will handle non-existent users
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
@@ -56,12 +74,35 @@ const LoginForm = () => {
       
       if (error) throw error;
       
+      // Double check approval status after successful login (as a failsafe)
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('is_approved')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (userProfile && userProfile.is_approved !== true) {
+        // Sign out if somehow user got through without approval
+        await supabase.auth.signOut();
+        throw new Error("Your account is pending approval by an administrator");
+      }
+      
       toast.success("Login successful");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
-      setErrorMessage(error.message || "Invalid email or password");
-      toast.error(error.message || "Invalid email or password");
+      
+      // Provide more user-friendly error messages
+      let friendlyErrorMessage = error.message || "Invalid email or password";
+      
+      if (error.message.includes("Invalid login credentials")) {
+        friendlyErrorMessage = "Invalid email or password. Please check your credentials and try again.";
+      } else if (error.message.includes("pending approval")) {
+        friendlyErrorMessage = "Your account is pending approval by an administrator.";
+      }
+      
+      setErrorMessage(friendlyErrorMessage);
+      toast.error(friendlyErrorMessage);
     } finally {
       setIsSubmitting(false);
     }

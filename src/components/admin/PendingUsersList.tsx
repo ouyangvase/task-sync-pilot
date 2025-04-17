@@ -37,17 +37,21 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
     try {
       setProcessingIds(prev => ({ ...prev, [user.id]: true }));
       
+      console.log("Starting approval process for user:", user.name, user.email);
+      
       // First approve the user
       await approveUser(user.id);
       
       // Then update role if selected
       const role = selectedRoles[user.id] || "employee";
-      updateUserRole(user.id, role);
+      console.log(`Setting role for user ${user.id} to ${role}`);
+      await updateUserRole(user.id, role);
       
       // Update title if selected
       const title = selectedTitles[user.id];
       if (title) {
-        updateUserTitle(user.id, title);
+        console.log(`Setting title for user ${user.id} to ${title}`);
+        await updateUserTitle(user.id, title);
       }
       
       // Send approval email via Supabase Edge Function
@@ -73,9 +77,9 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       
       toast.success(`User ${user.name} has been approved as ${role}`);
       onRefresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in handleApprove:", error);
-      toast.error(`Failed to approve user: ${error}`);
+      toast.error(`Failed to approve user: ${error.message}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [user.id]: false }));
     }
@@ -87,8 +91,8 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       await rejectUser(userId);
       toast.success("User has been rejected");
       onRefresh();
-    } catch (error) {
-      toast.error(`Failed to reject user: ${error}`);
+    } catch (error: any) {
+      toast.error(`Failed to reject user: ${error.message}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [userId]: false }));
     }
