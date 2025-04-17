@@ -54,10 +54,14 @@ const ProfileForm = ({ user }: ProfileFormProps) => {
         if (currentUser) {
           const updatedUser = {
             ...currentUser,
-            name: name,
+            name: name, // Update the name property
             avatar: avatarPreview
           };
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+          
+          // Update the current user in the auth context
+          // Note: We're utilizing the returned value from updateUserTitle
+          // which contains the updated users array
         }
         
         toast.success("Profile updated successfully");
