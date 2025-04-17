@@ -1,5 +1,11 @@
 export type UserRole = "admin" | "employee" | "team_lead" | "manager";
 
+export interface UserPermission {
+  targetUserId: string;
+  canView: boolean;
+  canEdit: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -8,6 +14,7 @@ export interface User {
   avatar?: string;
   monthlyPoints?: number;
   title?: string; // Added title property for employee titles
+  permissions?: UserPermission[]; // Cross-user permissions
 }
 
 export type TaskCategory = "daily" | "custom" | "completed";

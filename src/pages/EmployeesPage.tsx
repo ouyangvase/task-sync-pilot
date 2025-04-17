@@ -11,16 +11,19 @@ import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { toast } from "sonner";
 
 const EmployeesPage = () => {
-  const { currentUser, users } = useAuth();
+  const { currentUser, users, getAccessibleUsers } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  // Redirect non-admin users away from this page
-  if (currentUser?.role !== "admin") {
+  // Redirect non-admin and non-manager users away from this page
+  if (currentUser?.role !== "admin" && currentUser?.role !== "manager" && currentUser?.role !== "team_lead") {
+    toast.error("You don't have permission to access this page");
     return <Navigate to="/dashboard" />;
   }
 
-  const employees = users.filter(user => user.role === "employee");
+  // Get only the employees the current user can access based on permissions
+  const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
+  const employees = accessibleUsers.filter(user => user.role === "employee");
   
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
@@ -45,10 +48,12 @@ const EmployeesPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Employee Management</h1>
-        <Button onClick={handleAddEmployee}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add Employee
-        </Button>
+        {currentUser?.role === "admin" && (
+          <Button onClick={handleAddEmployee}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Employee
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
