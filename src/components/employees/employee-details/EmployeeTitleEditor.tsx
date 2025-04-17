@@ -1,9 +1,9 @@
-
 import { Award } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { User } from "@/types";
+import { EMPLOYEE_TITLES } from "./constants";
 
 interface EmployeeTitleEditorProps {
   employee: User;
@@ -11,13 +11,6 @@ interface EmployeeTitleEditorProps {
   isAdmin: boolean;
   onUpdateTitle: (userId: string, title: string) => void;
 }
-
-export const EMPLOYEE_TITLES = [
-  "Chief Closing Commander",
-  "Imagination Director",
-  "Chief Flow Alchemist",
-  "Ninja"
-];
 
 export const EmployeeTitleEditor = ({ 
   employee,
