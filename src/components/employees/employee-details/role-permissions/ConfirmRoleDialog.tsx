@@ -1,13 +1,5 @@
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { User, UserRole } from "@/types";
 
 interface ConfirmRoleDialogProps {
@@ -25,29 +17,42 @@ export function ConfirmRoleDialog({
   employee,
   selectedRole
 }: ConfirmRoleDialogProps) {
+  // Only show confirmation when changing role
+  const isRoleChanging = employee.role !== selectedRole;
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Confirm Role Change</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to change {employee.name}'s role from{" "}
-            <span className="font-medium">{employee.role}</span> to{" "}
-            <span className="font-medium">{selectedRole}</span>?
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <p className="text-muted-foreground text-sm">
-            This will update their access level and permissions in the system.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={onConfirm}>Confirm Change</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Update Role: {employee.name}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {isRoleChanging ? (
+              <>
+                You are changing this user's role from <strong>{employee.role}</strong> to <strong>{selectedRole}</strong>.
+                <p className="mt-2">
+                  This will automatically update their permissions to match the standard permissions for the {selectedRole} role.
+                </p>
+                <p className="mt-2">
+                  Are you sure you want to update this user's role and associated permissions?
+                </p>
+              </>
+            ) : (
+              <>
+                You are updating the permissions for <strong>{employee.name}</strong>.
+                <p className="mt-2">
+                  Are you sure you want to save these changes?
+                </p>
+              </>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>
+            Update {isRoleChanging ? 'Role & Permissions' : 'Permissions'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

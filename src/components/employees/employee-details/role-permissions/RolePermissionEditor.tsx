@@ -24,7 +24,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
 
   const handleRoleChange = (role: string) => {
     setSelectedRole(role as UserRole);
-    // When role changes, update permissions to match the default for that role
+    // When role changes, automatically update permissions to match the default for that role
     setSelectedPermissions(rolePermissions[role] || []);
   };
 
@@ -46,7 +46,8 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     // In a real app, this would save both role and permissions
     onUpdateRole(employee.id, selectedRole);
     
-    toast.success(`${employee.name}'s role updated to ${selectedRole}`);
+    // Display toast notification when role is updated
+    toast.success(`${employee.name}'s role updated to ${selectedRole} with standard ${selectedRole} permissions`);
     setIsEditing(false);
     setIsConfirmDialogOpen(false);
   };
