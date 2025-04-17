@@ -60,7 +60,8 @@ const RegistrationForm = () => {
         password: data.password,
         options: {
           data: {
-            name: data.fullName
+            name: data.fullName,
+            role: "employee"
           }
         }
       });

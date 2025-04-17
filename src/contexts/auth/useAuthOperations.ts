@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { supabaseAdmin } from "@/integrations/supabase/adminClient"; // ✅ 加入 admin client
-import { User } from "@/types";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient"; 
+import { User, UserRole } from "@/types";
 
 export const useAuthOperations = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -16,7 +17,7 @@ export const useAuthOperations = () => {
         options: {
           data: {
             full_name: fullName,
-            role: "employee",
+            role: "employee" as UserRole,
             is_approved: false
           }
         }
@@ -30,7 +31,7 @@ export const useAuthOperations = () => {
       const userId = data.user?.id;
       if (!userId) throw new Error("User ID not returned from Supabase");
 
-      const { error: insertError } = await supabaseAdmin // ✅ 使用后台 admin client 写入
+      const { error: insertError } = await supabaseAdmin
         .from("users")
         .insert({
           id: userId,

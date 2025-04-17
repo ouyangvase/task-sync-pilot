@@ -11,10 +11,9 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
     NEW.email,
-    'employee', -- Default to employee role without casting issues
-    FALSE -- All new users start as unapproved
+    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'employee'),
+    COALESCE(NEW.raw_user_meta_data->>'is_approved', 'false')::boolean
   );
   RETURN NEW;
 END;
 $function$;
-

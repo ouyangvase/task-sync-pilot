@@ -43,7 +43,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canViewUser: (viewerId, targetUserId) => canViewUser(users, viewerId, targetUserId),
         canEditUser: (editorId, targetUserId) => canEditUser(users, editorId, targetUserId),
         getAccessibleUsers: (userId) => getAccessibleUsers(users, userId),
-        registerUser,
+        registerUser: async (email, password, fullName) => {
+          await registerUser(email, password, fullName);
+        },
         approveUser,
         rejectUser,
         getPendingUsers,

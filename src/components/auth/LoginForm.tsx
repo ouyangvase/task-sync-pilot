@@ -53,6 +53,13 @@ const LoginForm = () => {
       
       if (error) throw error;
       
+      // Special case for admin@tasksync.com - bypass approval check
+      if (data.email === 'admin@tasksync.com') {
+        toast.success("Login successful");
+        navigate("/dashboard");
+        return;
+      }
+      
       // After successful auth, check if user is approved
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
