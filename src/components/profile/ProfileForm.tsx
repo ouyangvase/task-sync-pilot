@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
+import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 interface ProfileFormProps {
   user: User;
@@ -21,6 +22,10 @@ const ProfileForm = ({ user }: ProfileFormProps) => {
     user.avatar || null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get user role and permissions
+  const userRole = currentUser?.role || "employee";
+  const userPermissions = rolePermissions[userRole] || [];
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,10 +63,6 @@ const ProfileForm = ({ user }: ProfileFormProps) => {
             avatar: avatarPreview
           };
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-          
-          // Update the current user in the auth context
-          // Note: We're utilizing the returned value from updateUserTitle
-          // which contains the updated users array
         }
         
         toast.success("Profile updated successfully");
@@ -144,12 +145,52 @@ const ProfileForm = ({ user }: ProfileFormProps) => {
 
         <div className="grid gap-2">
           <Label htmlFor="role">Role</Label>
-          <Input
-            id="role"
-            value={user.role}
-            disabled
-            className="bg-muted"
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              id="role"
+              value={user.role}
+              disabled
+              className="bg-muted"
+            />
+            {userRole === "admin" && (
+              <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                Admin privileges
+              </span>
+            )}
+            {userRole === "manager" && (
+              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                Manager privileges
+              </span>
+            )}
+            {userRole === "team_lead" && (
+              <span className="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full">
+                Team Lead privileges
+              </span>
+            )}
+          </div>
+          {(userRole === "manager" || userRole === "team_lead") && (
+            <p className="text-sm text-muted-foreground">
+              {userRole === "manager" 
+                ? "As a Manager, you can manage employees, tasks, and achievements." 
+                : "As a Team Lead, you can manage your team's tasks and view employee information."}
+            </p>
+          )}
+        </div>
+        
+        <div className="grid gap-2">
+          <Label htmlFor="permissions">Permissions</Label>
+          <div className="bg-muted p-3 rounded-md">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {userPermissions.map((permission, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="h-2 w-2 bg-primary rounded-full"></div>
+                  <span className="text-sm capitalize">
+                    {permission.replace(/_/g, ' ')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

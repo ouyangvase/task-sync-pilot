@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -54,7 +55,7 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Employees",
       path: "/employees",
       icon: <Users className="h-5 w-5" />,
-      requiredPermission: "manage_users",
+      requiredPermission: "view_employees",
     },
     {
       name: "Reports",
@@ -66,7 +67,7 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Achievements",
       path: "/achievements",
       icon: <Trophy className="h-5 w-5" />,
-      requiredPermission: null,
+      requiredPermission: "view_achievements",
     },
     {
       name: "Role Permissions",
@@ -83,7 +84,7 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
   ];
 
   const links = allLinks.filter(link => {
-    if (link.requiredPermission === null || userRole === "admin") {
+    if (link.requiredPermission === null) {
       return true;
     }
     return userPermissions.includes(link.requiredPermission);

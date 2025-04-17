@@ -25,6 +25,7 @@ import {
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 interface TaskCardProps {
   task: Task;
@@ -36,10 +37,28 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
   const { completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const isAdmin = currentUser?.role === "admin";
+
+  if (!currentUser) return null;
+  
+  const userRole = currentUser.role || "employee";
+  const userPermissions = rolePermissions[userRole] || [];
+  
+  const isAdmin = userRole === "admin";
+  const isManager = userRole === "manager";
+  const isTeamLead = userRole === "team_lead";
   const isCompleted = task.status === "completed";
   const isInProgress = task.status === "in-progress";
   const isOwnTask = currentUser?.id === task.assignee;
+  
+  // Check for specific permissions
+  const canManageTasks = userPermissions.includes("manage_tasks");
+  const canCompleteOwnTasks = userPermissions.includes("complete_tasks");
+  
+  // Team Lead can only edit tasks assigned to their team
+  // In a real app, this would check if the task's assignee is part of the team lead's team
+  const isTeamMember = true; // This would be a real check in a production app
+  const canManageThisTask = canManageTasks && 
+    (!isTeamLead || (isTeamLead && isTeamMember));
   
   const handleComplete = () => {
     completeTask(task.id);
@@ -99,7 +118,7 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
       )}
     >
       <div className="flex items-start gap-3">
-        {!isCompleted && showControls && isAdmin && (
+        {!isCompleted && showControls && (canCompleteOwnTasks && isOwnTask || canManageThisTask) && (
           <Checkbox 
             checked={isCompleted}
             onCheckedChange={handleComplete}
@@ -120,7 +139,7 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
               </div>
             </div>
             
-            {showControls && (isAdmin || (isOwnTask && !isCompleted)) && (
+            {showControls && ((canManageThisTask) || (isOwnTask && canCompleteOwnTasks && !isCompleted)) && (
               <div className="shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -130,13 +149,13 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {onEdit && isAdmin && (
+                    {onEdit && canManageThisTask && (
                       <DropdownMenuItem onClick={() => onEdit(task)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit task
                       </DropdownMenuItem>
                     )}
-                    {isAdmin && (
+                    {canManageThisTask && (
                       <DropdownMenuItem 
                         onClick={() => setDeleteDialogOpen(true)}
                         className="text-red-500 focus:text-red-500"

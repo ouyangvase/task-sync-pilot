@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import PendingUsersList from "@/components/admin/PendingUsersList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTasks } from "@/contexts/TaskContext";
+import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 const EmployeesPage = () => {
   const { currentUser, users, getAccessibleUsers, getPendingUsers, setUsers } = useAuth();
@@ -26,6 +27,12 @@ const EmployeesPage = () => {
   useEffect(() => {
     console.log("All users in EmployeesPage:", users);
   }, [users]);
+
+  // Check if the user has permission to access this page
+  const userRole = currentUser?.role || "employee";
+  const userPermissions = rolePermissions[userRole] || [];
+  const canViewEmployees = userPermissions.includes("view_employees");
+  const canManageUsers = userPermissions.includes("manage_users");
 
   // Delete user with email unmap@live.com
   useEffect(() => {
@@ -58,11 +65,26 @@ const EmployeesPage = () => {
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
   console.log("Accessible users:", accessibleUsers);
   
-  // For admin, display team_lead users as well
-  const employees = accessibleUsers.filter(user => 
-    user.role === "employee" || 
-    (currentUser?.role === "admin" && ["employee", "team_lead", "manager"].includes(user.role))
-  );
+  // Filter employees based on role
+  const employees = accessibleUsers.filter(user => {
+    // Admin can see all users
+    if (userRole === "admin") {
+      return ["employee", "team_lead", "manager"].includes(user.role);
+    }
+    
+    // Manager can see team leads and employees
+    if (userRole === "manager") {
+      return ["employee", "team_lead"].includes(user.role);
+    }
+    
+    // Team lead can only see employees
+    if (userRole === "team_lead") {
+      return user.role === "employee";
+    }
+    
+    return false;
+  });
+  
   console.log("Filtered employees to display:", employees);
   
   const handleEmployeeSelect = (employee: User) => {
@@ -83,7 +105,7 @@ const EmployeesPage = () => {
   };
 
   const handleRefreshPendingUsers = () => {
-    if (currentUser) {
+    if (currentUser && canManageUsers) {
       setPendingUsers(getPendingUsers());
     }
   };
@@ -93,8 +115,7 @@ const EmployeesPage = () => {
     if (currentUser?.role === "admin") {
       handleRefreshPendingUsers();
     } else if (currentUser) {
-      const allowedRoles: UserRole[] = ["admin", "manager", "team_lead"];
-      if (!allowedRoles.includes(currentUser.role as UserRole)) {
+      if (!canViewEmployees) {
         toast.error("You don't have permission to access this page");
         setRedirectToLogin(true);
       }
@@ -103,8 +124,8 @@ const EmployeesPage = () => {
 
   document.title = "Employee Management | TaskSync Pilot";
 
-  // Redirect non-admin and non-manager users away from this page
-  if (redirectToLogin) {
+  // Redirect users without required permission away from this page
+  if (redirectToLogin || !canViewEmployees) {
     return <Navigate to="/dashboard" />;
   }
 
@@ -112,7 +133,7 @@ const EmployeesPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Employee Management</h1>
-        {currentUser?.role === "admin" && (
+        {canManageUsers && (
           <Button onClick={handleAddEmployee}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Employee
@@ -120,7 +141,7 @@ const EmployeesPage = () => {
         )}
       </div>
 
-      {currentUser?.role === "admin" && (
+      {userRole === "admin" && (
         <Tabs defaultValue="employees" value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="employees">Employees</TabsTrigger>
@@ -162,7 +183,7 @@ const EmployeesPage = () => {
         </Tabs>
       )}
 
-      {currentUser?.role !== "admin" && (
+      {userRole !== "admin" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <EmployeesList 
@@ -183,11 +204,13 @@ const EmployeesPage = () => {
         </div>
       )}
 
-      <AddEmployeeDialog 
-        open={isAddDialogOpen} 
-        onClose={handleCloseAddDialog} 
-        onEmployeeCreated={handleEmployeeCreated}
-      />
+      {canManageUsers && (
+        <AddEmployeeDialog 
+          open={isAddDialogOpen} 
+          onClose={handleCloseAddDialog} 
+          onEmployeeCreated={handleEmployeeCreated}
+        />
+      )}
     </div>
   );
 };
