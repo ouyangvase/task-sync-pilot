@@ -5,12 +5,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoginForm from "@/components/auth/LoginForm";
 
 const LoginPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
     document.title = "Login | TaskSync Pilot";
   }, []);
 
+  // If still loading, show nothing yet
+  if (loading) {
+    return null;
+  }
+
+  // Redirect if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }

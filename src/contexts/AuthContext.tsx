@@ -38,12 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check for session on initial load
   useEffect(() => {
     const initAuth = async () => {
-      setLoading(true);
       try {
         // Check if user is already logged in
         const { data: sessionData } = await supabase.auth.getSession();
         
-        if (sessionData.session) {
+        if (sessionData?.session) {
           const { data: userData, error: userError } = await supabase
             .from('profiles')
             .select('*')
@@ -84,6 +83,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session) {
+          // Set loading to true while fetching user data
+          setLoading(true);
+          
           // Fetch user data when signed in
           const { data: userData, error: userError } = await supabase
             .from('profiles')
@@ -111,9 +113,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Fetch notifications for the user
             fetchNotifications(session.user.id);
           }
+          
+          // Set loading to false after fetching user data
+          setLoading(false);
         } else if (event === "SIGNED_OUT") {
           setCurrentUser(null);
           setNotifications([]);
+          setLoading(false);
         }
       }
     );
@@ -176,9 +182,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success("Login successful");
     } catch (error: any) {
       toast.error(error.message || "Failed to login");
+      setLoading(false); // Make sure to set loading to false on error
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -202,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success("Registration successful! You can now login.");
     } catch (error: any) {
       toast.error(error.message || "Failed to register");
+      setLoading(false); // Make sure to set loading to false on error
       throw error;
     } finally {
       setLoading(false);
@@ -210,11 +216,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      setLoading(true);
       await supabase.auth.signOut();
       toast.success("Logged out successfully");
     } catch (error) {
       console.error("Error logging out:", error);
       toast.error("Failed to log out");
+    } finally {
+      setLoading(false);
     }
   };
 
