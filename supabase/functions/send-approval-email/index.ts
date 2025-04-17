@@ -1,51 +1,62 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { Resend } from "npm:resend@2.0.0"
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+interface ApprovalEmailRequest {
+  name: string;
+  email: string;
+  role: string;
+}
+
+const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { name, email, role } = await req.json();
-    console.log("Sending approval email to:", email, name, role);
+    const { name, email, role }: ApprovalEmailRequest = await req.json();
 
-    const { data, error } = await resend.emails.send({
-      from: 'TaskSync <onboarding@resend.dev>',
+    const emailResponse = await resend.emails.send({
+      from: "TaskSync Pilot <onboarding@resend.dev>",
       to: [email],
-      subject: 'Your account has been approved!',
+      subject: "Your TaskSync Pilot Account has been Approved!",
       html: `
-        <h1>Welcome to TaskSync, ${name}!</h1>
-        <p>Your account has been approved with the role of ${role}.</p>
-        <p>You can now log in to your account and start using TaskSync.</p>
-        <p>Best regards,<br>The TaskSync Team</p>
-      `
+        <h1>Welcome to TaskSync Pilot, ${name}!</h1>
+        <p>Your account has been approved by an administrator.</p>
+        <p>You have been assigned the role of: <strong>${role}</strong></p>
+        <p>You can now log in to your account and start using TaskSync Pilot.</p>
+        <p>Best regards,<br>The TaskSync Pilot Team</p>
+      `,
     });
 
-    if (error) {
-      console.error("Error sending email:", error);
-      throw error;
-    }
+    console.log("Email sent successfully:", emailResponse);
 
-    console.log("Email sent successfully:", data);
-    return new Response(JSON.stringify({ success: true, data }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
+    return new Response(JSON.stringify(emailResponse), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
     });
-  } catch (error) {
-    console.error('Error sending approval email:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+  } catch (error: any) {
+    console.error("Error in send-approval-email function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
   }
-});
+};
+
+serve(handler);

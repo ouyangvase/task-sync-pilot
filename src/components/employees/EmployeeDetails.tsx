@@ -16,9 +16,8 @@ import { EmployeeTitleEditor } from "./employee-details/EmployeeTitleEditor";
 import { EmployeeTaskList } from "./employee-details/EmployeeTaskList";
 import { ActionButtons } from "./employee-details/ActionButtons";
 import { getTitleIcons } from "./employee-details/constants";
-import { RolePermissionEditor } from "./employee-details/role-permissions/RolePermissionEditor";
+import { RolePermissionEditor } from "./employee-details/RolePermissionEditor";
 import { UserAccessControl } from "./employee-details/UserAccessControl";
-import { UserPermissionsDialog } from "./employee-details/UserPermissionsDialog";
 
 interface EmployeeDetailsProps {
   employee: User;
@@ -26,9 +25,8 @@ interface EmployeeDetailsProps {
 
 const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const { getUserTasks, getUserTaskStats, getUserPointsStats } = useTasks();
-  const { currentUser, updateUserTitle, updateUserRole, updateUserCustomPermissions, canViewUser, canEditUser } = useAuth();
+  const { currentUser, updateUserTitle, updateUserRole, canViewUser, canEditUser } = useAuth();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
 
   // Check if current user exists
   if (!currentUser) {
@@ -65,7 +63,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   }
 
   const userRole = currentUser.role || "employee";
-  const userPermissions = employee.customPermissions || rolePermissions[userRole] || [];
+  const userPermissions = rolePermissions[userRole] || [];
   
   // Check for specific permissions
   const canManageUsers = userPermissions.includes("manage_users");
@@ -90,14 +88,6 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
     setIsTaskDialogOpen(false);
   };
 
-  const handlePermissionsDialogOpen = () => {
-    setIsPermissionsDialogOpen(true);
-  };
-
-  const handleUpdatePermissions = (permissions: string[]) => {
-    updateUserCustomPermissions(employee.id, permissions);
-  };
-
   // For team leads, they can only assign/edit tasks of their team members
   // In a real app, this would check if the employee is part of the team lead's team
   const isTeamLead = userRole === "team_lead";
@@ -120,12 +110,13 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <EmployeeHeader employee={employee} titleIcons={titleIcons} />
-            <ActionButtons 
-              employee={employee} 
-              onTaskDialogOpen={handleTaskDialogOpen}
-              onPermissionsDialogOpen={handlePermissionsDialogOpen}
-              canEdit={canEdit && canManageThisEmployee}
-            />
+            {canAssignTasks && (
+              <ActionButtons 
+                employee={employee} 
+                onTaskDialogOpen={handleTaskDialogOpen} 
+                canEdit={canEdit && canManageThisEmployee}
+              />
+            )}
           </div>
           
           <EmployeeTitleEditor 
@@ -175,13 +166,6 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
           />
         </DialogContent>
       </Dialog>
-
-      <UserPermissionsDialog 
-        isOpen={isPermissionsDialogOpen}
-        onClose={() => setIsPermissionsDialogOpen(false)}
-        employee={employee}
-        onUpdatePermissions={handleUpdatePermissions}
-      />
     </div>
   );
 };
