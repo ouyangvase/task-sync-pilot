@@ -35,13 +35,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for saved user in localStorage
     const savedUser = localStorage.getItem("currentUser");
     if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setCurrentUser({
-        ...parsedUser,
-        permissions: parsedUser.permissions || []
-      });
-    } else {
-      // For demo purposes, auto-login as the mock user
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setCurrentUser({
+          ...parsedUser,
+          permissions: parsedUser.permissions || []
+        });
+      } catch (error) {
+        console.error("Error parsing saved user:", error);
+        localStorage.removeItem("currentUser");
+      }
+    } else if (process.env.NODE_ENV === 'development') {
+      // For demo purposes, auto-login as the mock user in development only
       const enhancedUser = {
         ...mockCurrentUser,
         permissions: mockCurrentUser.permissions || []

@@ -7,10 +7,11 @@ import { updateUserPermissionsHelper } from "./authUtils";
 export const useUserManagement = (initialUsers: User[]) => {
   const [users, setUsers] = useState<User[]>(
     // Initialize with empty permissions arrays if not already present
+    // and ensure isApproved is explicitly set for all users
     initialUsers.map(user => ({
       ...user,
       permissions: user.permissions || [],
-      isApproved: user.isApproved !== undefined ? user.isApproved : true,
+      isApproved: user.isApproved !== undefined ? user.isApproved : true, // Default to true for existing users
     }))
   );
 
