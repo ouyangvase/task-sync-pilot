@@ -56,7 +56,7 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
       const updatedTasks = tasks.filter(task => task.assignee !== user.id);
       
       // Update users and tasks state
-      setUsers();
+      await setUsers();
       setTasks(updatedTasks);
       
       // Log the deletion action (in a real system, this would be sent to the backend)

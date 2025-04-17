@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/types';
+import { User, UserRole, UserPermission } from '@/types';
 import { toast } from 'sonner';
 
 export const useSupabaseAuth = () => {
@@ -117,27 +117,49 @@ export const useSupabaseAuth = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data: profiles, error } = await supabase
+      // First get all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_permissions(*)
-        `);
+        .select('*');
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
       if (profiles) {
-        const formattedUsers: User[] = profiles.map(profile => ({
-          id: profile.id,
-          name: profile.name,
-          email: profile.email,
-          role: profile.role,
-          avatar: profile.avatar,
-          monthlyPoints: profile.monthly_points,
-          title: profile.title,
-          isApproved: profile.is_approved,
-          permissions: profile.user_permissions || []
-        }));
+        // Then get all permissions separately
+        const { data: permissions, error: permissionsError } = await supabase
+          .from('user_permissions')
+          .select('*');
+
+        if (permissionsError) {
+          console.error('Error fetching permissions:', permissionsError);
+          // Continue without permissions rather than failing completely
+        }
+
+        // Format the permissions correctly
+        const formattedUsers: User[] = profiles.map(profile => {
+          // Filter permissions for this user
+          const userPermissions: UserPermission[] = permissions 
+            ? permissions
+                .filter(p => p.user_id === profile.id)
+                .map(p => ({
+                  targetUserId: p.target_user_id || '',
+                  canView: !!p.can_view,
+                  canEdit: !!p.can_edit
+                }))
+            : [];
+          
+          return {
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            role: profile.role as UserRole,
+            avatar: profile.avatar || '',
+            monthlyPoints: profile.monthly_points || 0,
+            title: profile.title || undefined,
+            isApproved: !!profile.is_approved,
+            permissions: userPermissions
+          };
+        });
         
         setUsers(formattedUsers);
       }

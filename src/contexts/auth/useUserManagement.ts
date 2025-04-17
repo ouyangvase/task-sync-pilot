@@ -1,5 +1,5 @@
 
-import { User, UserPermission } from "@/types";
+import { User, UserPermission, UserRole } from "@/types";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,9 +24,12 @@ export const useUserManagement = (users: User[], refreshUsers: () => Promise<voi
 
   const updateUserRole = async (userId: string, role: string) => {
     try {
+      // Validate role is a valid UserRole type before updating
+      const validRole = validateUserRole(role);
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ role })
+        .update({ role: validRole })
         .eq('id', userId);
 
       if (error) throw error;
@@ -38,6 +41,17 @@ export const useUserManagement = (users: User[], refreshUsers: () => Promise<voi
       console.error('Error updating user role:', error);
       return users;
     }
+  };
+
+  // Helper function to validate role is one of the allowed values
+  const validateUserRole = (role: string): UserRole => {
+    const validRoles: UserRole[] = ['admin', 'employee', 'team_lead', 'manager'];
+    if (validRoles.includes(role as UserRole)) {
+      return role as UserRole;
+    }
+    // Default to employee if invalid role provided
+    console.warn(`Invalid role '${role}' provided, defaulting to 'employee'`);
+    return 'employee';
   };
 
   const updateUserPermissions = async (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
