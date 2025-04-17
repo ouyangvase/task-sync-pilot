@@ -3,7 +3,7 @@ import { useTasks } from "@/contexts/TaskContext";
 import { DateRange } from "react-day-picker";
 import { isWithinInterval } from "date-fns";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 
 interface TaskStatusChartProps {
   dateRange: DateRange;
@@ -63,6 +63,29 @@ export function TaskStatusChart({ dateRange, filters }: TaskStatusChartProps) {
     "pending": { label: "Pending", color: "#9ca3af" },
   };
 
+  // Custom tooltip renderer
+  const renderTooltip = (props: any) => {
+    const { payload } = props;
+    if (!payload || !payload.length) return null;
+
+    const { name, value, color } = payload[0].payload;
+    
+    return (
+      <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+        <div className="font-medium">{name}</div>
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <div className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: color }} />
+          <div className="flex flex-1 justify-between items-center leading-none">
+            <span className="text-muted-foreground">Tasks</span>
+            <span className="font-mono font-medium tabular-nums text-foreground">
+              {value.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="h-[300px] w-full">
       {hasData ? (
@@ -83,27 +106,7 @@ export function TaskStatusChart({ dateRange, filters }: TaskStatusChartProps) {
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip
-                content={({ payload }) => {
-                  if (payload && payload.length) {
-                    const { name, value, color } = payload[0].payload;
-                    return (
-                      <ChartTooltipContent
-                        items={[
-                          {
-                            label: name,
-                            value: String(value),
-                            color: color
-                          }
-                        ]}
-                        formattedValue={String(value)}
-                        label={name}
-                      />
-                    );
-                  }
-                  return null;
-                }}
-              />
+              <Tooltip content={renderTooltip} />
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>

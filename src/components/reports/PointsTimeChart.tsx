@@ -3,7 +3,7 @@ import { useTasks } from "@/contexts/TaskContext";
 import { DateRange } from "react-day-picker";
 import { isWithinInterval, format, addDays, eachDayOfInterval } from "date-fns";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 
 interface PointsTimeChartProps {
   dateRange: DateRange;
@@ -100,6 +100,30 @@ export function PointsTimeChart({ dateRange, filters, showTasksInstead = false }
   const chartColor = showTasksInstead ? "#10b981" : "#8b5cf6";
   const chartLabel = showTasksInstead ? "Tasks" : "Points";
 
+  // Custom tooltip renderer
+  const renderTooltip = (props: any) => {
+    const { payload, label } = props;
+    if (!payload || !payload.length) return null;
+
+    const date = payload[0]?.payload?.date;
+    const value = payload[0]?.value;
+
+    return (
+      <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+        <div className="font-medium">{date ? format(new Date(date), "MMM dd, yyyy") : ""}</div>
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <div className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: chartColor }} />
+          <div className="flex flex-1 justify-between items-center leading-none">
+            <span className="text-muted-foreground">{chartLabel}</span>
+            <span className="font-mono font-medium tabular-nums text-foreground">
+              {value?.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="h-[300px] w-full">
       <ChartContainer className="h-full" config={chartConfig}>
@@ -112,28 +136,7 @@ export function PointsTimeChart({ dateRange, filters, showTasksInstead = false }
               minTickGap={20}
             />
             <YAxis />
-            <Tooltip
-              content={({ payload, label }) => {
-                if (payload && payload.length) {
-                  const date = payload[0]?.payload?.date;
-                  const value = payload[0]?.value;
-                  return (
-                    <ChartTooltipContent
-                      items={[
-                        {
-                          label: showTasksInstead ? "Tasks" : "Points",
-                          value: String(value),
-                          color: chartColor
-                        }
-                      ]}
-                      formattedValue={String(value)}
-                      label={date ? format(new Date(date), "MMM dd, yyyy") : ""}
-                    />
-                  );
-                }
-                return null;
-              }}
-            />
+            <Tooltip content={renderTooltip} />
             <Area 
               type="monotone" 
               dataKey={dataKey} 
