@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User as UserIcon, Upload, Loader2 } from "lucide-react";
-import { v4 as uuidv4 } from '@supabase/supabase-js';
 
 interface ProfileFormProps {
   user: User;
@@ -33,7 +31,7 @@ const ProfileForm = ({ user }: ProfileFormProps) => {
       
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
       // Upload the file to Supabase Storage
