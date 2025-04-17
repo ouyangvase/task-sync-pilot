@@ -11,19 +11,48 @@ import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { toast } from "sonner";
 import PendingUsersList from "@/components/admin/PendingUsersList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTasks } from "@/contexts/TaskContext";
 
 const EmployeesPage = () => {
-  const { currentUser, users, getAccessibleUsers, getPendingUsers } = useAuth();
+  const { currentUser, users, getAccessibleUsers, getPendingUsers, setUsers } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState("employees");
   const [redirectToLogin, setRedirectToLogin] = useState(false);
+  const { tasks, setTasks } = useTasks();
 
   // Debug users
   useEffect(() => {
     console.log("All users in EmployeesPage:", users);
   }, [users]);
+
+  // Delete user with email unmap@live.com
+  useEffect(() => {
+    if (currentUser?.role === "admin" && users.length > 0) {
+      const userToDelete = users.find(user => user.email === "unmap@live.com");
+      
+      if (userToDelete) {
+        // Remove the user from the users list
+        const updatedUsers = users.filter(user => user.email !== "unmap@live.com");
+        
+        // Remove all tasks associated with this user
+        const updatedTasks = tasks.filter(task => task.assignee !== userToDelete.id);
+        
+        // Update state
+        setUsers(updatedUsers);
+        setTasks(updatedTasks);
+        
+        // Show notification
+        toast.success(`User ${userToDelete.name || userToDelete.email} has been deleted along with all associated tasks`);
+        
+        // Log the deletion action
+        console.log(`User with email unmap@live.com has been deleted by admin ${currentUser.name}`);
+      } else {
+        console.log("User with email unmap@live.com not found");
+      }
+    }
+  }, [currentUser, users, tasks, setUsers, setTasks]);
 
   // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
