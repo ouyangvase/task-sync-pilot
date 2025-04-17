@@ -8,6 +8,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   monthlyPoints?: number;
+  title?: string; // Added title property for employee titles
 }
 
 export type TaskCategory = "daily" | "custom" | "completed";

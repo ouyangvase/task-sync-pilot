@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "@/types";
 import { useTasks } from "@/contexts/TaskContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Award } from "lucide-react";
 
 interface EmployeesListProps {
   employees: User[];
@@ -52,6 +53,12 @@ const EmployeesList = ({ employees, onSelectEmployee, selectedEmployee }: Employ
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{employee.name}</p>
+                    {employee.title && (
+                      <p className="text-xs flex items-center gap-1 text-muted-foreground">
+                        <Award className="h-3 w-3" />
+                        {employee.title}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
                   </div>
                   <div className="flex flex-col items-end">

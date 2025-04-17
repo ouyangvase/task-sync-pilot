@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
+import { toast } from "sonner";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -10,6 +11,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   users: User[];
+  updateUserTitle: (userId: string, title: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +27,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [users] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>(mockUsers);
 
   useEffect(() => {
     // Check for saved user in localStorage
@@ -66,6 +68,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("currentUser");
   };
 
+  const updateUserTitle = (userId: string, title: string) => {
+    // Update users array with the new title
+    const updatedUsers = users.map(user => {
+      if (user.id === userId) {
+        return { ...user, title };
+      }
+      return user;
+    });
+    
+    setUsers(updatedUsers);
+    
+    // Also update currentUser if it's the same user
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = { ...currentUser, title };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -75,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         users,
+        updateUserTitle,
       }}
     >
       {children}

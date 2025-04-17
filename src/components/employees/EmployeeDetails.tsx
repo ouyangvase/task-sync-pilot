@@ -5,7 +5,7 @@ import { User } from "@/types";
 import { useTasks } from "@/contexts/TaskContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, Clock, Mail, Trash, UserCog } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Mail, Trash, UserCog, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatTaskStatusForDisplay, getTaskColor } from "@/lib/taskUtils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,17 +13,37 @@ import { useState } from "react";
 import TaskForm from "@/components/tasks/TaskForm";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface EmployeeDetailsProps {
   employee: User;
 }
 
+const EMPLOYEE_TITLES = [
+  "Chief Closing Commander",
+  "Imagination Director",
+  "Chief Flow Alchemist",
+  "Ninja"
+];
+
+const titleIcons: Record<string, React.ReactNode> = {
+  "Chief Closing Commander": <Award className="h-4 w-4 text-yellow-500" />,
+  "Imagination Director": <Award className="h-4 w-4 text-blue-500" />,
+  "Chief Flow Alchemist": <Award className="h-4 w-4 text-purple-500" />,
+  "Ninja": <Award className="h-4 w-4 text-red-500" />
+};
+
 const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const { getUserTasks, getUserTaskStats, getUserPointsStats, deleteTask, addTask } = useTasks();
+  const { currentUser, updateUserTitle } = useAuth();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [selectedTitle, setSelectedTitle] = useState(employee.title || "");
+  const [isTitleEditing, setIsTitleEditing] = useState(false);
 
+  const isAdmin = currentUser?.role === "admin";
   const tasks = getUserTasks(employee.id);
   const taskStats = getUserTaskStats(employee.id);
   const pointsStats = getUserPointsStats(employee.id);
@@ -50,6 +70,12 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const handleCloseDialog = () => {
     setIsTaskDialogOpen(false);
   };
+  
+  const handleSaveTitle = () => {
+    updateUserTitle(employee.id, selectedTitle);
+    setIsTitleEditing(false);
+    toast.success(`Title for ${employee.name} has been updated`);
+  };
 
   const lastActivityDate = tasks.length > 0 
     ? new Date(
@@ -73,6 +99,14 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
               </Avatar>
               <div>
                 <CardTitle className="text-2xl">{employee.name}</CardTitle>
+                {employee.title && (
+                  <div className="flex items-center gap-1 mt-1">
+                    {titleIcons[employee.title]}
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {employee.title}
+                    </span>
+                  </div>
+                )}
                 <CardDescription className="flex items-center mt-1">
                   <Mail className="h-4 w-4 mr-1" />
                   {employee.email}
@@ -147,6 +181,79 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
               </Dialog>
             </div>
           </div>
+          
+          {/* Title editing section (admin only) */}
+          {isAdmin && (
+            <div className="mt-4 p-3 border border-border rounded-md bg-background/50">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-medium">Employee Title</h3>
+                {isTitleEditing ? (
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => {
+                        setSelectedTitle(employee.title || "");
+                        setIsTitleEditing(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveTitle}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setIsTitleEditing(true)}
+                  >
+                    Edit Title
+                  </Button>
+                )}
+              </div>
+              
+              {isTitleEditing ? (
+                <div className="mt-2">
+                  <Select 
+                    value={selectedTitle} 
+                    onValueChange={setSelectedTitle}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EMPLOYEE_TITLES.map(title => (
+                        <SelectItem key={title} value={title}>
+                          <span className="flex items-center gap-2">
+                            {titleIcons[title]}
+                            {title}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  {employee.title ? (
+                    <div className="flex items-center gap-2 py-2 px-3 bg-muted rounded-md">
+                      {titleIcons[employee.title]}
+                      <span>{employee.title}</span>
+                    </div>
+                  ) : (
+                    <div className="py-2 px-3 text-muted-foreground italic bg-muted rounded-md">
+                      No title assigned
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardHeader>
         
         <CardContent>
