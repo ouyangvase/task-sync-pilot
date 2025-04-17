@@ -1,5 +1,5 @@
 
-import { User, Notification } from "@/types";
+import { User, Notification, UserRole } from "@/types";
 
 export interface AuthContextType {
   currentUser: User | null;

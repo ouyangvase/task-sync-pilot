@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 
 interface AuthDataProps {
   currentUser: User | null;
@@ -31,7 +31,7 @@ export const useAuthData = ({ currentUser, setUsers, setLoading }: AuthDataProps
             id: profile.id,
             name: profile.full_name,
             email: '',
-            role: userRole?.role || 'employee',
+            role: (userRole?.role as UserRole) || 'employee',
             avatar: profile.avatar_url,
             department: profile.department || ''
           };
