@@ -61,9 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: sessionData.session.user.id,
               name: userData.full_name,
               email: sessionData.session.user.email || '',
-              role: roleData.role as UserRole,
+              role: roleData.role,
               avatar: userData.avatar_url,
-              department: userData.department
+              // Handle the potential missing department field
+              department: userData.department || ''
             });
             
             // Fetch notifications for the user
@@ -101,9 +102,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: session.user.id,
               name: userData.full_name,
               email: session.user.email || '',
-              role: roleData.role as UserRole,
+              role: roleData.role,
               avatar: userData.avatar_url,
-              department: userData.department
+              // Handle the potential missing department field
+              department: userData.department || ''
             });
             
             // Fetch notifications for the user
@@ -238,9 +240,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: profile.id,
             name: profile.full_name,
             email: '',
-            role: (userRole?.role || 'employee') as UserRole,
+            role: userRole?.role || 'employee',
             avatar: profile.avatar_url,
-            department: profile.department
+            // Handle the potential missing department field
+            department: profile.department || ''
           };
         });
         
