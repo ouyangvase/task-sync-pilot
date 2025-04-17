@@ -87,11 +87,11 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
     <>
       <Button 
         variant="destructive" 
-        size="sm" 
+        size="sm"  // Changed to small size
         onClick={handleOpenDialog}
-        className="flex items-center gap-1"
+        className="flex items-center gap-1 text-xs"  // Added text-xs to further reduce text size
       >
-        <Trash className="h-4 w-4" />
+        <Trash className="h-3 w-3" />  // Reduced icon size
         Delete
       </Button>
 
