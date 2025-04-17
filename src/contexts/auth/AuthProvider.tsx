@@ -105,6 +105,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
+    
+    // Return the updatedUsers array to satisfy the type requirement
+    return updatedUsers;
   };
 
   // Sync currentUser when user role changes
@@ -117,6 +120,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
+    
+    // Return the updatedUsers array to satisfy the type requirement
+    return updatedUsers;
   };
 
   return (
