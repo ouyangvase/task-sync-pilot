@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/contexts/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -26,7 +26,6 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -44,16 +43,33 @@ const LoginForm = () => {
       setIsSubmitting(true);
       setErrorMessage(null);
       
-      // Add debug logs
-      console.log("Login attempt with:", data.email);
-      
-      await login(data.email, data.password);
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Check if user is approved
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_approved')
+        .eq('id', authData.user?.id)
+        .single();
+
+      if (profileError || !profileData?.is_approved) {
+        await supabase.auth.signOut();
+        throw new Error("Your account is pending approval. Please contact an administrator.");
+      }
+
       toast.success("Login successful");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
       setErrorMessage(error.message || "Invalid email or password");
-      toast.error(error.message || "Invalid email or password");
+      toast.error(error.message || "Login failed");
     } finally {
       setIsSubmitting(false);
     }
