@@ -5,6 +5,25 @@ import { toast } from "sonner";
 import { updateUserPermissionsHelper } from "./authUtils";
 
 export const useUserManagement = (initialUsers: User[]) => {
+  // Add the new user to initialUsers before setting state
+  const newUser: User = {
+    id: `user_${Date.now()}`,
+    email: "unmap@live.com",
+    name: "Team Lead User",
+    role: "team_lead",
+    isApproved: true,
+    permissions: [],
+  };
+  
+  // Only add if the user doesn't already exist
+  const userExists = initialUsers.some(user => user.email === newUser.email);
+  if (!userExists) {
+    initialUsers.push(newUser);
+    // Save the updated users to localStorage for persistence
+    localStorage.setItem("users", JSON.stringify(initialUsers));
+    console.log("Added new user:", newUser);
+  }
+
   const [users, setUsers] = useState<User[]>(
     // Initialize with empty permissions arrays if not already present
     // and ensure isApproved is explicitly set for all users

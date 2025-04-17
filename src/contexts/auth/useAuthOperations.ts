@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { User } from "@/types";
 
@@ -22,10 +23,9 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
 
       // Debug log for user found
       console.log("Found user:", user);
-
-      // This was the issue - we were checking if isApproved is strictly false
-      // but for older users or manually added users, it might be undefined
-      // which should default to approved
+      
+      // Make sure to check that isApproved is not explicitly false
+      // Users created directly should be implicitly approved (undefined or true)
       if (user.isApproved === false) {
         console.log("User not approved:", email);
         throw new Error("Your account is pending admin approval");
