@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
 import { toast } from "sonner";
 
@@ -92,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Update users array with the new role
     const updatedUsers = users.map(user => {
       if (user.id === userId) {
-        return { ...user, role };
+        return { ...user, role: role as UserRole };
       }
       return user;
     });
@@ -101,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Also update currentUser if it's the same user
     if (currentUser && currentUser.id === userId) {
-      const updatedUser = { ...currentUser, role };
+      const updatedUser = { ...currentUser, role: role as UserRole };
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }

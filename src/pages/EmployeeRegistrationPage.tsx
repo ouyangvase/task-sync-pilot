@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import EmployeeRegistrationForm from "@/components/auth/EmployeeRegistrationForm";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 const EmployeeRegistrationPage = () => {

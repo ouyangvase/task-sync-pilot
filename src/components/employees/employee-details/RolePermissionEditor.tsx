@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Dialog } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Shield } from "lucide-react";
@@ -47,7 +47,7 @@ const rolePermissions: Record<string, string[]> = {
 };
 
 export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePermissionEditorProps) {
-  const [selectedRole, setSelectedRole] = useState(employee.role);
+  const [selectedRole, setSelectedRole] = useState<UserRole>(employee.role as UserRole);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
     rolePermissions[employee.role] || []
   );
@@ -58,7 +58,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   if (!isAdmin) return null;
 
   const handleRoleChange = (role: string) => {
-    setSelectedRole(role);
+    setSelectedRole(role as UserRole);
     // When role changes, update permissions to match the default for that role
     setSelectedPermissions(rolePermissions[role] || []);
   };
@@ -109,7 +109,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
                 variant="ghost" 
                 size="sm" 
                 onClick={() => {
-                  setSelectedRole(employee.role);
+                  setSelectedRole(employee.role as UserRole);
                   setSelectedPermissions(rolePermissions[employee.role] || []);
                   setIsEditing(false);
                 }}
