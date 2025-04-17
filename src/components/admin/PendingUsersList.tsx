@@ -12,6 +12,7 @@ import { User, UserRole } from "@/types";
 import PendingUsersEmptyState from "./PendingUsersEmptyState";
 import PendingUsersTable from "./PendingUsersTable";
 import { usePendingUsers } from "@/hooks/usePendingUsers";
+import { toast } from "sonner";
 
 interface PendingUsersListProps {
   pendingUsers: User[];
@@ -19,10 +20,13 @@ interface PendingUsersListProps {
 }
 
 const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) => {
-  const { updateUserRole, updateUserTitle } = useAuth();
+  const { updateUserRole, updateUserTitle, currentUser } = useAuth();
   const { isProcessing, handleApprove, handleReject } = usePendingUsers();
   const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
+
+  // Check if current user is admin
+  const isAdmin = currentUser?.role === "admin";
 
   const handleRoleChange = (userId: string, role: UserRole) => {
     setSelectedRoles(prev => ({ ...prev, [userId]: role }));
@@ -33,6 +37,11 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   };
 
   const handleApproveClick = async (user: User) => {
+    if (!isAdmin) {
+      toast.error("Only administrators can approve users");
+      return;
+    }
+    
     const role = selectedRoles[user.id] || "employee";
     const title = selectedTitles[user.id];
     
@@ -43,14 +52,21 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       if (title) {
         updateUserTitle(user.id, title);
       }
-      onRefresh();
+      onRefresh(); // Refresh the list of pending users
+      toast.success(`User ${user.name} has been approved successfully`);
     }
   };
 
   const handleRejectClick = async (userId: string) => {
+    if (!isAdmin) {
+      toast.error("Only administrators can reject users");
+      return;
+    }
+    
     const success = await handleReject(userId);
     if (success) {
-      onRefresh();
+      onRefresh(); // Refresh the list of pending users
+      toast.success("User has been rejected successfully");
     }
   };
 

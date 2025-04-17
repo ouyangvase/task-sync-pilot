@@ -24,6 +24,7 @@ export const usePendingUsers = () => {
         .eq('id', user.id);
 
       if (error) {
+        console.error("Database error during approval:", error);
         throw error;
       }
 
@@ -39,6 +40,8 @@ export const usePendingUsers = () => {
       if (emailError) {
         console.error("Error sending approval email:", emailError);
         toast.error("Approved user but failed to send notification email");
+      } else {
+        console.log("Approval email sent successfully");
       }
 
       toast.success(`User ${user.name} has been approved as ${role}`);
@@ -55,15 +58,19 @@ export const usePendingUsers = () => {
   const handleReject = async (userId: string) => {
     try {
       setIsProcessing(prev => ({ ...prev, [userId]: true }));
+      console.log("Rejecting user:", userId);
 
-      // Delete the user from auth.users (this will cascade to profiles due to FK)
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      // Using Supabase auth.admin to delete the user
+      // This requires admin privileges and will cascade delete the profile
+      const { data, error } = await supabase.auth.admin.deleteUser(userId);
 
       if (error) {
+        console.error("Error deleting user:", error);
         throw error;
       }
 
-      toast.success("User has been rejected");
+      console.log("User deleted successfully:", data);
+      toast.success("User has been rejected and account deleted");
       return true;
     } catch (error) {
       console.error("Error in handleReject:", error);

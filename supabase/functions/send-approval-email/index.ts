@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -31,10 +32,12 @@ serve(async (req) => {
     });
 
     if (error) {
+      console.error("Error sending email:", error);
       throw error;
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log("Email sent successfully:", data);
+    return new Response(JSON.stringify({ success: true, data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
     });
