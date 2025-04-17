@@ -83,6 +83,15 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
 
   const approveUser = async (userId: string): Promise<void> => {
     console.log("Approving user:", userId);
+    
+    // Find the user to approve
+    const userToApprove = users.find(user => user.id === userId);
+    if (!userToApprove) {
+      console.error("User not found for approval:", userId);
+      throw new Error("User not found");
+    }
+    
+    // Update the users array with the approved status
     const updatedUsers = users.map(user => {
       if (user.id === userId) {
         return { ...user, isApproved: true };
@@ -90,18 +99,29 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
       return user;
     });
     
+    // Update the users state and localStorage
     setUsers(updatedUsers);
+    localStorage.setItem("users", JSON.stringify(updatedUsers));
     
     // Debug log to verify user approval
     console.log("Updated users after approval:", updatedUsers);
+    console.log("User approved successfully:", userToApprove.name);
 
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
   const rejectUser = async (userId: string): Promise<void> => {
+    console.log("Rejecting user:", userId);
+    
+    // Remove the user from the array
     const updatedUsers = users.filter(user => user.id !== userId);
+    
+    // Update the users state and localStorage
     setUsers(updatedUsers);
+    localStorage.setItem("users", JSON.stringify(updatedUsers));
+    
+    console.log("User rejected and removed from system");
 
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 500));
