@@ -9,6 +9,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import TasksPage from "@/pages/TasksPage";
+import CalendarPage from "@/pages/CalendarPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const queryClient = new QueryClient();
@@ -26,8 +27,8 @@ const App = () => (
               <Route path="/" element={<AppLayout />}>
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="tasks" element={<TasksPage />} />
+                <Route path="calendar" element={<CalendarPage />} />
                 {/* Placeholder routes for future implementation */}
-                <Route path="calendar" element={<div className="py-10 text-center">Calendar view coming soon!</div>} />
                 <Route path="employees" element={<div className="py-10 text-center">Employees management coming soon!</div>} />
                 <Route path="reports" element={<div className="py-10 text-center">Reports coming soon!</div>} />
                 <Route path="settings" element={<div className="py-10 text-center">Settings coming soon!</div>} />
