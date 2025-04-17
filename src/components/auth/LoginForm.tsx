@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -16,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -52,7 +51,6 @@ const LoginForm = () => {
     }
   };
 
-  // For demo purposes, provide quick login buttons
   const quickLogin = async (role: "admin" | "employee") => {
     setIsSubmitting(true);
     try {

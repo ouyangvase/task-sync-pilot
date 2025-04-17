@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -83,7 +82,6 @@ const AuthPage = () => {
     }
   };
 
-  // Redirect to dashboard if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
