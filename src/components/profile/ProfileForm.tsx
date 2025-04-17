@@ -14,7 +14,7 @@ interface ProfileFormProps {
 }
 
 const ProfileForm = ({ user }: ProfileFormProps) => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateUserTitle } = useAuth();
   const [name, setName] = useState(user.name || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
@@ -39,15 +39,34 @@ const ProfileForm = ({ user }: ProfileFormProps) => {
     setIsSubmitting(true);
 
     try {
-      // This is a mock update since we don't have actual backend yet
-      // In a real implementation, you would update the user profile in Supabase here
-      
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-      
-      toast.success("Profile updated successfully");
+      // This simulates updating the user profile
+      if (currentUser && currentUser.id) {
+        // Update the user's name
+        updateUserTitle(currentUser.id, name);
+        
+        // In a real implementation with Supabase, you would upload the avatar file
+        // and update the user's avatar URL here
+        
+        // For now, we're just simulating a successful update
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
+        // Update localStorage to persist the changes
+        if (currentUser) {
+          const updatedUser = {
+            ...currentUser,
+            name: name,
+            avatar: avatarPreview
+          };
+          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+        }
+        
+        toast.success("Profile updated successfully");
+      } else {
+        throw new Error("User is not authenticated");
+      }
     } catch (error) {
-      toast.error("Failed to update profile");
       console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
     } finally {
       setIsSubmitting(false);
     }
