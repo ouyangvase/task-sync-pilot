@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
@@ -46,13 +45,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
+      // Debug logs to see what's happening
+      console.log("Attempting login for:", email);
+      console.log("Available users:", users);
+      
       const user = users.find((u) => u.email === email);
       
       if (!user) {
+        console.log("User not found:", email);
         throw new Error("Invalid email or password");
       }
 
+      // Debug log for user found
+      console.log("Found user:", user);
+
       if (user.isApproved === false) {
+        console.log("User not approved:", email);
         throw new Error("Your account is pending admin approval");
       }
       
@@ -79,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("currentUser");
   };
 
-  const registerUser = async (email: string, password: string, fullName: string) => {
+  const registerUser = async (email: string, password: string, fullName: string): Promise<void> => {
     // Check if email already exists
     const existingUser = users.find((u) => u.email === email);
     if (existingUser) {
@@ -96,13 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       permissions: [],
     };
 
+    // Debug log
+    console.log("Registering new user:", newUser);
+
     // Update users array
     setUsers(prevUsers => [...prevUsers, newUser]);
     
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    return;
   };
 
   const approveUser = async (userId: string): Promise<void> => {

@@ -29,6 +29,7 @@ const LoginForm = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -41,6 +42,7 @@ const LoginForm = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
+      setErrorMessage(null);
       
       // Add debug logs
       console.log("Login attempt with:", data.email);
@@ -50,6 +52,7 @@ const LoginForm = () => {
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
+      setErrorMessage(error.message || "Invalid email or password");
       toast.error(error.message || "Invalid email or password");
     } finally {
       setIsSubmitting(false);
@@ -65,6 +68,11 @@ const LoginForm = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+            {errorMessage}
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
