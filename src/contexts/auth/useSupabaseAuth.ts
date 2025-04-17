@@ -16,48 +16,51 @@ export const useSupabaseAuth = () => {
         console.log("Auth state changed:", event, session?.user?.id);
         
         if (session?.user) {
-          // Fetch profile data for this user
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          try {
+            // Fetch profile data for this user
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          if (error) {
-            console.error("Error fetching user profile:", error);
-            if (error.code !== "PGRST116") { // Not found
+            if (error) {
+              console.error("Error fetching user profile:", error);
               setCurrentUser(null);
               return;
             }
-          }
 
-          if (profile) {
-            // Check if user is approved
-            if (profile.is_approved !== true) {
-              console.log("User is not approved:", profile.email);
-              // Sign the user out if they're not approved
+            if (profile) {
+              // Check if user is approved
+              if (!profile.is_approved) {
+                console.log("User is not approved:", profile.email);
+                // Sign the user out if they're not approved
+                await supabase.auth.signOut();
+                toast.error("Your account is pending approval by an administrator");
+                setCurrentUser(null);
+                return;
+              }
+              
+              // User is approved, set current user
+              setCurrentUser({
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                role: profile.role,
+                avatar: profile.avatar,
+                monthlyPoints: profile.monthly_points,
+                title: profile.title,
+                isApproved: profile.is_approved,
+                permissions: []
+              });
+            } else {
+              // No profile found, sign out
+              console.log("No profile found for user, signing out:", session.user.id);
               await supabase.auth.signOut();
-              toast.error("Your account is pending approval by an administrator");
               setCurrentUser(null);
-              return;
             }
-            
-            // User is approved, set current user
-            setCurrentUser({
-              id: profile.id,
-              name: profile.name,
-              email: profile.email,
-              role: profile.role,
-              avatar: profile.avatar,
-              monthlyPoints: profile.monthly_points,
-              title: profile.title,
-              isApproved: profile.is_approved,
-              permissions: []
-            });
-          } else {
-            // No profile found, sign out
-            console.log("No profile found for user, signing out:", session.user.id);
-            await supabase.auth.signOut();
+          } catch (error) {
+            console.error("Error in auth state change handler:", error);
             setCurrentUser(null);
           }
         } else {
@@ -67,48 +70,57 @@ export const useSupabaseAuth = () => {
     );
 
     // Check current session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-        if (error) {
-          console.error("Error fetching profile on init:", error);
-          setCurrentUser(null);
-        } else if (profile) {
-          // Check if user is approved
-          if (profile.is_approved !== true) {
-            console.log("User is not approved on init:", profile.email);
+          if (error) {
+            console.error("Error fetching profile on init:", error);
+            setCurrentUser(null);
+          } else if (profile) {
+            // Check if user is approved
+            if (!profile.is_approved) {
+              console.log("User is not approved on init:", profile.email);
+              await supabase.auth.signOut();
+              setCurrentUser(null);
+            } else {
+              setCurrentUser({
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                role: profile.role,
+                avatar: profile.avatar,
+                monthlyPoints: profile.monthly_points,
+                title: profile.title,
+                isApproved: profile.is_approved,
+                permissions: []
+              });
+            }
+          } else {
+            // No profile found, sign out
+            console.log("No profile found for user on init, signing out");
             await supabase.auth.signOut();
             setCurrentUser(null);
-          } else {
-            setCurrentUser({
-              id: profile.id,
-              name: profile.name,
-              email: profile.email,
-              role: profile.role,
-              avatar: profile.avatar,
-              monthlyPoints: profile.monthly_points,
-              title: profile.title,
-              isApproved: profile.is_approved,
-              permissions: []
-            });
           }
         } else {
-          // No profile found, sign out
-          console.log("No profile found for user on init, signing out");
-          await supabase.auth.signOut();
           setCurrentUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error("Error checking session:", error);
         setCurrentUser(null);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
+    
+    checkSession();
 
     return () => {
       subscription.unsubscribe();
@@ -117,25 +129,35 @@ export const useSupabaseAuth = () => {
 
   const login = async (email: string, password: string) => {
     try {
-      // First check if user is approved
-      const { data: profileCheck, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_approved')
-        .eq('email', email)
-        .single();
-      
-      if (profileCheck && profileCheck.is_approved !== true) {
-        throw new Error("Your account is pending approval by an administrator");
-      }
-      
-      // Attempt login
-      const { error } = await supabase.auth.signInWithPassword({
+      // First, attempt login
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) throw error;
       
+      // After successful login, check if user is approved
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_approved')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("Error checking approval status:", profileError);
+          // Sign out if we can't verify approval status
+          await supabase.auth.signOut();
+          throw new Error("Error verifying account status");
+        }
+        
+        if (!profile || !profile.is_approved) {
+          // Sign out if user is not approved
+          await supabase.auth.signOut();
+          throw new Error("Your account is pending approval by an administrator");
+        }
+      }
     } catch (error: any) {
       toast.error(error.message);
       throw error;
@@ -172,14 +194,13 @@ export const useSupabaseAuth = () => {
       }
       
       console.log("Registration successful:", data);
-      toast.success('Registration successful. Please wait for admin approval.');
       
       // Sign out immediately after registration (user needs approval first)
       await supabase.auth.signOut();
       
+      return data;
     } catch (error: any) {
       console.error("Registration failed:", error);
-      toast.error(error.message);
       throw error;
     }
   };

@@ -4,7 +4,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -27,7 +26,6 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -45,28 +43,9 @@ const LoginForm = () => {
       setIsSubmitting(true);
       setErrorMessage(null);
       
-      // Add debug logs
       console.log("Login attempt with:", data.email);
       
-      // First check if this user is approved
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_approved, email')
-        .eq('email', data.email)
-        .single();
-      
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error("Error checking approval status:", profileError);
-        throw new Error("Failed to verify account status");
-      }
-      
-      // If user exists but is not approved, show appropriate error
-      if (profileData && profileData.is_approved === false) {
-        throw new Error("Your account is pending approval by an administrator");
-      }
-      
-      // If we get here, the user is either approved or doesn't exist
-      // Sign in attempt will handle non-existent users
+      // Login attempt
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
@@ -74,21 +53,28 @@ const LoginForm = () => {
       
       if (error) throw error;
       
-      // Double check approval status after successful login (as a failsafe)
-      const { data: userProfile } = await supabase
+      // After successful auth, check if user is approved
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('is_approved')
         .eq('id', authData.user.id)
         .single();
-        
-      if (userProfile && userProfile.is_approved !== true) {
-        // Sign out if somehow user got through without approval
+      
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        await supabase.auth.signOut();
+        throw new Error("Error verifying account status. Please try again.");
+      }
+      
+      // If user is not approved, sign them out
+      if (!profileData || profileData.is_approved !== true) {
         await supabase.auth.signOut();
         throw new Error("Your account is pending approval by an administrator");
       }
       
       toast.success("Login successful");
       navigate("/dashboard");
+      
     } catch (error: any) {
       console.error("Login error:", error);
       
