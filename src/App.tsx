@@ -12,6 +12,7 @@ import TasksPage from "@/pages/TasksPage";
 import CalendarPage from "@/pages/CalendarPage";
 import CompletedPage from "@/pages/CompletedPage";
 import EmployeesPage from "@/pages/EmployeesPage";
+import ReportsPage from "@/pages/ReportsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const queryClient = new QueryClient();
@@ -32,8 +33,8 @@ const App = () => (
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="completed" element={<CompletedPage />} />
                 <Route path="employees" element={<EmployeesPage />} />
+                <Route path="reports" element={<ReportsPage />} />
                 {/* Placeholder routes for future implementation */}
-                <Route path="reports" element={<div className="py-10 text-center">Reports coming soon!</div>} />
                 <Route path="settings" element={<div className="py-10 text-center">Settings coming soon!</div>} />
                 <Route path="profile" element={<div className="py-10 text-center">Profile page coming soon!</div>} />
               </Route>

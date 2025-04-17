@@ -1,5 +1,5 @@
 
-import { TaskStatus } from "@/types";
+import { Task, TaskStatus } from "@/types";
 
 // Get color for task status
 export const getTaskStatusColor = (status: TaskStatus): string => {
@@ -39,4 +39,15 @@ export const formatTaskStatusForDisplay = (status: TaskStatus): string => {
     default:
       return status.charAt(0).toUpperCase() + status.slice(1);
   }
+};
+
+// Get unique categories from tasks array
+export const uniqueCategories = (tasks: Task[]): string[] => {
+  const categories = new Set<string>();
+  tasks.forEach(task => {
+    if (task.category) {
+      categories.add(task.category);
+    }
+  });
+  return Array.from(categories);
 };
