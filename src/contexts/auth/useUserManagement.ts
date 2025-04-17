@@ -54,11 +54,9 @@ export const useUserManagement = (users: User[], refreshUsers: () => Promise<voi
       if (error) throw error;
       
       await refreshUsers();
-      return users;
     } catch (error: any) {
       toast.error('Failed to update user permissions');
       console.error('Error updating user permissions:', error);
-      return users;
     }
   };
 

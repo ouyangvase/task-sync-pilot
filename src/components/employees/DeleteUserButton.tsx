@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { User } from "@/types";
 import { toast } from "sonner";
 import { useTasks } from "@/contexts/TaskContext";
@@ -56,7 +56,7 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
       const updatedTasks = tasks.filter(task => task.assignee !== user.id);
       
       // Update users and tasks state
-      setUsers(updatedUsers);
+      setUsers();
       setTasks(updatedTasks);
       
       // Log the deletion action (in a real system, this would be sent to the backend)

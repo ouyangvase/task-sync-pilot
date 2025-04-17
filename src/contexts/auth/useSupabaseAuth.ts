@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 import { toast } from 'sonner';
-import { Profile, UserPermission } from '@/types/database';
 
 export const useSupabaseAuth = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -128,7 +127,7 @@ export const useSupabaseAuth = () => {
       if (error) throw error;
 
       if (profiles) {
-        setUsers(profiles.map(profile => ({
+        const formattedUsers: User[] = profiles.map(profile => ({
           id: profile.id,
           name: profile.name,
           email: profile.email,
@@ -138,7 +137,9 @@ export const useSupabaseAuth = () => {
           title: profile.title,
           isApproved: profile.is_approved,
           permissions: profile.user_permissions || []
-        })));
+        }));
+        
+        setUsers(formattedUsers);
       }
     } catch (error: any) {
       toast.error('Failed to fetch users');

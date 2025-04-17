@@ -1,11 +1,10 @@
-
 import React, { createContext, useContext } from "react";
 import { Task, TaskStats, PointsStats, RewardTier, TaskStatus } from "@/types";
-import { useAuth } from "../AuthContext";
 import { toast } from "@/components/ui/sonner";
 import { TaskContextType } from "./taskContextTypes";
 import { useTaskStorage } from "./useTaskStorage";
 import { useTaskCalculations } from "./useTaskCalculations";
+import { AuthContext } from "../auth/AuthProvider";
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
@@ -19,8 +18,15 @@ export const useTasks = () => {
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { tasks, setTasks, rewardTiers, setRewardTiers, monthlyTarget, setMonthlyTarget, userPoints, setUserPoints } = useTaskStorage();
+  
+  // Fix the circular dependency by using AuthContext directly
+  const authContext = useContext(AuthContext);
+  if (!authContext) {
+    throw new Error("TaskProvider must be used within an AuthProvider");
+  }
+  
+  const { currentUser } = authContext;
   const { calculateUserPoints } = useTaskCalculations();
-  const { currentUser } = useAuth();
 
   const getUserTasks = (userId: string) => {
     return tasks.filter((task) => task.assignee === userId);
