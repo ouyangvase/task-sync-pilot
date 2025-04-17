@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -46,7 +47,7 @@ const EmployeesPage = () => {
         const updatedTasks = tasks.filter(task => task.assignee !== userToDelete.id);
         
         // Update state
-        setUsers();
+        setUsers(updatedUsers);
         setTasks(updatedTasks);
         
         // Show notification

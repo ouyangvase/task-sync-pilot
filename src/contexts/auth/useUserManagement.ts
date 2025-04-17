@@ -1,130 +1,75 @@
 
-import { User, UserPermission, UserRole } from "@/types";
+import { useState, useEffect } from "react";
+import { User, UserRole, UserPermission } from "@/types";
 import { toast } from "sonner";
-import { supabase } from '@/integrations/supabase/client';
+import { updateUserPermissionsHelper } from "./authUtils";
 
-export const useUserManagement = (users: User[], refreshUsers: () => Promise<void>) => {
-  const updateUserTitle = async (userId: string, title: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ title: title === "none" ? null : title })
-        .eq('id', userId);
-
-      if (error) throw error;
-      
-      await refreshUsers();
-      return users;
-    } catch (error: any) {
-      toast.error('Failed to update user title');
-      console.error('Error updating user title:', error);
-      return users;
-    }
+export const useUserManagement = (initialUsers: User[]) => {
+  // Add the new user to initialUsers before setting state
+  const newUser: User = {
+    id: `user_${Date.now()}`,
+    email: "unmap@live.com",
+    name: "Team Lead User",
+    role: "team_lead",
+    isApproved: true,
+    permissions: [],
   };
+  
+  // Only add if the user doesn't already exist
+  const userExists = initialUsers.some(user => user.email === newUser.email);
+  if (!userExists) {
+    initialUsers.push(newUser);
+    // Save the updated users to localStorage for persistence
+    localStorage.setItem("users", JSON.stringify(initialUsers));
+    console.log("Added new user:", newUser);
+  }
 
-  const updateUserRole = async (userId: string, role: string) => {
-    try {
-      // Validate role is a valid UserRole type before updating
-      const validRole = validateUserRole(role);
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: validRole })
-        .eq('id', userId);
+  const [users, setUsers] = useState<User[]>(
+    // Initialize with empty permissions arrays if not already present
+    // and ensure isApproved is explicitly set for all users
+    initialUsers.map(user => ({
+      ...user,
+      permissions: user.permissions || [],
+      isApproved: user.isApproved !== undefined ? user.isApproved : true, // Default to true for existing users
+    }))
+  );
 
-      if (error) throw error;
-      
-      await refreshUsers();
-      return users;
-    } catch (error: any) {
-      toast.error('Failed to update user role');
-      console.error('Error updating user role:', error);
-      return users;
-    }
-  };
+  // Effect to ensure any changes to users are saved to localStorage
+  useEffect(() => {
+    localStorage.setItem("users", JSON.stringify(users));
+  }, [users]);
 
-  // Helper function to validate role is one of the allowed values
-  const validateUserRole = (role: string): UserRole => {
-    const validRoles: UserRole[] = ['admin', 'employee', 'team_lead', 'manager'];
-    if (validRoles.includes(role as UserRole)) {
-      return role as UserRole;
-    }
-    // Default to employee if invalid role provided
-    console.warn(`Invalid role '${role}' provided, defaulting to 'employee'`);
-    return 'employee';
-  };
-
-  const updateUserPermissions = async (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
-    try {
-      const { error } = await supabase
-        .from('user_permissions')
-        .upsert({
-          user_id: userId,
-          target_user_id: targetUserId,
-          can_view: newPermissions.canView,
-          can_edit: newPermissions.canEdit
-        });
-
-      if (error) throw error;
-      
-      await refreshUsers();
-    } catch (error: any) {
-      toast.error('Failed to update user permissions');
-      console.error('Error updating user permissions:', error);
-    }
-  };
-
-  const approveUser = async (userId: string) => {
-    try {
-      console.log(`Approving user with ID: ${userId}`);
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_approved: true })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('Database error during user approval:', error);
-        throw error;
+  const updateUserTitle = (userId: string, title: string) => {
+    // Update users array with the new title
+    const updatedUsers = users.map(user => {
+      if (user.id === userId) {
+        return { ...user, title: title === "none" ? "" : title };
       }
-      
-      console.log('User approved successfully');
-      await refreshUsers();
-    } catch (error: any) {
-      console.error('Error in approveUser function:', error);
-      toast.error(`Failed to approve user: ${error.message}`);
-    }
+      return user;
+    });
+    
+    setUsers(updatedUsers);
+    return updatedUsers;
   };
 
-  const rejectUser = async (userId: string) => {
-    try {
-      console.log(`Rejecting user with ID: ${userId}`);
-      
-      // First get the user's email for logging purposes
-      const { data: userData, error: userFetchError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', userId)
-        .single();
-        
-      if (userFetchError) {
-        console.error('Error fetching user data before rejection:', userFetchError);
+  const updateUserRole = (userId: string, role: string) => {
+    // Update users array with the new role
+    const updatedUsers = users.map(user => {
+      if (user.id === userId) {
+        return { ...user, role: role as UserRole };
       }
-      
-      // Delete from auth.users - this will cascade to profiles due to foreign key
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      return user;
+    });
+    
+    setUsers(updatedUsers);
+    return updatedUsers;
+  };
 
-      if (error) {
-        console.error('Auth API error during user rejection:', error);
-        throw error;
-      }
-      
-      console.log(`User rejected and deleted successfully: ${userData?.email || userId}`);
-      await refreshUsers();
-    } catch (error: any) {
-      console.error('Error in rejectUser function:', error);
-      toast.error(`Failed to reject user: ${error.message}`);
-    }
+  const updateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
+    const updatedUsers = updateUserPermissionsHelper(users, userId, targetUserId, newPermissions);
+    setUsers(updatedUsers);
+    toast.success("User permissions updated");
+    return updatedUsers;
   };
 
   const getPendingUsers = () => {
@@ -132,11 +77,11 @@ export const useUserManagement = (users: User[], refreshUsers: () => Promise<voi
   };
 
   return {
+    users,
+    setUsers,
     updateUserTitle,
     updateUserRole,
     updateUserPermissions,
-    approveUser,
-    rejectUser,
     getPendingUsers,
   };
 };

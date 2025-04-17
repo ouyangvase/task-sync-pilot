@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -16,7 +17,6 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -26,6 +26,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,59 +44,16 @@ const LoginForm = () => {
       setIsSubmitting(true);
       setErrorMessage(null);
       
+      // Add debug logs
       console.log("Login attempt with:", data.email);
       
-      // Login attempt
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password
-      });
-      
-      if (error) throw error;
-      
-      // Special case for admin@tasksync.com - bypass approval check
-      if (data.email === 'admin@tasksync.com') {
-        toast.success("Login successful");
-        navigate("/dashboard");
-        return;
-      }
-      
-      // After successful auth, check if user is approved
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_approved')
-        .eq('id', authData.user.id)
-        .single();
-      
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-        await supabase.auth.signOut();
-        throw new Error("Error verifying account status. Please try again.");
-      }
-      
-      // If user is not approved, sign them out
-      if (!profileData || profileData.is_approved !== true) {
-        await supabase.auth.signOut();
-        throw new Error("Your account is pending approval by an administrator");
-      }
-      
+      await login(data.email, data.password);
       toast.success("Login successful");
       navigate("/dashboard");
-      
     } catch (error: any) {
       console.error("Login error:", error);
-      
-      // Provide more user-friendly error messages
-      let friendlyErrorMessage = error.message || "Invalid email or password";
-      
-      if (error.message.includes("Invalid login credentials")) {
-        friendlyErrorMessage = "Invalid email or password. Please check your credentials and try again.";
-      } else if (error.message.includes("pending approval")) {
-        friendlyErrorMessage = "Your account is pending approval by an administrator.";
-      }
-      
-      setErrorMessage(friendlyErrorMessage);
-      toast.error(friendlyErrorMessage);
+      setErrorMessage(error.message || "Invalid email or password");
+      toast.error(error.message || "Invalid email or password");
     } finally {
       setIsSubmitting(false);
     }

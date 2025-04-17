@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client"; // Direct import for error handling
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -33,6 +33,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const RegistrationForm = () => {
+  const { registerUser } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -54,26 +55,11 @@ const RegistrationForm = () => {
       
       console.log("Registering with:", data.email, data.fullName);
       
-      // Register the user through Supabase auth
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.fullName,
-            role: "employee"
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
+      await registerUser(data.email, data.password, data.fullName);
       toast.success("Registration successful. Your account is pending admin approval.");
       navigate("/login");
     } catch (error: any) {
       console.error("Registration error:", error);
-      
-      // More descriptive error message
       setErrorMessage(error.message || "Registration failed");
       toast.error(error.message || "Registration failed");
     } finally {
