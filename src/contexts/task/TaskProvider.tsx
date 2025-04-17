@@ -47,10 +47,57 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
-    );
-    toast.success("Task updated successfully");
+    setTasks((prev) => {
+      return prev.map((task) => {
+        if (task.id === taskId) {
+          // If we're updating status to completed, handle completion logic
+          if (updates.status === "completed" && task.status !== "completed") {
+            const completedTask: Task = {
+              ...task,
+              ...updates,
+              status: "completed",
+              completedAt: new Date().toISOString(),
+            };
+            
+            const userId = task.assignee;
+            const taskPoints = task.points || 0;
+            
+            // Only award points when status changes to completed
+            setUserPoints(prev => ({
+              ...prev,
+              [userId]: (prev[userId] || 0) + taskPoints
+            }));
+            
+            const currentPoints = getUserMonthlyPoints(userId);
+            const newTotal = currentPoints + taskPoints;
+            const percentComplete = (newTotal / monthlyTarget) * 100;
+            
+            if (percentComplete >= 50 && percentComplete < 51) {
+              toast.success(`You've reached 50% of your monthly points goal!`);
+            } else if (percentComplete >= 80 && percentComplete < 81) {
+              toast.success(`You're at 80% of your monthly points goal! Almost there!`);
+            } else if (percentComplete >= 100 && percentComplete < 101) {
+              toast.success(`Congratulations! You've reached 100% of your monthly points goal!`);
+            }
+            
+            return completedTask;
+          }
+          
+          // For all other updates, just apply the changes
+          return { ...task, ...updates };
+        }
+        return task;
+      });
+    });
+    
+    // Show appropriate toast message based on updates
+    if (updates.status === "completed") {
+      toast.success("Task completed! Points awarded.");
+    } else if (updates.status === "in-progress") {
+      toast.success("Task marked as in progress");
+    } else {
+      toast.success("Task updated successfully");
+    }
   };
 
   const deleteTask = (taskId: string) => {
@@ -93,7 +140,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return task;
       })
     );
-    toast.success("Task completed!");
+    toast.success("Task completed! Points awarded.");
   };
 
   const getUserTaskStats = (userId: string): TaskStats => {

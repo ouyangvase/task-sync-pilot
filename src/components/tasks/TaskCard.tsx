@@ -29,14 +29,17 @@ import { format } from "date-fns";
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
+  showControls?: boolean;
 }
 
-const TaskCard = ({ task, onEdit }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
   const { completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const isAdmin = currentUser?.role === "admin";
   const isCompleted = task.status === "completed";
+  const isInProgress = task.status === "in-progress";
+  const isOwnTask = currentUser?.id === task.assignee;
   
   const handleComplete = () => {
     completeTask(task.id);
@@ -74,16 +77,29 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
         return recurrence;
     }
   };
+  
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="bg-slate-100 text-slate-800">Current</Badge>;
+      case "in-progress":
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">In Progress</Badge>;
+      case "completed":
+        return <Badge variant="outline" className="bg-green-100 text-green-800">Completed</Badge>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div 
       className={cn(
-        "task-card group",
-        isCompleted && "completed"
+        "task-card group border rounded-lg p-4 bg-card",
+        isCompleted && "completed border-green-200 bg-green-50/30"
       )}
     >
       <div className="flex items-start gap-3">
-        {!isCompleted && (
+        {!isCompleted && showControls && isAdmin && (
           <Checkbox 
             checked={isCompleted}
             onCheckedChange={handleComplete}
@@ -92,14 +108,19 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={cn(
-              "font-medium truncate",
-              isCompleted && "line-through text-muted-foreground"
-            )}>
-              {task.title}
-            </h3>
+            <div>
+              <h3 className={cn(
+                "font-medium truncate",
+                isCompleted && "text-muted-foreground"
+              )}>
+                {task.title}
+              </h3>
+              <div className="mt-1">
+                {getStatusBadge(task.status)}
+              </div>
+            </div>
             
-            {(isAdmin || currentUser?.id === task.assignee) && (
+            {showControls && (isAdmin || (isOwnTask && !isCompleted)) && (
               <div className="shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -109,19 +130,21 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {onEdit && (
+                    {onEdit && isAdmin && (
                       <DropdownMenuItem onClick={() => onEdit(task)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit task
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem 
-                      onClick={() => setDeleteDialogOpen(true)}
-                      className="text-red-500 focus:text-red-500"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete task
-                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem 
+                        onClick={() => setDeleteDialogOpen(true)}
+                        className="text-red-500 focus:text-red-500"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete task
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
@@ -151,7 +174,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
           {task.description && (
             <p className={cn(
               "text-sm text-muted-foreground mt-1",
-              isCompleted && "line-through"
+              isCompleted && "text-muted-foreground"
             )}>
               {task.description}
             </p>
