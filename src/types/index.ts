@@ -1,3 +1,4 @@
+
 export type UserRole = "admin" | "employee" | "team_lead" | "manager";
 
 export interface UserPermission {
@@ -15,6 +16,7 @@ export interface User {
   monthlyPoints?: number;
   title?: string; // Added title property for employee titles
   permissions?: UserPermission[]; // Cross-user permissions
+  isApproved?: boolean; // Added for registration approval workflow
 }
 
 export type TaskCategory = "daily" | "custom" | "completed";

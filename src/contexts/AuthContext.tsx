@@ -17,6 +17,10 @@ interface AuthContextType {
   canViewUser: (viewerId: string, targetUserId: string) => boolean;
   canEditUser: (editorId: string, targetUserId: string) => boolean;
   getAccessibleUsers: (userId: string) => User[];
+  registerUser: (email: string, password: string, fullName: string) => Promise<void>;
+  approveUser: (userId: string) => Promise<void>;
+  rejectUser: (userId: string) => Promise<void>;
+  getPendingUsers: () => User[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,7 +40,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Initialize with empty permissions arrays if not already present
     mockUsers.map(user => ({
       ...user,
-      permissions: user.permissions || []
+      permissions: user.permissions || [],
+      isApproved: true,
     }))
   );
 
@@ -71,6 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user) {
         throw new Error("Invalid email or password");
       }
+
+      if (!user.isApproved) {
+        throw new Error("Your account is pending admin approval");
+      }
       
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -92,11 +101,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("currentUser");
   };
 
+  // Register a new user
+  const registerUser = async (email: string, password: string, fullName: string) => {
+    // Check if email already exists
+    const existingUser = users.find((u) => u.email === email);
+    if (existingUser) {
+      throw new Error("Email already registered");
+    }
+
+    // Create a new user with pending approval
+    const newUser: User = {
+      id: `user_${Date.now()}`,
+      email,
+      name: fullName,
+      role: "employee", // Default role
+      isApproved: false,
+      permissions: [],
+    };
+
+    // Update users array
+    setUsers(prevUsers => [...prevUsers, newUser]);
+    
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    
+    return;
+  };
+
+  // Approve a pending user
+  const approveUser = async (userId: string) => {
+    const updatedUsers = users.map(user => {
+      if (user.id === userId) {
+        return { ...user, isApproved: true };
+      }
+      return user;
+    });
+    
+    setUsers(updatedUsers);
+
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  };
+
+  // Reject and remove a pending user
+  const rejectUser = async (userId: string) => {
+    const updatedUsers = users.filter(user => user.id !== userId);
+    setUsers(updatedUsers);
+
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  };
+
+  // Get all pending users
+  const getPendingUsers = () => {
+    return users.filter(user => user.isApproved === false);
+  };
+
   const updateUserTitle = (userId: string, title: string) => {
     // Update users array with the new title
     const updatedUsers = users.map(user => {
       if (user.id === userId) {
-        return { ...user, title };
+        return { ...user, title: title === "none" ? "" : title };
       }
       return user;
     });
@@ -105,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Also update currentUser if it's the same user
     if (currentUser && currentUser.id === userId) {
-      const updatedUser = { ...currentUser, title };
+      const updatedUser = { ...currentUser, title: title === "none" ? "" : title };
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
@@ -223,14 +288,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return [];
     
     // Admins can see everyone
-    if (user.role === "admin") return users;
+    if (user.role === "admin") return users.filter(u => u.isApproved !== false);
     
     // Everyone can see themselves
     const accessibleUsers = [user];
     
     // Add users with specific view permissions
     users.forEach(otherUser => {
-      if (otherUser.id !== userId && canViewUser(userId, otherUser.id)) {
+      if (otherUser.id !== userId && otherUser.isApproved !== false && canViewUser(userId, otherUser.id)) {
         accessibleUsers.push(otherUser);
       }
     });
@@ -253,6 +318,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canViewUser,
         canEditUser,
         getAccessibleUsers,
+        registerUser,
+        approveUser,
+        rejectUser,
+        getPendingUsers,
       }}
     >
       {children}

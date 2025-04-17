@@ -17,6 +17,7 @@ import AchievementsPage from "@/pages/AchievementsPage";
 import RolesSettingsPage from "@/pages/RolesSettingsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import EmployeeRegistrationPage from "@/pages/EmployeeRegistrationPage";
+import RegistrationPage from "@/pages/RegistrationPage";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const queryClient = new QueryClient();
@@ -31,7 +32,8 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<EmployeeRegistrationPage />} />
+              <Route path="/register" element={<RegistrationPage />} />
+              <Route path="/register/employee" element={<EmployeeRegistrationPage />} />
               <Route path="/" element={<AppLayout />}>
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="tasks" element={<TasksPage />} />
