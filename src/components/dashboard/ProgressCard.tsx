@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { TaskStats } from "@/types";
 
 interface ProgressCardProps {
@@ -14,12 +15,10 @@ const ProgressCard = ({ stats, title = "Today's Progress" }: ProgressCardProps) 
         <CardTitle className="text-md font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="progress-indicator">
-          <div
-            className="progress-bar"
-            style={{ width: `${stats.percentComplete}%` }}
-          />
-        </div>
+        <Progress 
+          value={stats.percentComplete} 
+          className="h-3"
+        />
         
         <div className="flex justify-between items-center mt-2">
           <div className="text-sm font-medium">{stats.percentComplete}% complete</div>

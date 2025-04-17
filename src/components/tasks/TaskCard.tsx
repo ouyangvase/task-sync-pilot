@@ -165,6 +165,10 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             <Badge variant="outline">
               {getRecurrenceText(task.recurrence)}
             </Badge>
+
+            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+              {task.points} pts
+            </Badge>
             
             <Badge variant="outline" className="ml-auto">
               Due: {format(new Date(task.dueDate), "MMM d")}

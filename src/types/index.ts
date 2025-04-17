@@ -7,6 +7,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  monthlyPoints?: number;
 }
 
 export type TaskCategory = "daily" | "custom" | "completed";
@@ -25,6 +26,7 @@ export interface Task {
   completedAt?: string;
   priority: "low" | "medium" | "high";
   status: "pending" | "in-progress" | "completed";
+  points: number; // New field for task points
 }
 
 export interface TaskStats {
@@ -32,4 +34,16 @@ export interface TaskStats {
   pending: number;
   total: number;
   percentComplete: number;
+}
+
+export interface PointsStats {
+  earned: number;
+  target: number;
+  percentComplete: number;
+}
+
+export interface RewardTier {
+  id: string;
+  points: number;
+  reward: string;
 }

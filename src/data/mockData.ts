@@ -1,5 +1,5 @@
 
-import { Task, User } from "@/types";
+import { Task, User, RewardTier } from "@/types";
 
 // Mock Users
 export const mockUsers: User[] = [
@@ -9,6 +9,7 @@ export const mockUsers: User[] = [
     email: "admin@tasksync.com",
     role: "admin",
     avatar: "https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff",
+    monthlyPoints: 0,
   },
   {
     id: "2",
@@ -16,6 +17,7 @@ export const mockUsers: User[] = [
     email: "john@tasksync.com",
     role: "employee",
     avatar: "https://ui-avatars.com/api/?name=John+Employee&background=2563eb&color=fff",
+    monthlyPoints: 120,
   },
   {
     id: "3",
@@ -23,6 +25,7 @@ export const mockUsers: User[] = [
     email: "sarah@tasksync.com",
     role: "employee",
     avatar: "https://ui-avatars.com/api/?name=Sarah+Team&background=0891b2&color=fff",
+    monthlyPoints: 230,
   },
 ];
 
@@ -45,6 +48,7 @@ export const mockTasks: Task[] = [
     createdAt: yesterday,
     priority: "medium",
     status: "pending",
+    points: 50,
   },
   {
     id: "task-2",
@@ -58,6 +62,7 @@ export const mockTasks: Task[] = [
     createdAt: yesterday,
     priority: "high",
     status: "in-progress",
+    points: 100,
   },
   {
     id: "task-3",
@@ -71,6 +76,7 @@ export const mockTasks: Task[] = [
     createdAt: today,
     priority: "high",
     status: "pending",
+    points: 75,
   },
   {
     id: "task-4",
@@ -85,6 +91,7 @@ export const mockTasks: Task[] = [
     priority: "medium",
     status: "completed",
     completedAt: today,
+    points: 150,
   },
   {
     id: "task-5",
@@ -98,6 +105,7 @@ export const mockTasks: Task[] = [
     createdAt: yesterday,
     priority: "low",
     status: "pending",
+    points: 50,
   },
   {
     id: "task-6",
@@ -112,6 +120,7 @@ export const mockTasks: Task[] = [
     priority: "high",
     status: "completed",
     completedAt: today,
+    points: 80,
   },
 ];
 

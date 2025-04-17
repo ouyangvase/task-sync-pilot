@@ -38,13 +38,14 @@ const formSchema = z.object({
   recurrence: z.enum(["once", "daily", "weekly", "monthly"]),
   dueDate: z.string().min(1, { message: "Please select a due date" }),
   priority: z.enum(["low", "medium", "high"]),
+  points: z.coerce.number().min(1, { message: "Points must be at least 1" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const TaskForm = ({ task, onClose }: TaskFormProps) => {
   const { addTask, updateTask } = useTasks();
-  const { users } = useAuth();
+  const { users, currentUser } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -56,6 +57,7 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
       recurrence: "once",
       dueDate: new Date().toISOString().split("T")[0],
       priority: "medium",
+      points: 50,
     },
   });
 
@@ -69,6 +71,7 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
         recurrence: task.recurrence,
         dueDate: task.dueDate,
         priority: task.priority,
+        points: task.points || 50,
       });
     }
   }, [task, form]);
@@ -83,6 +86,7 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
       addTask({
         ...values,
         status: "pending",
+        assignedBy: currentUser?.id || "", // Ensure assignedBy is included
       });
     }
     
@@ -229,32 +233,53 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="priority"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Priority</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                value={field.value}
-              >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="priority"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Priority</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="points"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Points Value</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    placeholder="Enter points value" 
+                    {...field}
+                  />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" type="button" onClick={onClose}>

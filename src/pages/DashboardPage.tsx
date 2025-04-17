@@ -1,14 +1,26 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/contexts/TaskContext";
 import ProgressCard from "@/components/dashboard/ProgressCard";
 import TaskSummaryCard from "@/components/dashboard/TaskSummaryCard";
 import TaskList from "@/components/tasks/TaskList";
+import PointsProgressCard from "@/components/dashboard/PointsProgressCard";
+import RewardsManager from "@/components/rewards/RewardsManager";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Trophy } from "lucide-react";
 
 const DashboardPage = () => {
   const { currentUser } = useAuth();
-  const { getUserTasks, getTasksByCategory, getUserTaskStats } = useTasks();
+  const { 
+    getUserTasks, 
+    getTasksByCategory, 
+    getUserTaskStats, 
+    getUserPointsStats,
+    getUserReachedRewards,
+    rewardTiers
+  } = useTasks();
+  const [showRewardsSettings, setShowRewardsSettings] = useState(false);
   
   useEffect(() => {
     document.title = "Dashboard | TaskSync Pilot";
@@ -18,11 +30,14 @@ const DashboardPage = () => {
     return null;
   }
   
+  const isAdmin = currentUser.role === "admin";
   const dailyTasks = getTasksByCategory(currentUser.id, "daily");
   const customTasks = getTasksByCategory(currentUser.id, "custom");
   const completedTasks = getTasksByCategory(currentUser.id, "completed");
   const allTasks = getUserTasks(currentUser.id);
   const taskStats = getUserTaskStats(currentUser.id);
+  const pointsStats = getUserPointsStats(currentUser.id);
+  const reachedRewards = getUserReachedRewards(currentUser.id);
   
   // Get counts for summary cards
   const pendingCount = allTasks.filter((task) => task.status === "pending").length;
@@ -38,7 +53,24 @@ const DashboardPage = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowRewardsSettings(prev => !prev)}
+              className="flex items-center gap-1 px-3 py-1 text-sm rounded-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors"
+            >
+              <Trophy className="h-4 w-4" />
+              {showRewardsSettings ? "Hide Rewards Settings" : "Manage Rewards"}
+            </button>
+          </div>
+        )}
       </div>
+      
+      {isAdmin && showRewardsSettings && (
+        <div className="mb-8">
+          <RewardsManager />
+        </div>
+      )}
       
       <div className="grid gap-4 md:grid-cols-3">
         <TaskSummaryCard
@@ -58,7 +90,13 @@ const DashboardPage = () => {
         />
       </div>
       
-      <ProgressCard stats={taskStats} />
+      <div className="grid gap-6 md:grid-cols-2">
+        <ProgressCard stats={taskStats} />
+        <PointsProgressCard 
+          stats={pointsStats} 
+          rewards={reachedRewards.length ? reachedRewards : rewardTiers.slice(0, 1)}
+        />
+      </div>
       
       <div className="grid gap-8">
         <TaskList
