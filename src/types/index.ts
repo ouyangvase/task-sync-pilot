@@ -1,10 +1,11 @@
+
 export type UserRole = "admin" | "employee" | "tenant" | "landlord" | "merchant";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole | string;
+  role: UserRole;
   avatar?: string;
   monthlyPoints?: number;
   department?: string;

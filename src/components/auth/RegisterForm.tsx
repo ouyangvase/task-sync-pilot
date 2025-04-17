@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,7 +43,7 @@ const formSchema = z.object({
 type RegisterFormValues = z.infer<typeof formSchema>;
 
 const RegisterForm = () => {
-  const { register } = useAuth();
+  const { register, loading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -184,8 +185,8 @@ const RegisterForm = () => {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button type="submit" className="w-full" disabled={isSubmitting || loading}>
+              {isSubmitting || loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
                 </>

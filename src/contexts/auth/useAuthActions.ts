@@ -33,18 +33,45 @@ export const useAuthActions = ({ setCurrentUser, setLoading }: AuthActionsProps)
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // First register the user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
-            department: department || ''
           }
         }
       });
       
-      if (error) throw error;
+      if (authError) throw authError;
+      
+      // If registration is successful, update the profile with additional data
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: fullName,
+            department: department || null
+          })
+          .eq('id', authData.user.id);
+          
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+        }
+
+        // Set default user role as employee
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role: 'employee'
+          });
+
+        if (roleError) {
+          console.error("Error setting user role:", roleError);
+        }
+      }
       
       toast.success("Registration successful! You can now login.");
     } catch (error: any) {

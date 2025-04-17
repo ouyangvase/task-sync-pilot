@@ -52,10 +52,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (userData && roleData) {
             setCurrentUser({
               id: sessionData.session.user.id,
-              name: userData.full_name,
+              name: userData.full_name || "",
               email: sessionData.session.user.email || '',
               role: roleData.role as UserRole,
-              avatar: userData.avatar_url,
+              avatar: userData.avatar_url || "",
               department: userData.department || ''
             });
             
@@ -92,10 +92,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (userData && roleData) {
             setCurrentUser({
               id: session.user.id,
-              name: userData.full_name,
+              name: userData.full_name || "",
               email: session.user.email || '',
               role: roleData.role as UserRole,
-              avatar: userData.avatar_url,
+              avatar: userData.avatar_url || "",
               department: userData.department || ''
             });
             

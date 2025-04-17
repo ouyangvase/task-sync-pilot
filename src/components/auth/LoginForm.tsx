@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -25,7 +26,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { login } = useAuth();
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,10 +42,9 @@ const LoginForm = () => {
     try {
       setIsSubmitting(true);
       await login(data.email, data.password);
-      toast.success("Login successful");
       navigate("/dashboard");
     } catch (error) {
-      toast.error("Invalid email or password");
+      // Error is handled in the login function
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -56,10 +56,9 @@ const LoginForm = () => {
     try {
       const email = role === "admin" ? "admin@tasksync.com" : "john@tasksync.com";
       await login(email, "password123");
-      toast.success("Login successful");
       navigate("/dashboard");
     } catch (error) {
-      toast.error("Login failed");
+      // Error is handled in the login function
     } finally {
       setIsSubmitting(false);
     }
@@ -102,8 +101,8 @@ const LoginForm = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Logging in..." : "Log In"}
+            <Button type="submit" className="w-full" disabled={isSubmitting || loading}>
+              {isSubmitting || loading ? "Logging in..." : "Log In"}
             </Button>
           </form>
         </Form>
@@ -118,7 +117,7 @@ const LoginForm = () => {
             size="sm"
             className="flex-1"
             onClick={() => quickLogin("admin")}
-            disabled={isSubmitting}
+            disabled={isSubmitting || loading}
           >
             Login as Admin
           </Button>
@@ -127,7 +126,7 @@ const LoginForm = () => {
             size="sm"
             className="flex-1"
             onClick={() => quickLogin("employee")}
-            disabled={isSubmitting}
+            disabled={isSubmitting || loading}
           >
             Login as Employee
           </Button>
