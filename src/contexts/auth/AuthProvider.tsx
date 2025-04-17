@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
@@ -40,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     // In a real app, this would validate with a backend
     setLoading(true);
     
@@ -68,8 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Debug log to verify login success
       console.log("Login successful:", enhancedUser);
-      
-      return enhancedUser;
     } finally {
       setLoading(false);
     }
@@ -106,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return;
   };
 
-  const approveUser = async (userId: string) => {
+  const approveUser = async (userId: string): Promise<void> => {
     console.log("Approving user:", userId);
     const updatedUsers = users.map(user => {
       if (user.id === userId) {
@@ -122,8 +121,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    return updatedUsers.find(user => user.id === userId);
   };
 
   const rejectUser = async (userId: string) => {

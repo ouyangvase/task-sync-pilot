@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth";
 import { 
@@ -53,11 +52,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       setProcessingIds(prev => ({ ...prev, [user.id]: true }));
       
       // First approve the user
-      const updatedUser = await approveUser(user.id);
-      
-      if (!updatedUser) {
-        throw new Error("Failed to update user approval status");
-      }
+      await approveUser(user.id);
       
       // Then update role if selected
       const role = selectedRoles[user.id] || "employee";

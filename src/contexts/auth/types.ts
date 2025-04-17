@@ -19,4 +19,3 @@ export interface AuthContextType {
   rejectUser: (userId: string) => Promise<void>;
   getPendingUsers: () => User[];
 }
-
