@@ -49,16 +49,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ensure we only use valid role values from UserRole type (admin or employee)
       const mappedUsers: User[] = profiles.map((profile: any) => {
         const userRole = userRoles.find((r: any) => r.user_id === profile.id);
-        // Ensure role is either "admin" or "employee" (valid UserRole values)
-        const role = userRole?.role === "admin" || userRole?.role === "employee" 
-          ? userRole.role 
-          : "employee"; // Default to employee if invalid role
+        // Check if the role is one of the allowed values in our UserRole type
+        let roleValue: "admin" | "employee" = "employee"; // Default to employee
+        
+        if (userRole && (userRole.role === "admin" || userRole.role === "employee")) {
+          roleValue = userRole.role as "admin" | "employee";
+        }
 
         return {
           id: profile.id,
           name: profile.full_name,
           email: profile.email,
-          role: role,
+          role: roleValue,
           avatar: profile.avatar_url,
           department: profile.department
         };
@@ -129,15 +131,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (roleError) throw roleError;
 
       // Ensure role is valid according to UserRole type
-      const role = roleData.role === "admin" || roleData.role === "employee" 
-        ? roleData.role 
-        : "employee"; // Default to employee if invalid role
+      let roleValue: "admin" | "employee" = "employee"; // Default to employee
+      
+      if (roleData && (roleData.role === "admin" || roleData.role === "employee")) {
+        roleValue = roleData.role as "admin" | "employee";
+      }
 
       setCurrentUser({
         id: userId,
         name: profile.full_name || 'Unknown User',
         email: profile.email,
-        role: role,
+        role: roleValue,
         avatar: profile.avatar_url,
         department: profile.department
       });
