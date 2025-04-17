@@ -30,3 +30,13 @@ export const getTaskColor = (task: { status: TaskStatus; dueDate: string }): str
   }
   return getTaskStatusColor(task.status);
 };
+
+// Format for display
+export const formatTaskStatusForDisplay = (status: TaskStatus): string => {
+  switch (status) {
+    case "in-progress":
+      return "In Progress";
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+};
