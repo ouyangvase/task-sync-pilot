@@ -59,14 +59,28 @@ const LoginForm = () => {
           isApproved: true,
           permissions: []
         }));
+        
+        // Ensure we're setting this in the auth context too
+        await login(data.email, data.password);
+        
         toast.success("Admin login successful");
-        navigate("/dashboard");
+        
+        // Make sure navigation happens after state is updated
+        setTimeout(() => {
+          console.log("Redirecting to dashboard...");
+          navigate("/dashboard");
+        }, 100);
         return;
       }
       
       await login(data.email, data.password);
       toast.success("Login successful");
-      navigate("/dashboard");
+      
+      // Make sure navigation happens after state is updated
+      setTimeout(() => {
+        console.log("Redirecting to dashboard...");
+        navigate("/dashboard");
+      }, 100);
     } catch (error: any) {
       console.error("Login error:", error);
       setErrorMessage(error.message || "Invalid email or password. Please check your credentials and try again.");
