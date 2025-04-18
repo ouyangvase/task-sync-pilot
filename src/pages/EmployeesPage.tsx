@@ -34,59 +34,8 @@ const EmployeesPage = () => {
   const canViewEmployees = userPermissions.includes("view_employees");
   const canManageUsers = userPermissions.includes("manage_users");
 
-  // Delete user with email unmap@live.com
-  useEffect(() => {
-    if (currentUser?.role === "admin" && users.length > 0) {
-      const userToDelete = users.find(user => user.email === "unmap@live.com");
-      
-      if (userToDelete) {
-        // Remove the user from the users list
-        const updatedUsers = users.filter(user => user.email !== "unmap@live.com");
-        
-        // Remove all tasks associated with this user
-        const updatedTasks = tasks.filter(task => task.assignee !== userToDelete.id);
-        
-        // Update state
-        setUsers(updatedUsers);
-        setTasks(updatedTasks);
-        
-        // Show notification
-        toast.success(`User ${userToDelete.name || userToDelete.email} has been deleted along with all associated tasks`);
-        
-        // Log the deletion action
-        console.log(`User with email unmap@live.com has been deleted by admin ${currentUser.name}`);
-      } else {
-        console.log("User with email unmap@live.com not found");
-      }
-    }
-  }, [currentUser, users, tasks, setUsers, setTasks]);
+  // Removed auto delete functionality for team lead user
 
-  // Get only the employees the current user can access based on permissions
-  const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
-  console.log("Accessible users:", accessibleUsers);
-  
-  // Filter employees based on role
-  const employees = accessibleUsers.filter(user => {
-    // Admin can see all users
-    if (userRole === "admin") {
-      return ["employee", "team_lead", "manager"].includes(user.role);
-    }
-    
-    // Manager can see team leads and employees
-    if (userRole === "manager") {
-      return ["employee", "team_lead"].includes(user.role);
-    }
-    
-    // Team lead can only see employees
-    if (userRole === "team_lead") {
-      return user.role === "employee";
-    }
-    
-    return false;
-  });
-  
-  console.log("Filtered employees to display:", employees);
-  
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
   };
@@ -121,6 +70,32 @@ const EmployeesPage = () => {
       }
     }
   }, [currentUser]);
+
+  // Get only the employees the current user can access based on permissions
+  const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
+  console.log("Accessible users:", accessibleUsers);
+  
+  // Filter employees based on role
+  const employees = accessibleUsers.filter(user => {
+    // Admin can see all users
+    if (userRole === "admin") {
+      return ["employee", "team_lead", "manager"].includes(user.role);
+    }
+    
+    // Manager can see team leads and employees
+    if (userRole === "manager") {
+      return ["employee", "team_lead"].includes(user.role);
+    }
+    
+    // Team lead can only see employees
+    if (userRole === "team_lead") {
+      return user.role === "employee";
+    }
+    
+    return false;
+  });
+  
+  console.log("Filtered employees to display:", employees);
 
   document.title = "Employee Management | TaskSync Pilot";
 
