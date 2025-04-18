@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
+import { UserRole } from "@/types";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -56,7 +57,7 @@ const LoginForm = () => {
           id: "admin-id",
           name: "Admin User",
           email: "admin@tasksync.com",
-          role: "admin",
+          role: "admin" as UserRole, // Explicitly cast to UserRole
           isApproved: true,
           permissions: []
         };
@@ -79,7 +80,7 @@ const LoginForm = () => {
         setTimeout(() => {
           console.log("Admin login successful, redirecting to dashboard...");
           navigate("/dashboard", { replace: true });
-        }, 200);
+        }, 300);
         
         return;
       }
@@ -89,13 +90,19 @@ const LoginForm = () => {
       console.log("Login successful, redirecting to dashboard...");
       toast.success("Login successful");
       
-      // Navigate with slight delay to ensure state is updated
+      // Navigate with slightly longer delay to ensure state is updated
       setTimeout(() => {
         navigate("/dashboard", { replace: true });
-      }, 200);
+      }, 300);
     } catch (error: any) {
       console.error("Login error:", error);
-      setErrorMessage(error.message || "Invalid email or password. Please check your credentials and try again.");
+      
+      // Set more user-friendly error messages
+      if (error.message.includes("Error fetching user profile")) {
+        setErrorMessage("Error fetching user profile. Please try again or contact support.");
+      } else {
+        setErrorMessage(error.message || "Invalid email or password. Please check your credentials and try again.");
+      }
       toast.error(error.message || "Invalid email or password");
     } finally {
       setIsSubmitting(false);

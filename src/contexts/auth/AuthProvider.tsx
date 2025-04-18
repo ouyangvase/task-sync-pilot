@@ -193,6 +193,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
+    
+    return updatedUsers;  // Return the updatedUsers array to satisfy the type requirement
   };
 
   // Sync currentUser when user title changes
@@ -245,6 +247,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         approveUser,
         rejectUser,
         getPendingUsers,
+        setCurrentUser, // Make setCurrentUser available in the context
       }}
     >
       {children}

@@ -60,40 +60,84 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("No user returned from Supabase");
       }
       
-      // Get user profile data from our profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      try {
+        // Get user profile data from our profiles table
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          
+          // Special case - if user exists but profile doesn't, create one
+          if (profileError.message.includes("contains 0 rows")) {
+            // Create a default profile for the user
+            console.log("Profile not found, creating default profile for:", data.user.email);
+            
+            const defaultProfile = {
+              id: data.user.id,
+              name: data.user.email?.split('@')[0] || "New User",
+              email: data.user.email || "",
+              role: "employee" as UserRole,
+              is_approved: true  // Auto-approve for users that already exist but don't have profiles
+            };
+            
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert(defaultProfile)
+              .select()
+              .single();
+              
+            if (createError) {
+              console.error("Failed to create profile:", createError);
+              throw new Error("Error creating user profile");
+            }
+            
+            const userWithProfile: User = {
+              id: data.user.id,
+              email: data.user.email || "",
+              name: defaultProfile.name,
+              role: defaultProfile.role,
+              isApproved: defaultProfile.is_approved,
+              permissions: []
+            };
+            
+            setCurrentUser(userWithProfile);
+            localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
+            return;
+          }
+          
+          throw new Error("Error fetching user profile");
+        }
         
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-        throw new Error("Error fetching user profile");
+        // Check if user is approved
+        if (profileData.is_approved === false) {
+          console.log("User not approved:", email);
+          throw new Error("Your account is pending admin approval");
+        }
+        
+        const userWithProfile: User = {
+          id: data.user.id,
+          email: data.user.email || "",
+          name: profileData.name || data.user.email?.split('@')[0] || "",
+          role: profileData.role as UserRole,
+          isApproved: profileData.is_approved,
+          title: profileData.title || "",
+          permissions: [],
+          avatar: profileData.avatar || ""
+        };
+        
+        setCurrentUser(userWithProfile);
+        localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
+        
+        // Debug log to verify login success
+        console.log("Supabase login successful:", userWithProfile);
+      } catch (profileError: any) {
+        console.error("Profile error:", profileError);
+        throw profileError;
       }
-      
-      // Check if user is approved
-      if (profileData.is_approved === false) {
-        console.log("User not approved:", email);
-        throw new Error("Your account is pending admin approval");
-      }
-      
-      const userWithProfile: User = {
-        id: data.user.id,
-        email: data.user.email || "",
-        name: profileData.name || data.user.email?.split('@')[0] || "",
-        role: profileData.role as UserRole,
-        isApproved: profileData.is_approved,
-        title: profileData.title || "",
-        permissions: [],
-        avatar: profileData.avatar || ""
-      };
-      
-      setCurrentUser(userWithProfile);
-      localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
-      
-      // Debug log to verify login success
-      console.log("Supabase login successful:", userWithProfile);
     } catch (error: any) {
       console.error("Login error:", error);
       throw new Error(error.message || "Invalid email or password");

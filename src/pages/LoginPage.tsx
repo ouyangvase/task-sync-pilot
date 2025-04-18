@@ -1,11 +1,11 @@
 
 import { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import LoginForm from "@/components/auth/LoginForm";
 
 const LoginPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,7 +19,7 @@ const LoginPage = () => {
   }, [isAuthenticated, navigate]);
 
   // This provides an immediate redirect if auth state is already available
-  if (isAuthenticated) {
+  if (!loading && isAuthenticated) {
     console.log("Immediate redirect to dashboard due to authentication");
     return <Navigate to="/dashboard" replace />;
   }
