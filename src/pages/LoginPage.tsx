@@ -13,12 +13,14 @@ const LoginPage = () => {
     
     // If user is already authenticated, redirect to dashboard
     if (isAuthenticated) {
+      console.log("User is already authenticated, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
   // This provides an immediate redirect if auth state is already available
   if (isAuthenticated) {
+    console.log("Immediate redirect to dashboard due to authentication");
     return <Navigate to="/dashboard" replace />;
   }
 
