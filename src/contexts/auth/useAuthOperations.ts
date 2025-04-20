@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +67,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         id: authData.user.id,
         email: authData.user.email || "",
         name: profileData.name || authData.user.email?.split('@')[0] || "",
-        role: profileData.role,
+        role: profileData.role || "employee",
         isApproved: profileData.is_approved,
         title: profileData.title || "",
         permissions: [],
@@ -102,18 +101,12 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
 
   const registerUser = async (email: string, password: string, fullName: string): Promise<void> => {
     try {
-      console.log("Registering user:", email);
+      console.log("Registering user:", email, fullName);
 
       // Sign up with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: {
-            name: fullName,
-            role: "employee"
-          }
-        }
+        password
       });
 
       if (error) {
@@ -125,35 +118,20 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("No user returned from registration");
       }
 
-      // Profile should be created by the database trigger, but let's make sure it exists
-      const { data: existingProfile, error: profileCheckError } = await supabase
+      // Create a profile directly - don't rely on triggers which may not be set up
+      const { error: insertError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
+        .insert({
+          id: data.user.id,
+          email: email,
+          name: fullName,
+          role: "employee",
+          is_approved: false
+        });
 
-      if (profileCheckError) {
-        console.error("Error checking profile:", profileCheckError);
-      }
-
-      // If profile doesn't exist, create it manually
-      if (!existingProfile) {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              email: email,
-              name: fullName,
-              role: 'employee',
-              is_approved: false
-            }
-          ]);
-
-        if (insertError) {
-          console.error("Error creating profile:", insertError);
-          throw new Error("Failed to create user profile");
-        }
+      if (insertError) {
+        console.error("Error creating profile:", insertError);
+        throw new Error("Failed to create user profile");
       }
 
       const newUser: User = {

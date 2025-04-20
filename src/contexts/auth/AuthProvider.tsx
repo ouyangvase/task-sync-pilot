@@ -41,6 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchAllUsers = async () => {
     try {
       setFetchingUsers(true);
+      console.log("Fetching all users from Supabase...");
+      
       // Get all profiles (both approved and pending)
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -58,9 +60,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const dbUsers: User[] = profilesData.map(profile => ({
           id: profile.id,
           email: profile.email || "",
-          name: profile.name || "",
-          role: profile.role,
-          isApproved: profile.is_approved,
+          name: profile.name || profile.email?.split('@')[0] || "",
+          role: profile.role || "employee",
+          isApproved: profile.is_approved === true,
           title: profile.title || "",
           permissions: [],
           avatar: profile.avatar || ""
@@ -86,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Set up auth listener and initial auth state
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -114,22 +117,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
                 
               if (profileError) {
                 console.error("Error fetching profile on init:", profileError);
-                // Profile not found, log the user out
-                await supabase.auth.signOut();
-                setCurrentUser(null);
-                localStorage.removeItem("currentUser");
               } else if (profileData && profileData.is_approved) {
                 // User is approved, set as current user
                 const userWithProfile = {
                   id: userId,
                   email: userEmail || "",
                   name: profileData.name || userEmail?.split('@')[0] || "",
-                  role: profileData.role,
-                  isApproved: profileData.is_approved,
+                  role: profileData.role || "employee",
+                  isApproved: profileData.is_approved === true,
                   title: profileData.title || "",
                   permissions: [],
                   avatar: profileData.avatar || ""
@@ -170,10 +169,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         localStorage.removeItem("currentUser");
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        // Refresh user list when someone signs in
+        fetchAllUsers();
       }
-      
-      // Don't handle SIGNED_IN here - we'll let the initial load handle it
-      // to avoid duplicating the user profile fetch logic
     });
     
     // Initialize auth

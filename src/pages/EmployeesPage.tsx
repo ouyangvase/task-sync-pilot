@@ -60,7 +60,9 @@ const EmployeesPage = () => {
 
   // Load pending users on mount and when current user changes
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      return;
+    }
     
     if (currentUser.role === "admin") {
       handleRefreshPendingUsers();
