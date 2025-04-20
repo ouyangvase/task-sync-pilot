@@ -1,17 +1,20 @@
 
-import React, { createContext, useEffect } from "react";
-import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
+import React, { createContext, useEffect, useState } from "react";
+import { mockUsers } from "@/data/mockData";
 import { AuthContextType } from "./types";
 import { canViewUser as canViewUserUtil, canEditUser as canEditUserUtil, getAccessibleUsers as getAccessibleUsersUtil } from "./authUtils";
 import { useUserManagement } from "./useUserManagement";
 import { useAuthOperations } from "./useAuthOperations";
 import { supabase } from "@/integrations/supabase/client";
+import { User } from "@/types";
+import { toast } from "sonner";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const storedUsers = localStorage.getItem("users");
   const initialUsers = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+  const [fetchingUsers, setFetchingUsers] = useState<boolean>(true);
 
   const {
     users,
@@ -34,6 +37,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     rejectUser,
     syncCurrentUser
   } = useAuthOperations(users, setUsers);
+
+  // Fetch all users from Supabase when the auth state changes
+  const fetchAllUsers = async () => {
+    try {
+      setFetchingUsers(true);
+      // Get all profiles (both approved and pending)
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+        
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        return;
+      }
+      
+      if (profilesData && profilesData.length > 0) {
+        console.log("Fetched profiles from Supabase:", profilesData);
+        
+        // Convert profiles to User objects
+        const dbUsers: User[] = profilesData.map(profile => ({
+          id: profile.id,
+          email: profile.email || "",
+          name: profile.name || "",
+          role: profile.role,
+          isApproved: profile.is_approved,
+          title: profile.title || "",
+          permissions: [],
+          avatar: profile.avatar || ""
+        }));
+        
+        // Merge with mock users to ensure we always have the admin
+        const mockAdmins = mockUsers.filter(user => user.role === "admin");
+        const combinedUsers = [...dbUsers, ...mockAdmins];
+        
+        // Remove duplicates based on email
+        const uniqueUsers = combinedUsers.filter((user, index, self) =>
+          index === self.findIndex((u) => u.email === user.email)
+        );
+        
+        setUsers(uniqueUsers);
+        localStorage.setItem("users", JSON.stringify(uniqueUsers));
+        console.log("Updated users after fetch:", uniqueUsers);
+      }
+    } catch (error) {
+      console.error("Error in fetchAllUsers:", error);
+    } finally {
+      setFetchingUsers(false);
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -74,6 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             setCurrentUser(userWithProfile);
             localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
+            
+            // Refetch all users
+            fetchAllUsers();
           } catch (error) {
             console.error("Error processing signed in user:", error);
           }
@@ -84,54 +139,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
     
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const fetchUserProfile = async () => {
-          try {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-              
-            if (profileError) {
-              console.error("Error fetching initial profile:", profileError);
-              setLoading(false);
-              return;
-            }
+    // Initial setup - check session and fetch users
+    const initialSetup = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (sessionData?.session?.user) {
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', sessionData.session.user.id)
+            .single();
             
-            if (profileData.is_approved === false) {
-              console.log("User not approved on initial load:", session.user.email);
-              await supabase.auth.signOut();
-              setLoading(false);
-              return;
-            }
-            
-            const userWithProfile = {
-              id: session.user.id,
-              email: session.user.email || "",
-              name: profileData.name || session.user.email?.split('@')[0] || "",
-              role: profileData.role,
-              isApproved: profileData.is_approved,
-              title: profileData.title || "",
-              permissions: [],
-              avatar: profileData.avatar || ""
-            };
-            
-            setCurrentUser(userWithProfile);
-            localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
-          } catch (error) {
-            console.error("Error processing initial user:", error);
-          } finally {
+          if (profileError) {
+            console.error("Error fetching initial profile:", profileError);
             setLoading(false);
+            return;
           }
-        };
-        
-        fetchUserProfile();
-      } else {
-        setLoading(false);
+          
+          if (profileData.is_approved === false) {
+            console.log("User not approved on initial load:", sessionData.session.user.email);
+            await supabase.auth.signOut();
+            setLoading(false);
+            return;
+          }
+          
+          const userWithProfile = {
+            id: sessionData.session.user.id,
+            email: sessionData.session.user.email || "",
+            name: profileData.name || sessionData.session.user.email?.split('@')[0] || "",
+            role: profileData.role,
+            isApproved: profileData.is_approved,
+            title: profileData.title || "",
+            permissions: [],
+            avatar: profileData.avatar || ""
+          };
+          
+          setCurrentUser(userWithProfile);
+          localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
+        } catch (error) {
+          console.error("Error processing initial user:", error);
+        }
       }
-    });
+      
+      // Always fetch all users on initial load
+      await fetchAllUsers();
+      setLoading(false);
+    };
+    
+    initialSetup();
 
     return () => {
       subscription.unsubscribe();
@@ -213,7 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         currentUser,
         isAuthenticated: !!currentUser,
-        loading,
+        loading: loading || fetchingUsers,
         login,
         logout,
         users,

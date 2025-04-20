@@ -109,7 +109,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         password,
         options: {
           data: {
-            name: fullName,
+            full_name: fullName,
             role: "employee"
           }
         }
@@ -124,32 +124,22 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("No user returned from registration");
       }
 
-      // Check if profile was created by the database trigger
-      const { data: profile, error: profileError } = await supabase
+      // Insert profile directly instead of relying on trigger
+      const { error: insertError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+        .insert([
+          {
+            id: data.user.id,
+            email: email,
+            name: fullName,
+            role: 'employee',
+            is_approved: false
+          }
+        ]);
 
-      if (profileError) {
-        console.error("Error checking profile:", profileError);
-        // Create profile if it doesn't exist
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              email: email,
-              name: fullName,
-              role: 'employee',
-              is_approved: false
-            }
-          ]);
-
-        if (insertError) {
-          console.error("Error creating profile:", insertError);
-          throw new Error("Failed to create user profile");
-        }
+      if (insertError) {
+        console.error("Error creating profile:", insertError);
+        throw new Error("Failed to create user profile");
       }
 
       const newUser: User = {

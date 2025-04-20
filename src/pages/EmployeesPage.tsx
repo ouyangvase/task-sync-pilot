@@ -34,8 +34,6 @@ const EmployeesPage = () => {
   const canViewEmployees = userPermissions.includes("view_employees");
   const canManageUsers = userPermissions.includes("manage_users");
 
-  // Removed auto delete functionality for team lead user
-
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
   };
@@ -55,21 +53,23 @@ const EmployeesPage = () => {
 
   const handleRefreshPendingUsers = () => {
     if (currentUser && canManageUsers) {
-      setPendingUsers(getPendingUsers());
+      const pendingUsersData = getPendingUsers();
+      setPendingUsers(pendingUsersData);
+      console.log("Pending users refreshed:", pendingUsersData);
     }
   };
 
   // Load pending users on mount and when current user changes
   useEffect(() => {
-    if (currentUser?.role === "admin") {
+    if (!currentUser) return;
+    
+    if (currentUser.role === "admin") {
       handleRefreshPendingUsers();
-    } else if (currentUser) {
-      if (!canViewEmployees) {
-        toast.error("You don't have permission to access this page");
-        setRedirectToLogin(true);
-      }
+    } else if (!canViewEmployees) {
+      toast.error("You don't have permission to access this page");
+      setRedirectToLogin(true);
     }
-  }, [currentUser]);
+  }, [currentUser, users]);
 
   // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
@@ -77,6 +77,8 @@ const EmployeesPage = () => {
   
   // Filter employees based on role
   const employees = accessibleUsers.filter(user => {
+    if (!user) return false;
+    
     // Admin can see all users
     if (userRole === "admin") {
       return ["employee", "team_lead", "manager"].includes(user.role);
