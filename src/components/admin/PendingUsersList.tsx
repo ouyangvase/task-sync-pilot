@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { 
   Card, 
@@ -25,6 +25,20 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
 
+  // Initialize selected roles/titles from users
+  useEffect(() => {
+    const initialRoles: Record<string, UserRole> = {};
+    const initialTitles: Record<string, string> = {};
+    
+    pendingUsers.forEach(user => {
+      initialRoles[user.id] = user.role || "employee";
+      initialTitles[user.id] = user.title || "";
+    });
+    
+    setSelectedRoles(initialRoles);
+    setSelectedTitles(initialTitles);
+  }, [pendingUsers]);
+
   const handleRoleChange = (userId: string, role: UserRole) => {
     setSelectedRoles(prev => ({ ...prev, [userId]: role }));
   };
@@ -36,18 +50,39 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const handleApprove = async (user: User) => {
     try {
       setProcessingIds(prev => ({ ...prev, [user.id]: true }));
+      console.log("Starting approval process for user:", user.id);
       
       // First approve the user
       await approveUser(user.id);
+      console.log("User approved successfully");
       
       // Then update role if selected
       const role = selectedRoles[user.id] || "employee";
-      updateUserRole(user.id, role);
+      if (role !== user.role) {
+        console.log("Updating user role to:", role);
+        updateUserRole(user.id, role);
+      }
       
       // Update title if selected
       const title = selectedTitles[user.id];
-      if (title) {
+      if (title && title !== user.title) {
+        console.log("Updating user title to:", title);
         updateUserTitle(user.id, title);
+      }
+      
+      // Update profile in Supabase directly as backup
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: role,
+          title: title === 'none' ? null : title,
+          is_approved: true 
+        })
+        .eq('id', user.id);
+        
+      if (updateError) {
+        console.error("Error updating profile directly:", updateError);
+        // Continue anyway as we've already approved via the auth context
       }
       
       // Send approval email via Supabase Edge Function
@@ -84,6 +119,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const handleReject = async (userId: string) => {
     try {
       setProcessingIds(prev => ({ ...prev, [userId]: true }));
+      console.log("Rejecting user:", userId);
       await rejectUser(userId);
       toast.success("User has been rejected");
       onRefresh();

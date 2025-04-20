@@ -11,7 +11,6 @@ import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { toast } from "sonner";
 import PendingUsersList from "@/components/admin/PendingUsersList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTasks } from "@/contexts/TaskContext";
 import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 const EmployeesPage = () => {
@@ -58,19 +57,25 @@ const EmployeesPage = () => {
     }
   };
 
-  // Load pending users on mount and when current user changes
+  // Load pending users and check permissions
   useEffect(() => {
     if (!currentUser) {
+      console.log("No current user, redirecting to login");
+      setRedirectToLogin(true);
       return;
     }
     
+    console.log("Current user role:", currentUser.role);
+    
     if (currentUser.role === "admin") {
+      console.log("Admin user, loading pending users");
       handleRefreshPendingUsers();
     } else if (!canViewEmployees) {
+      console.log("User doesn't have permission to view employees");
       toast.error("You don't have permission to access this page");
       setRedirectToLogin(true);
     }
-  }, [currentUser, users]);
+  }, [currentUser, users, canViewEmployees]);
 
   // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
@@ -103,7 +108,7 @@ const EmployeesPage = () => {
   document.title = "Employee Management | TaskSync Pilot";
 
   // Redirect users without required permission away from this page
-  if (redirectToLogin || !canViewEmployees) {
+  if (redirectToLogin) {
     return <Navigate to="/dashboard" />;
   }
 

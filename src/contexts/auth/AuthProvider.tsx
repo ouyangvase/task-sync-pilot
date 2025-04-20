@@ -80,6 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUsers(uniqueUsers);
         localStorage.setItem("users", JSON.stringify(uniqueUsers));
         console.log("Updated users after fetch:", uniqueUsers);
+      } else {
+        // No profiles found, just use mock data
+        console.log("No profiles found in database, using mock data");
       }
     } catch (error) {
       console.error("Error in fetchAllUsers:", error);
@@ -92,6 +95,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        setLoading(true);
+        
+        // Always fetch users first
+        await fetchAllUsers();
+        
         // Get current session
         const { data: sessionData } = await supabase.auth.getSession();
         
@@ -142,6 +150,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 await supabase.auth.signOut();
                 setCurrentUser(null);
                 localStorage.removeItem("currentUser");
+              } else if (!profileData) {
+                // No profile found for this user
+                console.error("No profile found for user", userId);
+                toast.error("Account setup incomplete. Please contact admin.");
+                await supabase.auth.signOut();
+                setCurrentUser(null);
+                localStorage.removeItem("currentUser");
               }
             } catch (error) {
               console.error("Error processing user profile:", error);
@@ -152,9 +167,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentUser(null);
           localStorage.removeItem("currentUser");
         }
-        
-        // Always fetch users
-        await fetchAllUsers();
       } catch (error) {
         console.error("Error during auth initialization:", error);
       } finally {
