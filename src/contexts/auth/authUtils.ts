@@ -4,7 +4,7 @@ import { User, UserRole, UserPermission } from "@/types";
 // Check if a user can view another user
 export const canViewUser = (users: User[], viewerId: string, targetUserId: string): boolean => {
   // Admins can view everyone
-  const viewer = users.find(u => u.id === viewerId);
+  const viewer = users?.find(u => u.id === viewerId);
   if (!viewer) return false;
   
   if (viewer.role === "admin") return true;
@@ -20,7 +20,7 @@ export const canViewUser = (users: User[], viewerId: string, targetUserId: strin
 // Check if a user can edit another user
 export const canEditUser = (users: User[], editorId: string, targetUserId: string): boolean => {
   // Admins can edit everyone
-  const editor = users.find(u => u.id === editorId);
+  const editor = users?.find(u => u.id === editorId);
   if (!editor) return false;
   
   if (editor.role === "admin") return true;
@@ -32,6 +32,11 @@ export const canEditUser = (users: User[], editorId: string, targetUserId: strin
 
 // Get all users that can be viewed by a specific user
 export const getAccessibleUsers = (users: User[], userId: string): User[] => {
+  if (!users || !Array.isArray(users)) {
+    console.error("Invalid users array:", users);
+    return [];
+  }
+
   const user = users.find(u => u.id === userId);
   if (!user) return [];
   
@@ -85,4 +90,3 @@ export const updateUserPermissionsHelper = (
     return user;
   });
 };
-

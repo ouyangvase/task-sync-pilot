@@ -15,13 +15,12 @@ import { useTasks } from "@/contexts/TaskContext";
 import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 const EmployeesPage = () => {
-  const { currentUser, users, getAccessibleUsers, getPendingUsers, setUsers } = useAuth();
+  const { currentUser, users, getAccessibleUsers, getPendingUsers } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState("employees");
   const [redirectToLogin, setRedirectToLogin] = useState(false);
-  const { tasks, setTasks } = useTasks();
 
   // Debug users
   useEffect(() => {
