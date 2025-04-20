@@ -1,4 +1,3 @@
-
 import React, { createContext, useEffect } from "react";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
 import { AuthContextType } from "./types";
@@ -10,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load users from localStorage if available
   const storedUsers = localStorage.getItem("users");
   const initialUsers = storedUsers ? JSON.parse(storedUsers) : mockUsers;
 
@@ -36,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncCurrentUser
   } = useAuthOperations(users, setUsers);
 
-  // Set up auth state listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -44,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (event === 'SIGNED_IN' && session?.user) {
           try {
-            // Get user profile data
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('*')
@@ -58,6 +54,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             if (profileData.is_approved === false) {
               console.log("User not approved:", session.user.email);
+              await supabase.auth.signOut();
+              setCurrentUser(null);
+              localStorage.removeItem("currentUser");
               return;
             }
             
@@ -84,10 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
     
-    // Check for initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        // Handle in a separate function to avoid duplication
         const fetchUserProfile = async () => {
           try {
             const { data: profileData, error: profileError } = await supabase
@@ -104,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             if (profileData.is_approved === false) {
               console.log("User not approved on initial load:", session.user.email);
+              await supabase.auth.signOut();
               setLoading(false);
               return;
             }
@@ -130,28 +128,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         fetchUserProfile();
       } else {
-        // Check for saved user in localStorage as fallback for development
-        const savedUser = localStorage.getItem("currentUser");
-        if (savedUser) {
-          try {
-            const parsedUser = JSON.parse(savedUser);
-            setCurrentUser({
-              ...parsedUser,
-              permissions: parsedUser.permissions || []
-            });
-          } catch (error) {
-            console.error("Error parsing saved user:", error);
-            localStorage.removeItem("currentUser");
-          }
-        } else if (process.env.NODE_ENV === 'development') {
-          // For demo purposes, auto-login as the mock user in development only
-          const enhancedUser = {
-            ...mockCurrentUser,
-            permissions: mockCurrentUser.permissions || []
-          };
-          setCurrentUser(enhancedUser);
-          localStorage.setItem("currentUser", JSON.stringify(enhancedUser));
-        }
         setLoading(false);
       }
     });
@@ -161,16 +137,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Debug users list
   useEffect(() => {
     console.log("Current users in AuthProvider:", users);
   }, [users]);
 
-  // Sync currentUser when user permissions change
   const handleUpdateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<any>) => {
     const updatedUsers = updateUserPermissions(userId, targetUserId, newPermissions);
     
-    // Update currentUser if it's the same user
     if (currentUser && currentUser.id === userId) {
       const currentPermissions = [...(currentUser.permissions || [])];
       
@@ -194,36 +167,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
     
-    return updatedUsers;  // Return the updatedUsers array to satisfy the type requirement
+    return updatedUsers;
   };
 
-  // Sync currentUser when user title changes
   const handleUpdateUserTitle = (userId: string, title: string) => {
     const updatedUsers = updateUserTitle(userId, title);
     
-    // Update currentUser if it's the same user
     if (currentUser && currentUser.id === userId) {
       const updatedUser = { ...currentUser, title: title === "none" ? "" : title };
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
     
-    // Return the updatedUsers array to satisfy the type requirement
     return updatedUsers;
   };
 
-  // Sync currentUser when user role changes
   const handleUpdateUserRole = (userId: string, role: string) => {
     const updatedUsers = updateUserRole(userId, role);
     
-    // Update currentUser if it's the same user
     if (currentUser && currentUser.id === userId) {
       const updatedUser = { ...currentUser, role: role as any };
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
     
-    // Return the updatedUsers array to satisfy the type requirement
     return updatedUsers;
   };
 
@@ -236,18 +203,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         users,
-        setUsers, // Make setUsers available in the context
-        updateUserTitle: handleUpdateUserTitle,
-        updateUserRole: handleUpdateUserRole,
-        updateUserPermissions: handleUpdateUserPermissions,
-        canViewUser: (viewerId, targetUserId) => canViewUser(users, viewerId, targetUserId),
-        canEditUser: (editorId, targetUserId) => canEditUser(users, editorId, targetUserId),
-        getAccessibleUsers: (userId) => getAccessibleUsers(users, userId),
+        setUsers,
+        updateUserTitle,
+        updateUserRole,
+        updateUserPermissions,
+        canViewUser,
+        canEditUser,
+        getAccessibleUsers,
         registerUser,
         approveUser,
         rejectUser,
         getPendingUsers,
-        setCurrentUser, // Make setCurrentUser available in the context
+        setCurrentUser,
       }}
     >
       {children}

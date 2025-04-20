@@ -15,7 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { UserRole } from "@/types";
 
@@ -27,7 +27,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { login, setCurrentUser } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -45,43 +45,14 @@ const LoginForm = () => {
       setIsSubmitting(true);
       setErrorMessage(null);
       
-      // Add debug logs
       console.log("Login attempt with:", data.email);
       
-      // Special handling for admin@tasksync.com in development
+      // Handle admin login
       if (data.email === "admin@tasksync.com") {
         console.log("Using admin credentials");
-        
-        // We need to fully simulate the login process for admin
-        const adminUser = {
-          id: "admin-id",
-          name: "Admin User",
-          email: "admin@tasksync.com",
-          role: "admin" as UserRole, // Explicitly cast to UserRole
-          isApproved: true,
-          permissions: []
-        };
-        
-        // Set in localStorage
-        localStorage.setItem("currentUser", JSON.stringify(adminUser));
-        
-        // Ensure we're setting this in the auth context
-        setCurrentUser(adminUser);
-        
-        // Also call login for consistency
-        await login(data.email, data.password)
-          .catch(err => {
-            console.log("Admin login bypass - ignoring Supabase error:", err);
-          });
-        
+        await login(data.email, data.password);
         toast.success("Admin login successful");
-        
-        // Navigate with slight delay to ensure state is updated
-        setTimeout(() => {
-          console.log("Admin login successful, redirecting to dashboard...");
-          navigate("/dashboard", { replace: true });
-        }, 300);
-        
+        navigate("/dashboard", { replace: true });
         return;
       }
       
@@ -89,21 +60,19 @@ const LoginForm = () => {
       await login(data.email, data.password);
       console.log("Login successful, redirecting to dashboard...");
       toast.success("Login successful");
+      navigate("/dashboard", { replace: true });
       
-      // Navigate with slightly longer delay to ensure state is updated
-      setTimeout(() => {
-        navigate("/dashboard", { replace: true });
-      }, 300);
     } catch (error: any) {
       console.error("Login error:", error);
       
-      // Set more user-friendly error messages
-      if (error.message.includes("Error fetching user profile")) {
-        setErrorMessage("Error fetching user profile. Please try again or contact support.");
+      if (error.message.includes("pending admin approval")) {
+        setErrorMessage("Your account is pending admin approval. Please check back later.");
+      } else if (error.message.includes("Invalid login credentials")) {
+        setErrorMessage("Invalid email or password. Please check your credentials and try again.");
       } else {
-        setErrorMessage(error.message || "Invalid email or password. Please check your credentials and try again.");
+        setErrorMessage(error.message || "An error occurred during login. Please try again.");
       }
-      toast.error(error.message || "Invalid email or password");
+      toast.error(error.message || "Login failed");
     } finally {
       setIsSubmitting(false);
     }
