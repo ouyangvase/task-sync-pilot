@@ -1,7 +1,8 @@
+
 import React, { createContext, useEffect } from "react";
 import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
 import { AuthContextType } from "./types";
-import { canViewUser, canEditUser, getAccessibleUsers } from "./authUtils";
+import { canViewUser as canViewUserUtil, canEditUser as canEditUserUtil, getAccessibleUsers as getAccessibleUsersUtil } from "./authUtils";
 import { useUserManagement } from "./useUserManagement";
 import { useAuthOperations } from "./useAuthOperations";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,6 +193,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     return updatedUsers;
+  };
+
+  // Wrap utility functions to match the expected signatures in AuthContextType
+  const canViewUser = (viewerId: string, targetUserId: string): boolean => {
+    return canViewUserUtil(users, viewerId, targetUserId);
+  };
+
+  const canEditUser = (editorId: string, targetUserId: string): boolean => {
+    return canEditUserUtil(users, editorId, targetUserId);
+  };
+
+  const getAccessibleUsers = (userId: string): any[] => {
+    return getAccessibleUsersUtil(users, userId);
   };
 
   return (

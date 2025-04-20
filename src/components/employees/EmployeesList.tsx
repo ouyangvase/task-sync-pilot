@@ -5,7 +5,7 @@ import { useTasks } from "@/contexts/TaskContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Award } from "lucide-react";
 import DeleteUserButton from "./DeleteUserButton";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth"; // Fix import path
 
 interface EmployeesListProps {
   employees: User[];
