@@ -1,4 +1,3 @@
-
 import React, { createContext, useEffect, useState } from "react";
 import { mockUsers } from "@/data/mockData";
 import { AuthContextType } from "./types";

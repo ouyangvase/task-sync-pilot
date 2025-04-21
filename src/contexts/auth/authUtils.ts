@@ -43,6 +43,8 @@ export const canEditUser = (users: User[], editorId: string, targetUserId: strin
   // No one can edit admins except other admins
   const target = users?.find(u => u.id === targetUserId);
   if (!target) return false;
+  
+  // Fix the comparison error by checking if target.role strictly equals "admin"
   if (target.role === "admin" && editor.role !== "admin") return false;
   
   // Role-based editing permissions
