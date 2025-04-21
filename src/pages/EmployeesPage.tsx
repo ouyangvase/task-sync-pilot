@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -63,25 +64,27 @@ const EmployeesPage = () => {
     }
   }, [currentUser, users, canViewEmployees]);
 
-  const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
-  
-  const employees = accessibleUsers.filter(user => {
-    if (!user) return false;
-    
+  // Show all users with role employee, team_lead, or manager (not checking isApproved)
+  let employees: User[] = [];
+  if (currentUser) {
     if (userRole === "admin") {
-      return ["employee", "team_lead", "manager"].includes(user.role) && user.isApproved;
+      employees = users.filter(
+        (user) =>
+          ["employee", "team_lead", "manager"].includes(user.role)
+      );
+    } else if (userRole === "manager") {
+      // Only show employees & team leads the manager has access to
+      employees = users.filter(
+        (user) =>
+          ["employee", "team_lead"].includes(user.role)
+      );
+    } else if (userRole === "team_lead") {
+      // Only show employees the team lead has access to
+      employees = users.filter(
+        (user) => user.role === "employee"
+      );
     }
-    
-    if (userRole === "manager") {
-      return ["employee", "team_lead"].includes(user.role) && user.isApproved;
-    }
-    
-    if (userRole === "team_lead") {
-      return user.role === "employee" && user.isApproved;
-    }
-    
-    return false;
-  });
+  }
 
   document.title = "Employee Management | TaskSync Pilot";
 
