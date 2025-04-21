@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +65,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         id: authData.user.id,
         email: authData.user.email || "",
         name: profileData.full_name || authData.user.email?.split('@')[0] || "",
-        role: profileData.role || "employee",
+        role: (profileData.role as UserRole) || "employee",
         isApproved: profileData.is_approved,
         title: profileData.department || "",
         permissions: [],

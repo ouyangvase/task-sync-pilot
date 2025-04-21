@@ -1,3 +1,4 @@
+
 import React, { createContext, useEffect, useState } from "react";
 import { mockUsers } from "@/data/mockData";
 import { AuthContextType } from "./types";
@@ -59,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: profile.id,
           email: profile.email || "",
           name: profile.full_name || profile.email?.split('@')[0] || "",
-          role: profile.role || "employee",
+          role: (profile.role as UserRole) || "employee",
           isApproved: profile.is_approved === true,
           title: profile.department || "",
           permissions: [],
@@ -133,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     id: userId,
                     email: userEmail || "",
                     name: profileData.full_name || userEmail?.split('@')[0] || "",
-                    role: profileData.role || "employee",
+                    role: (profileData.role as UserRole) || "employee",
                     isApproved: profileData.is_approved === true,
                     title: profileData.department || "",
                     permissions: [],
