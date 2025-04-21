@@ -46,7 +46,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   }
 
   // Check permissions
-  if (!canViewUser(users, currentUser.id, employee.id)) {
+  if (!canViewUser(currentUser.id, employee.id)) {
     return (
       <div className="p-8 bg-card rounded-lg border border-border text-center">
         <div className="flex flex-col items-center gap-4">
@@ -71,7 +71,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const canEditEmployees = userPermissions.includes("edit_employees");
   
   // Can edit if user has edit permission for this employee and general edit_employees permission
-  const canEdit = canEditUser(users, currentUser.id, employee.id) && canEditEmployees;
+  const canEdit = canEditUser(currentUser.id, employee.id) && canEditEmployees;
   
   const tasks = getUserTasks(employee.id);
   const taskStats = getUserTaskStats(employee.id);

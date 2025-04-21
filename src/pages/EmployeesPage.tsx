@@ -67,7 +67,7 @@ const EmployeesPage = () => {
   // Get accessible employees based on user's role
   let employees: User[] = [];
   if (currentUser) {
-    employees = getAccessibleUsers(users, currentUser.id).filter(user => {
+    employees = getAccessibleUsers(currentUser.id).filter(user => {
       // Filter based on role hierarchies
       if (userRole === "admin") {
         return ["employee", "team_lead", "manager"].includes(user.role);
