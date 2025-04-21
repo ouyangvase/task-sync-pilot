@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { User } from "@/types";
 import { useTasks } from "@/contexts/TaskContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import TaskForm from "@/components/tasks/TaskForm";
 import { ShieldOff } from "lucide-react";
 import { rolePermissions } from "./employee-details/role-permissions/constants";
@@ -16,7 +16,7 @@ import { EmployeeTitleEditor } from "./employee-details/EmployeeTitleEditor";
 import { EmployeeTaskList } from "./employee-details/EmployeeTaskList";
 import { ActionButtons } from "./employee-details/ActionButtons";
 import { getTitleIcons } from "./employee-details/constants";
-import { RolePermissionEditor } from "./employee-details/RolePermissionEditor";
+import { RolePermissionEditor } from "./employee-details/role-permissions/RolePermissionEditor";
 import { UserAccessControl } from "./employee-details/UserAccessControl";
 
 interface EmployeeDetailsProps {
@@ -25,7 +25,7 @@ interface EmployeeDetailsProps {
 
 const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const { getUserTasks, getUserTaskStats, getUserPointsStats } = useTasks();
-  const { currentUser, updateUserTitle, updateUserRole, canViewUser, canEditUser } = useAuth();
+  const { currentUser, updateUserTitle, updateUserRole, users, canViewUser, canEditUser } = useAuth();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
   // Check if current user exists
@@ -46,7 +46,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   }
 
   // Check permissions
-  if (!canViewUser(currentUser.id, employee.id)) {
+  if (!canViewUser(users, currentUser.id, employee.id)) {
     return (
       <div className="p-8 bg-card rounded-lg border border-border text-center">
         <div className="flex flex-col items-center gap-4">
@@ -70,7 +70,8 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const canAssignTasks = userPermissions.includes("assign_tasks");
   const canEditEmployees = userPermissions.includes("edit_employees");
   
-  const canEdit = canEditUser(currentUser.id, employee.id) && canEditEmployees;
+  // Can edit if user has edit permission for this employee and general edit_employees permission
+  const canEdit = canEditUser(users, currentUser.id, employee.id) && canEditEmployees;
   
   const tasks = getUserTasks(employee.id);
   const taskStats = getUserTaskStats(employee.id);
@@ -91,7 +92,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   // For team leads, they can only assign/edit tasks of their team members
   // In a real app, this would check if the employee is part of the team lead's team
   const isTeamLead = userRole === "team_lead";
-  const isTeamMember = true; // This would be a real check in a production app
+  const isTeamMember = employee.role === "employee"; // Team leads can only manage employees
   const canManageThisEmployee = !isTeamLead || (isTeamLead && isTeamMember);
 
   const lastActivityDate = tasks.length > 0 
@@ -103,6 +104,9 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
         ))
       ).toLocaleDateString()
     : "No activity";
+
+  // Determine if admin panel should be shown based on role
+  const showAdminPanel = userRole === "admin";
 
   return (
     <div className="space-y-6">
@@ -145,7 +149,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
         />
       )}
       
-      {canManageUsers && <UserAccessControl employee={employee} />}
+      {showAdminPanel && <UserAccessControl employee={employee} />}
       
       <EmployeeTaskList 
         pendingTasks={pendingTasks}

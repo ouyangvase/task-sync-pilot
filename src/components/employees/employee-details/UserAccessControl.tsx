@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, UserPermission } from "@/types";
-import { useAuth } from "@/contexts/auth"; // Fix import path
+import { useAuth } from "@/contexts/auth";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Shield, UserCheck, ShieldOff } from "lucide-react";
@@ -29,8 +29,12 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
   if (!canManageUsers) return null;
   
   // Get all other users except current and admin users
+  // Also exclude users with higher role than the employee being edited
   const otherUsers = users.filter(user => 
-    user.id !== employee.id && user.role !== "admin"
+    user.id !== employee.id && 
+    user.role !== "admin" && 
+    // Don't allow giving permissions to manage users with higher roles
+    getRolePriority(user.role) <= getRolePriority(employee.role)
   );
   
   // Get permissions for this employee
@@ -180,4 +184,15 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
       </CardContent>
     </Card>
   );
+}
+
+// Helper function to determine role priority
+function getRolePriority(role: string): number {
+  switch (role) {
+    case "admin": return 4;
+    case "manager": return 3;
+    case "team_lead": return 2;
+    case "employee": return 1;
+    default: return 0;
+  }
 }

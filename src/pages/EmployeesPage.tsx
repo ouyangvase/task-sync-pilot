@@ -64,26 +64,20 @@ const EmployeesPage = () => {
     }
   }, [currentUser, users, canViewEmployees]);
 
-  // Show all users with role employee, team_lead, or manager (not checking isApproved)
+  // Get accessible employees based on user's role
   let employees: User[] = [];
   if (currentUser) {
-    if (userRole === "admin") {
-      employees = users.filter(
-        (user) =>
-          ["employee", "team_lead", "manager"].includes(user.role)
-      );
-    } else if (userRole === "manager") {
-      // Only show employees & team leads the manager has access to
-      employees = users.filter(
-        (user) =>
-          ["employee", "team_lead"].includes(user.role)
-      );
-    } else if (userRole === "team_lead") {
-      // Only show employees the team lead has access to
-      employees = users.filter(
-        (user) => user.role === "employee"
-      );
-    }
+    employees = getAccessibleUsers(users, currentUser.id).filter(user => {
+      // Filter based on role hierarchies
+      if (userRole === "admin") {
+        return ["employee", "team_lead", "manager"].includes(user.role);
+      } else if (userRole === "manager") {
+        return ["employee", "team_lead"].includes(user.role);
+      } else if (userRole === "team_lead") {
+        return user.role === "employee";
+      }
+      return false;
+    });
   }
 
   document.title = "Employee Management | TaskSync Pilot";
