@@ -1,4 +1,3 @@
-
 import React, { createContext, useEffect, useState } from "react";
 import { mockUsers } from "@/data/mockData";
 import { AuthContextType } from "./types";
@@ -42,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFetchingUsers(true);
       console.log("Fetching all users from Supabase...");
       
-      // Get all profiles (both approved and pending)
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
@@ -55,23 +53,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profilesData && profilesData.length > 0) {
         console.log("Fetched profiles from Supabase:", profilesData);
         
-        // Convert profiles to User objects
         const dbUsers: User[] = profilesData.map((profile: any) => ({
           id: profile.id,
           email: profile.email || "",
           name: profile.full_name || profile.email?.split('@')[0] || "",
-          role: "employee", // Always default to employee (roles can only be updated manually by admin)
-          isApproved: true, // All users are considered approved
+          role: (profile.role as UserRole) || "employee",
+          isApproved: true,
           title: profile.department || "",
           permissions: [],
           avatar: profile.avatar_url || ""
         }));
         
-        // Merge with mock users to ensure we always have the admin
         const mockAdmins = mockUsers.filter(user => user.role === "admin");
         const combinedUsers = [...dbUsers, ...mockAdmins];
         
-        // Remove duplicates based on email
         const uniqueUsers = combinedUsers.filter((user, index, self) =>
           index === self.findIndex((u) => u.email === user.email)
         );
@@ -80,7 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem("users", JSON.stringify(uniqueUsers));
         console.log("Updated users after fetch:", uniqueUsers);
       } else {
-        // No profiles found, just use mock data
         console.log("No profiles found in database, using mock data");
       }
     } catch (error) {
@@ -95,20 +89,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setLoading(true);
         
-        // Always fetch users first
         await fetchAllUsers();
         
-        // Get current session
         const { data: sessionData } = await supabase.auth.getSession();
         
         if (sessionData?.session?.user) {
-          // User is logged in
           const userId = sessionData.session.user.id;
           const userEmail = sessionData.session.user.email;
           
           console.log("Found existing session for user:", userEmail);
           
-          // Special handling for admin
           if (userEmail === "admin@tasksync.com") {
             const adminUser = mockUsers.find(u => u.email === "admin@tasksync.com");
             if (adminUser) {
@@ -118,22 +108,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } else {
             try {
-              // Try to fetch profile from Supabase
-              const { data: profileData, error: profileError } = await supabase
+              const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .maybeSingle();
                 
-              if (profileError) {
-                console.error("Error fetching profile on init:", profileError);
-              } else if (profileData) {
-                // All users are now immediately "approved"; remove approval logic
+              if (profileData) {
                 const userWithProfile: User = {
                   id: userId,
                   email: userEmail || "",
                   name: profileData.full_name || userEmail?.split('@')[0] || "",
-                  role: "employee", // Always employee at first login
+                  role: (profileData.role as UserRole) || "employee",
                   isApproved: true,
                   title: profileData.department || "",
                   permissions: [],
@@ -144,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
                 console.log("Logged in user:", userWithProfile);
               } else {
-                // No profile found for this user
                 console.error("No profile found for user", userId);
                 toast.error("Account setup incomplete. Please contact admin.");
                 await supabase.auth.signOut();
@@ -156,7 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         } else {
-          // No session, ensure user is logged out
           setCurrentUser(null);
           localStorage.removeItem("currentUser");
         }
@@ -167,7 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     
-    // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event, session?.user?.id);
       
@@ -175,15 +158,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(null);
         localStorage.removeItem("currentUser");
       } else if (event === 'SIGNED_IN' && session?.user) {
-        // Refresh user list when someone signs in
         fetchAllUsers();
       }
     });
     
-    // Initialize auth
     initializeAuth();
     
-    // Cleanup
     return () => {
       subscription.unsubscribe();
     };

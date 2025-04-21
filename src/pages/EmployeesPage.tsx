@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -21,7 +20,6 @@ const EmployeesPage = () => {
   const [activeTab, setActiveTab] = useState("employees");
   const [redirectToLogin, setRedirectToLogin] = useState(false);
 
-  // Check if the user has permission to access this page
   const userRole = currentUser?.role || "employee";
   const userPermissions = rolePermissions[userRole] || [];
   const canViewEmployees = userPermissions.includes("view_employees");
@@ -52,44 +50,32 @@ const EmployeesPage = () => {
     }
   };
 
-  // Load pending users and check permissions
   useEffect(() => {
     if (!currentUser) {
-      console.log("No current user, redirecting to login");
       setRedirectToLogin(true);
       return;
     }
-    
-    console.log("Current user role:", currentUser.role);
-    
-    if (currentUser.role === "admin") {
-      console.log("Admin user, loading pending users");
+    if (userRole === "admin") {
       handleRefreshPendingUsers();
     } else if (!canViewEmployees) {
-      console.log("User doesn't have permission to view employees");
       toast.error("You don't have permission to access this page");
       setRedirectToLogin(true);
     }
   }, [currentUser, users, canViewEmployees]);
 
-  // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
   
-  // Filter employees based on role
   const employees = accessibleUsers.filter(user => {
     if (!user) return false;
     
-    // Admin can see all users
     if (userRole === "admin") {
       return ["employee", "team_lead", "manager"].includes(user.role) && user.isApproved;
     }
     
-    // Manager can see team leads and employees
     if (userRole === "manager") {
       return ["employee", "team_lead"].includes(user.role) && user.isApproved;
     }
     
-    // Team lead can only see employees
     if (userRole === "team_lead") {
       return user.role === "employee" && user.isApproved;
     }
@@ -99,7 +85,6 @@ const EmployeesPage = () => {
 
   document.title = "Employee Management | TaskSync Pilot";
 
-  // Redirect users without required permission away from this page
   if (redirectToLogin) {
     return <Navigate to="/dashboard" />;
   }

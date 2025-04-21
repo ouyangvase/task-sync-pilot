@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,13 +54,11 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("Error fetching user profile");
       }
 
-      // All users are approved upon registration - skip isApproved check
-      
       const userWithProfile: User = {
         id: authData.user.id,
         email: authData.user.email || "",
         name: profileData.full_name || authData.user.email?.split('@')[0] || "",
-        role: "employee",
+        role: (profileData.role as UserRole) || "employee",
         isApproved: true,
         title: profileData.department || "",
         permissions: [],
@@ -101,6 +98,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         options: {
           data: {
             full_name: fullName,
+            role: "employee"
           }
         }
       });
@@ -122,7 +120,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
           id: data.user.id,
           email: email,
           full_name: fullName,
-          is_approved: true, // Auto-approve all new registrants
+          is_approved: true,
           role: "employee"
         });
 
@@ -149,10 +147,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     }
   };
 
-  // approveUser and rejectUser logic can remain for admin but no longer used at registration
-
   const approveUser = async (userId: string): Promise<void> => {
-    // NO-OP, kept for backward compatibility but not called after registration anymore
     try {
       console.log("ApproveUser called (should not trigger on registration):", userId);
       const { error: profileError } = await supabase
