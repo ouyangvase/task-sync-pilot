@@ -1,4 +1,3 @@
-
 import React, { createContext, useEffect, useState } from "react";
 import { mockUsers } from "@/data/mockData";
 import { AuthContextType } from "./types";
@@ -37,7 +36,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncCurrentUser
   } = useAuthOperations(users, setUsers);
 
-  // Fetch all users from Supabase when the auth state changes
   const fetchAllUsers = async () => {
     try {
       setFetchingUsers(true);
@@ -57,13 +55,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("Fetched profiles from Supabase:", profilesData);
         
         // Convert profiles to User objects
-        const dbUsers: User[] = profilesData.map(profile => ({
+        const dbUsers: User[] = profilesData.map((profile: any) => ({
           id: profile.id,
           email: profile.email || "",
           name: profile.full_name || profile.email?.split('@')[0] || "",
-          role: profile.role || "employee" as UserRole, // Use role from profile or default to employee
+          role: profile.role || "employee",
           isApproved: profile.is_approved === true,
-          title: profile.department || "", // Using department as title
+          title: profile.department || "",
           permissions: [],
           avatar: profile.avatar_url || ""
         }));
@@ -91,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Set up auth listener and initial auth state
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -136,9 +133,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     id: userId,
                     email: userEmail || "",
                     name: profileData.full_name || userEmail?.split('@')[0] || "",
-                    role: profileData.role || "employee" as UserRole, // Use role from profile
+                    role: profileData.role || "employee",
                     isApproved: profileData.is_approved === true,
-                    title: profileData.department || "", // Using department as title
+                    title: profileData.department || "",
                     permissions: [],
                     avatar: profileData.avatar_url || ""
                   };
@@ -200,7 +197,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Wrap utility functions to match the expected signatures in AuthContextType
   const canViewUser = (viewerId: string, targetUserId: string): boolean => {
     return canViewUserUtil(users, viewerId, targetUserId);
   };
@@ -240,3 +236,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+export default AuthProvider;

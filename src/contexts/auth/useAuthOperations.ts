@@ -13,7 +13,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     try {
       console.log("Attempting login for:", email);
       
-      // Special handling for admin login
       if (email === "admin@tasksync.com" && process.env.NODE_ENV === 'development') {
         console.log("Using admin credentials");
         const adminUser = {
@@ -30,7 +29,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         return;
       }
       
-      // Regular user login with Supabase
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -45,7 +43,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("No user returned from authentication");
       }
 
-      // Get user profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -57,7 +54,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("Error fetching user profile");
       }
 
-      // Check approval status
       if (!profileData.is_approved) {
         console.log("User not approved:", email);
         await supabase.auth.signOut();
@@ -68,7 +64,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         id: authData.user.id,
         email: authData.user.email || "",
         name: profileData.full_name || authData.user.email?.split('@')[0] || "",
-        role: profileData.role || "employee" as UserRole,
+        role: profileData.role || "employee",
         isApproved: profileData.is_approved,
         title: profileData.department || "",
         permissions: [],
@@ -89,12 +85,10 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
 
   const logout = async () => {
     try {
-      // Try to logout from Supabase
       await supabase.auth.signOut();
     } catch (error) {
       console.error("Error during logout:", error);
     } finally {
-      // Always clear local state regardless of Supabase result
       setCurrentUser(null);
       localStorage.removeItem("currentUser");
     }
@@ -104,7 +98,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     try {
       console.log("Registering user:", email, fullName);
 
-      // Sign up with Supabase - use signUp method
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -126,7 +119,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
 
       console.log("User signed up successfully:", data.user);
 
-      // Explicitly create a profile with is_approved = false
       const { error: insertError } = await supabase
         .from('profiles')
         .insert({
@@ -134,7 +126,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
           email: email,
           full_name: fullName,
           is_approved: false,
-          role: "employee"  // Default role is employee
+          role: "employee"
         });
 
       if (insertError) {
@@ -151,7 +143,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         permissions: [],
       };
 
-      // Update local state
       setUsers(prevUsers => [...prevUsers, newUser]);
       console.log("Registration successful. Added to local state:", newUser);
       
@@ -165,7 +156,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     try {
       console.log("Approving user:", userId);
       
-      // Update profile in Supabase to set is_approved = true
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ is_approved: true })
@@ -176,7 +166,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("Failed to approve user profile");
       }
       
-      // Update local state
       const updatedUsers = users.map(user => {
         if (user.id === userId) {
           return { ...user, isApproved: true };
@@ -196,7 +185,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     try {
       console.log("Rejecting user:", userId);
       
-      // Delete profile from Supabase
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -206,9 +194,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         console.error("Error deleting profile from Supabase:", profileError);
       }
       
-      // Attempt to delete auth user via edge function
       try {
-        // This would require a Supabase edge function with admin rights
         const { data, error: authError } = await supabase.functions.invoke('delete-user', {
           body: { userId }
         });
@@ -218,24 +204,19 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         }
       } catch (fnError) {
         console.error("Error invoking delete-user function:", fnError);
-        // Since we can't delete the auth user directly from client side,
-        // we'll proceed with removing from local state anyway
       }
       
-      // Update local state by removing the rejected user
       const updatedUsers = users.filter(user => user.id !== userId);
       setUsers(updatedUsers);
       console.log("User rejected and removed from local state");
     } catch (error) {
       console.error("Error in rejectUser:", error);
-      // Even if there's an error, still update the local state
       const updatedUsers = users.filter(user => user.id !== userId);
       setUsers(updatedUsers);
     }
   };
 
   const syncCurrentUser = (updatedUsers: User[], userId: string, updateFn: (user: User) => User) => {
-    // Update currentUser if it's the same user being modified
     if (currentUser && currentUser.id === userId) {
       const updatedUser = updateFn({...currentUser});
       setCurrentUser(updatedUser);
