@@ -6,7 +6,7 @@ import { canViewUser as canViewUserUtil, canEditUser as canEditUserUtil, getAcce
 import { useUserManagement } from "./useUserManagement";
 import { useAuthOperations } from "./useAuthOperations";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import { toast } from "sonner";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: profile.id,
           email: profile.email || "",
           name: profile.full_name || profile.email?.split('@')[0] || "",
-          role: "employee", // Default role since it's not in profiles table
+          role: "employee" as UserRole, // Explicitly cast to UserRole
           isApproved: profile.is_approved === true,
           title: profile.department || "", // Using department as title
           permissions: [],
@@ -131,11 +131,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.error("Error fetching profile on init:", profileError);
               } else if (profileData && profileData.is_approved) {
                 // User is approved, set as current user
-                const userWithProfile = {
+                const userWithProfile: User = {
                   id: userId,
                   email: userEmail || "",
                   name: profileData.full_name || userEmail?.split('@')[0] || "",
-                  role: "employee", // Default role since it's not in profiles table
+                  role: "employee" as UserRole, // Explicitly cast to UserRole
                   isApproved: profileData.is_approved === true,
                   title: profileData.department || "", // Using department as title
                   permissions: [],
