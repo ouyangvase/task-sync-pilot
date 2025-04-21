@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +68,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         id: authData.user.id,
         email: authData.user.email || "",
         name: profileData.full_name || authData.user.email?.split('@')[0] || "",
-        role: "employee" as UserRole,
+        role: profileData.role || "employee" as UserRole,
         isApproved: profileData.is_approved,
         title: profileData.department || "",
         permissions: [],
@@ -127,36 +126,20 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
 
       console.log("User signed up successfully:", data.user);
 
-      // The trigger should automatically create the profile, but just in case
-      // we'll check if it exists and create it manually if needed
-      const { data: profileData, error: profileCheckError } = await supabase
+      // Explicitly create a profile with is_approved = false
+      const { error: insertError } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', data.user.id)
-        .maybeSingle();
-        
-      if (profileCheckError) {
-        console.error("Error checking profile:", profileCheckError);
-      }
-      
-      // Only create profile manually if it doesn't exist
-      if (!profileData) {
-        console.log("Profile not found, creating manually");
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            full_name: fullName,
-            is_approved: false
-          });
+        .insert({
+          id: data.user.id,
+          email: email,
+          full_name: fullName,
+          is_approved: false,
+          role: "employee"  // Default role is employee
+        });
 
-        if (insertError) {
-          console.error("Error creating profile:", insertError);
-          toast.error("Account created but profile setup had issues. Contact admin if problems persist.");
-        }
-      } else {
-        console.log("Profile already exists, skipping manual creation");
+      if (insertError) {
+        console.error("Error creating profile:", insertError);
+        throw new Error("Failed to create user profile");
       }
 
       const newUser: User = {
@@ -182,15 +165,15 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     try {
       console.log("Approving user:", userId);
       
-      // Update in Supabase
-      const { error } = await supabase
+      // Update profile in Supabase to set is_approved = true
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ is_approved: true })
         .eq('id', userId);
         
-      if (error) {
-        console.error("Error approving user in Supabase:", error);
-        throw new Error("Failed to approve user");
+      if (profileError) {
+        console.error("Error approving user profile:", profileError);
+        throw new Error("Failed to approve user profile");
       }
       
       // Update local state
@@ -202,8 +185,6 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
       });
       
       setUsers(updatedUsers);
-      
-      // Debug log to verify user approval
       console.log("Updated users after approval:", updatedUsers);
     } catch (error) {
       console.error("Error in approveUser:", error);
@@ -223,31 +204,31 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
       
       if (profileError) {
         console.error("Error deleting profile from Supabase:", profileError);
-        throw new Error("Failed to delete user profile");
       }
       
-      // Delete user from Supabase auth (via a service role function in a real app)
+      // Attempt to delete auth user via edge function
       try {
-        const { error: authError } = await supabase.functions.invoke('delete-user', {
+        // This would require a Supabase edge function with admin rights
+        const { data, error: authError } = await supabase.functions.invoke('delete-user', {
           body: { userId }
         });
         
         if (authError) {
           console.error("Error deleting auth user:", authError);
-          // Continue anyway to update local state
         }
       } catch (fnError) {
         console.error("Error invoking delete-user function:", fnError);
-        // Continue anyway to update local state
+        // Since we can't delete the auth user directly from client side,
+        // we'll proceed with removing from local state anyway
       }
       
-      // Update local state
+      // Update local state by removing the rejected user
       const updatedUsers = users.filter(user => user.id !== userId);
       setUsers(updatedUsers);
       console.log("User rejected and removed from local state");
     } catch (error) {
       console.error("Error in rejectUser:", error);
-      // Continue with local deletion even if Supabase fails
+      // Even if there's an error, still update the local state
       const updatedUsers = users.filter(user => user.id !== userId);
       setUsers(updatedUsers);
     }

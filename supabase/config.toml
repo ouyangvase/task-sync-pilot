@@ -1,1 +1,6 @@
+
+# This file is for configuration on all supabase functions
 project_id = "nejtnguhudgmqixenlpg"
+
+[functions.delete-user]
+verify_jwt = true

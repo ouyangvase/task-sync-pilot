@@ -21,11 +21,6 @@ const EmployeesPage = () => {
   const [activeTab, setActiveTab] = useState("employees");
   const [redirectToLogin, setRedirectToLogin] = useState(false);
 
-  // Debug users
-  useEffect(() => {
-    console.log("All users in EmployeesPage:", users);
-  }, [users]);
-
   // Check if the user has permission to access this page
   const userRole = currentUser?.role || "employee";
   const userPermissions = rolePermissions[userRole] || [];
@@ -50,10 +45,10 @@ const EmployeesPage = () => {
   };
 
   const handleRefreshPendingUsers = () => {
-    if (currentUser && canManageUsers) {
+    if (currentUser) {
       const pendingUsersData = getPendingUsers();
+      console.log("Fetched pending users:", pendingUsersData);
       setPendingUsers(pendingUsersData);
-      console.log("Pending users refreshed:", pendingUsersData);
     }
   };
 
@@ -79,7 +74,6 @@ const EmployeesPage = () => {
 
   // Get only the employees the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
-  console.log("Accessible users:", accessibleUsers);
   
   // Filter employees based on role
   const employees = accessibleUsers.filter(user => {
@@ -87,23 +81,21 @@ const EmployeesPage = () => {
     
     // Admin can see all users
     if (userRole === "admin") {
-      return ["employee", "team_lead", "manager"].includes(user.role);
+      return ["employee", "team_lead", "manager"].includes(user.role) && user.isApproved;
     }
     
     // Manager can see team leads and employees
     if (userRole === "manager") {
-      return ["employee", "team_lead"].includes(user.role);
+      return ["employee", "team_lead"].includes(user.role) && user.isApproved;
     }
     
     // Team lead can only see employees
     if (userRole === "team_lead") {
-      return user.role === "employee";
+      return user.role === "employee" && user.isApproved;
     }
     
     return false;
   });
-  
-  console.log("Filtered employees to display:", employees);
 
   document.title = "Employee Management | TaskSync Pilot";
 

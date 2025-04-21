@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { UserRole } from "@/types";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -67,12 +66,14 @@ const LoginForm = () => {
       
       if (error.message.includes("pending admin approval")) {
         setErrorMessage("Your account is pending admin approval. Please check back later.");
+        toast.error("Your account is pending admin approval");
       } else if (error.message.includes("Invalid login credentials")) {
         setErrorMessage("Invalid email or password. Please check your credentials and try again.");
+        toast.error("Invalid email or password");
       } else {
         setErrorMessage(error.message || "An error occurred during login. Please try again.");
+        toast.error(error.message || "Login failed");
       }
-      toast.error(error.message || "Login failed");
     } finally {
       setIsSubmitting(false);
     }

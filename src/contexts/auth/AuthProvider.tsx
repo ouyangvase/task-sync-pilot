@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: profile.id,
           email: profile.email || "",
           name: profile.full_name || profile.email?.split('@')[0] || "",
-          role: "employee" as UserRole, // Explicitly cast to UserRole
+          role: profile.role || "employee" as UserRole, // Use role from profile or default to employee
           isApproved: profile.is_approved === true,
           title: profile.department || "", // Using department as title
           permissions: [],
@@ -129,28 +129,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 
               if (profileError) {
                 console.error("Error fetching profile on init:", profileError);
-              } else if (profileData && profileData.is_approved) {
-                // User is approved, set as current user
-                const userWithProfile: User = {
-                  id: userId,
-                  email: userEmail || "",
-                  name: profileData.full_name || userEmail?.split('@')[0] || "",
-                  role: "employee" as UserRole, // Explicitly cast to UserRole
-                  isApproved: profileData.is_approved === true,
-                  title: profileData.department || "", // Using department as title
-                  permissions: [],
-                  avatar: profileData.avatar_url || ""
-                };
-                
-                setCurrentUser(userWithProfile);
-                localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
-              } else if (profileData && !profileData.is_approved) {
-                // User not approved, log them out
-                toast.error("Your account is pending approval");
-                await supabase.auth.signOut();
-                setCurrentUser(null);
-                localStorage.removeItem("currentUser");
-              } else if (!profileData) {
+              } else if (profileData) {
+                // Only allow approved users to be logged in
+                if (profileData.is_approved) {
+                  const userWithProfile: User = {
+                    id: userId,
+                    email: userEmail || "",
+                    name: profileData.full_name || userEmail?.split('@')[0] || "",
+                    role: profileData.role || "employee" as UserRole, // Use role from profile
+                    isApproved: profileData.is_approved === true,
+                    title: profileData.department || "", // Using department as title
+                    permissions: [],
+                    avatar: profileData.avatar_url || ""
+                  };
+                  
+                  setCurrentUser(userWithProfile);
+                  localStorage.setItem("currentUser", JSON.stringify(userWithProfile));
+                  console.log("Logged in approved user:", userWithProfile);
+                } else {
+                  // User is not approved, log them out
+                  console.log("Found unapproved user session, logging out:", userEmail);
+                  toast.error("Your account is pending approval");
+                  await supabase.auth.signOut();
+                  setCurrentUser(null);
+                  localStorage.removeItem("currentUser");
+                }
+              } else {
                 // No profile found for this user
                 console.error("No profile found for user", userId);
                 toast.error("Account setup incomplete. Please contact admin.");

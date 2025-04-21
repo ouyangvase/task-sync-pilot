@@ -56,36 +56,32 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       await approveUser(user.id);
       console.log("User approved successfully");
       
-      // Then update role if selected
+      // Get the selected role and title
       const role = selectedRoles[user.id] || "employee";
-      if (role !== user.role) {
-        console.log("Updating user role to:", role);
-        updateUserRole(user.id, role);
-      }
-      
-      // Update title if selected
       const title = selectedTitles[user.id];
-      if (title && title !== user.title) {
-        console.log("Updating user title to:", title);
-        updateUserTitle(user.id, title);
-      }
       
-      // Update profile in Supabase directly as backup
+      // Update profile in Supabase directly to set role and title
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
           role: role,
-          title: title === 'none' ? null : title,
+          department: title === 'none' ? null : title,
           is_approved: true 
         })
         .eq('id', user.id);
         
       if (updateError) {
         console.error("Error updating profile directly:", updateError);
-        // Continue anyway as we've already approved via the auth context
+        toast.error("Error updating user role and title");
+      } else {
+        // Update role and title in local state
+        updateUserRole(user.id, role);
+        if (title && title !== 'none') {
+          updateUserTitle(user.id, title);
+        }
       }
       
-      // Send approval email via Supabase Edge Function
+      // Send approval email via Supabase Edge Function if it exists
       try {
         console.log("Sending approval email for user:", user.name, user.email, role);
         
@@ -99,7 +95,6 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
         
         if (error) {
           console.error("Error sending approval email:", error);
-          toast.error("Approved user but failed to send notification email");
         }
       } catch (emailError) {
         console.error("Failed to send approval email:", emailError);
@@ -124,6 +119,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       toast.success("User has been rejected");
       onRefresh();
     } catch (error) {
+      console.error("Error rejecting user:", error);
       toast.error(`Failed to reject user: ${error}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [userId]: false }));
