@@ -60,12 +60,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const dbUsers: User[] = profilesData.map(profile => ({
           id: profile.id,
           email: profile.email || "",
-          name: profile.name || profile.email?.split('@')[0] || "",
-          role: profile.role || "employee",
+          name: profile.full_name || profile.email?.split('@')[0] || "",
+          role: "employee", // Default role since it's not in profiles table
           isApproved: profile.is_approved === true,
-          title: profile.title || "",
+          title: profile.department || "", // Using department as title
           permissions: [],
-          avatar: profile.avatar || ""
+          avatar: profile.avatar_url || ""
         }));
         
         // Merge with mock users to ensure we always have the admin
@@ -134,12 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const userWithProfile = {
                   id: userId,
                   email: userEmail || "",
-                  name: profileData.name || userEmail?.split('@')[0] || "",
-                  role: profileData.role || "employee",
+                  name: profileData.full_name || userEmail?.split('@')[0] || "",
+                  role: "employee", // Default role since it's not in profiles table
                   isApproved: profileData.is_approved === true,
-                  title: profileData.title || "",
+                  title: profileData.department || "", // Using department as title
                   permissions: [],
-                  avatar: profileData.avatar || ""
+                  avatar: profileData.avatar_url || ""
                 };
                 
                 setCurrentUser(userWithProfile);

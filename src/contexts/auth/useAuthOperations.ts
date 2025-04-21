@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { User, UserRole } from "@/types";
-import { supabase, validateUserRole } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.SetStateAction<User[]>>) => {
@@ -68,12 +67,12 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
       const userWithProfile = {
         id: authData.user.id,
         email: authData.user.email || "",
-        name: profileData.name || authData.user.email?.split('@')[0] || "",
-        role: profileData.role || "employee",
+        name: profileData.full_name || authData.user.email?.split('@')[0] || "",
+        role: "employee" as UserRole,
         isApproved: profileData.is_approved,
-        title: profileData.title || "",
+        title: profileData.department || "",
         permissions: [],
-        avatar: profileData.avatar || ""
+        avatar: profileData.avatar_url || ""
       };
       
       setCurrentUser(userWithProfile);
@@ -111,8 +110,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         password,
         options: {
           data: {
-            name: fullName,
-            role: "employee" // Default role as string
+            full_name: fullName,
           }
         }
       });
@@ -148,8 +146,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
           .insert({
             id: data.user.id,
             email: email,
-            name: fullName,
-            role: "employee", // Use string directly
+            full_name: fullName,
             is_approved: false
           });
 
