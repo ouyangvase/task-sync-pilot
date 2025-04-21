@@ -55,18 +55,14 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("Error fetching user profile");
       }
 
-      if (!profileData.is_approved) {
-        console.log("User not approved:", email);
-        await supabase.auth.signOut();
-        throw new Error("Your account is pending admin approval");
-      }
-
+      // All users are approved upon registration - skip isApproved check
+      
       const userWithProfile: User = {
         id: authData.user.id,
         email: authData.user.email || "",
         name: profileData.full_name || authData.user.email?.split('@')[0] || "",
-        role: (profileData.role as UserRole) || "employee",
-        isApproved: profileData.is_approved,
+        role: "employee",
+        isApproved: true,
         title: profileData.department || "",
         permissions: [],
         avatar: profileData.avatar_url || ""
@@ -126,7 +122,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
           id: data.user.id,
           email: email,
           full_name: fullName,
-          is_approved: false,
+          is_approved: true, // Auto-approve all new registrants
           role: "employee"
         });
 
@@ -139,8 +135,8 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         id: data.user.id,
         email: data.user.email || "",
         name: fullName,
-        role: "employee" as UserRole,
-        isApproved: false,
+        role: "employee",
+        isApproved: true,
         permissions: [],
       };
 
@@ -153,10 +149,12 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     }
   };
 
+  // approveUser and rejectUser logic can remain for admin but no longer used at registration
+
   const approveUser = async (userId: string): Promise<void> => {
+    // NO-OP, kept for backward compatibility but not called after registration anymore
     try {
-      console.log("Approving user:", userId);
-      
+      console.log("ApproveUser called (should not trigger on registration):", userId);
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ is_approved: true })
