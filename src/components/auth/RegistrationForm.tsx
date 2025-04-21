@@ -60,8 +60,19 @@ const RegistrationForm = () => {
       navigate("/login");
     } catch (error: any) {
       console.error("Registration error:", error);
-      setErrorMessage(error.message || "Registration failed");
-      toast.error(error.message || "Registration failed");
+      let message = error.message || "Registration failed";
+      
+      // Make the error message more user-friendly
+      if (message.includes("User already registered")) {
+        message = "This email is already registered. Please use a different email or try logging in.";
+      } else if (message.includes("Invalid email")) {
+        message = "Please enter a valid email address.";
+      } else if (message.includes("type \"user_role\"")) {
+        message = "Registration system is temporarily unavailable. Please try again later.";
+      }
+      
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { User, UserRole } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, validateUserRole } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.SetStateAction<User[]>>) => {
@@ -111,8 +111,8 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         password,
         options: {
           data: {
-            name: fullName, // Store name in user metadata
-            role: "employee" // Default role
+            name: fullName,
+            role: "employee" // Default role as string
           }
         }
       });
@@ -128,21 +128,37 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
 
       console.log("User signed up successfully:", data.user);
 
-      // Create profile manually since we can't rely on the trigger during testing
-      const { error: insertError } = await supabase
+      // The trigger should automatically create the profile, but just in case
+      // we'll check if it exists and create it manually if needed
+      const { data: profileData, error: profileCheckError } = await supabase
         .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: email,
-          name: fullName,
-          role: "employee",
-          is_approved: false
-        });
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+        
+      if (profileCheckError) {
+        console.error("Error checking profile:", profileCheckError);
+      }
+      
+      // Only create profile manually if it doesn't exist
+      if (!profileData) {
+        console.log("Profile not found, creating manually");
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: email,
+            name: fullName,
+            role: "employee", // Use string directly
+            is_approved: false
+          });
 
-      if (insertError) {
-        console.error("Error creating profile:", insertError);
-        // Don't throw here, the user might have been created
-        toast.error("Account created but profile setup had issues. Contact admin if problems persist.");
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+          toast.error("Account created but profile setup had issues. Contact admin if problems persist.");
+        }
+      } else {
+        console.log("Profile already exists, skipping manual creation");
       }
 
       const newUser: User = {

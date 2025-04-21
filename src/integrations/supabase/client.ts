@@ -16,3 +16,12 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Helper function to ensure role is of valid type
+export function validateUserRole(role: string): "admin" | "employee" | "team_lead" | "manager" {
+  const validRoles = ["admin", "employee", "team_lead", "manager"];
+  if (validRoles.includes(role)) {
+    return role as "admin" | "employee" | "team_lead" | "manager";
+  }
+  return "employee"; // Default fallback
+}
