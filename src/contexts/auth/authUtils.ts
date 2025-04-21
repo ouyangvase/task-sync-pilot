@@ -44,7 +44,7 @@ export const canEditUser = (users: User[], editorId: string, targetUserId: strin
   const target = users?.find(u => u.id === targetUserId);
   if (!target) return false;
   
-  // Fix the comparison error by using a type guard to ensure safe comparison
+  // Check if target is an admin (using type guard)
   if (target.role === "admin") {
     // Only admins can edit other admins
     return editor.role === "admin";
@@ -52,13 +52,13 @@ export const canEditUser = (users: User[], editorId: string, targetUserId: strin
   
   // Role-based editing permissions
   // Manager can edit team leads and employees
-  if (editor.role === "manager" && (target.role === "team_lead" || target.role === "employee")) {
-    return true;
+  if (editor.role === "manager") {
+    return target.role === "team_lead" || target.role === "employee";
   }
   
   // Team lead can edit employees
-  if (editor.role === "team_lead" && target.role === "employee") {
-    return true;
+  if (editor.role === "team_lead") {
+    return target.role === "employee";
   }
   
   // Check specific permissions
