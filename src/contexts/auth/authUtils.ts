@@ -72,9 +72,9 @@ export const getAccessibleUsers = (users: User[], userId: string): User[] => {
   const user = users.find(u => u.id === userId);
   if (!user) return [];
 
-  // Admins can see everyone except other admins
+  // Admins can see everyone
   if (user.role === "admin") {
-    return users.filter(u => u.id !== userId && u.role !== "admin");
+    return users.filter(u => u.id !== userId);
   }
   
   // Everyone can see themselves
