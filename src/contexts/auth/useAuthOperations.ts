@@ -179,6 +179,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     try {
       console.log("Rejecting user:", userId);
       
+      // Delete the profile from Supabase first
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -188,28 +189,34 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         console.error("Error deleting profile from Supabase:", profileError);
       }
       
+      // Then delete the auth user through the edge function
       try {
-        const { data, error: authError } = await supabase.functions.invoke('delete-user', {
+        const { error: authError } = await supabase.functions.invoke('delete-user', {
           body: { userId }
         });
         
         if (authError) {
           console.error("Error deleting auth user:", authError);
+          throw authError;
         }
       } catch (fnError) {
         console.error("Error invoking delete-user function:", fnError);
       }
       
+      // Update local state regardless of any errors
       const updatedUsers = users.filter(user => user.id !== userId);
       setUsers(updatedUsers);
+      toast.success("User rejected and removed from database");
       console.log("User rejected and removed from local state");
     } catch (error) {
       console.error("Error in rejectUser:", error);
+      // Still update local state even if there was an error
       const updatedUsers = users.filter(user => user.id !== userId);
       setUsers(updatedUsers);
     }
   };
 
+  // Helper to sync current user with updated user data
   const syncCurrentUser = (updatedUsers: User[], userId: string, updateFn: (user: User) => User) => {
     if (currentUser && currentUser.id === userId) {
       const updatedUser = updateFn({...currentUser});

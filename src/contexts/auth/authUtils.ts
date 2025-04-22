@@ -38,6 +38,9 @@ export const canEditUser = (users: User[], editorId: string, targetUserId: strin
   const editor = users?.find(u => u.id === editorId);
   if (!editor) return false;
   
+  // Users can always edit themselves
+  if (editorId === targetUserId) return true;
+  
   // Get target user
   const target = users?.find(u => u.id === targetUserId);
   if (!target) return false;
@@ -82,8 +85,8 @@ export const getAccessibleUsers = (users: User[], userId: string): User[] => {
   
   // Role-based access
   users.forEach(otherUser => {
-    // Skip self and admins
-    if (otherUser.id === userId || otherUser.role === "admin") return;
+    // Skip self and admins (unless current user is admin)
+    if (otherUser.id === userId || (otherUser.role === "admin" && user.role !== "admin")) return;
     
     // Managers can see team leads and employees
     if (user.role === "manager") {

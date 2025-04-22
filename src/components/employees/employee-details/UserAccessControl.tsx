@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, UserPermission } from "@/types";
@@ -10,6 +10,8 @@ import { Shield, UserCheck, ShieldOff } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { rolePermissions } from "./role-permissions/constants";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserAccessControlProps {
   employee: User;
@@ -19,6 +21,7 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
   const { users, updateUserPermissions, currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
   
   // Check permissions for managing user access
   const isAdmin = currentUser?.role === "admin";
@@ -28,11 +31,11 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
   
   if (!canManageUsers) return null;
   
-  // Get all other users except current and admin users
-  // Also exclude users with higher role than the employee being edited
+  // Get all other users except current, admin users,
+  // and users with higher role than the employee being edited
   const otherUsers = users.filter(user => 
     user.id !== employee.id && 
-    user.role !== "admin" && 
+    (isAdmin || user.role !== "admin") && // Only admins can manage other admins
     // Don't allow giving permissions to manage users with higher roles
     getRolePriority(user.role) <= getRolePriority(employee.role)
   );
@@ -40,27 +43,70 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
   // Get permissions for this employee
   const employeePermissions = employee.permissions || [];
   
-  const handlePermissionChange = (targetUserId: string, permType: "canView" | "canEdit", value: boolean) => {
-    // Find existing permission for this target user
-    const existingPerm = employeePermissions.find(p => p.targetUserId === targetUserId);
-    
-    // Prepare the new permission state
-    const newPermissions: Partial<UserPermission> = {
-      [permType]: value
-    };
-    
-    // If editing "canEdit", make sure "canView" is also enabled
-    if (permType === "canEdit" && value) {
-      newPermissions.canView = true;
+  const handlePermissionChange = async (targetUserId: string, permType: "canView" | "canEdit", value: boolean) => {
+    setSaving(true);
+    try {
+      // Find existing permission for this target user
+      const existingPerm = employeePermissions.find(p => p.targetUserId === targetUserId);
+      
+      // Prepare the new permission state
+      const newPermissions: Partial<UserPermission> = {
+        [permType]: value
+      };
+      
+      // If editing "canEdit", make sure "canView" is also enabled
+      if (permType === "canEdit" && value) {
+        newPermissions.canView = true;
+      }
+      
+      // If turning off "canView", also turn off "canEdit"
+      if (permType === "canView" && !value && existingPerm?.canEdit) {
+        newPermissions.canEdit = false;
+      }
+      
+      // Update user permissions in state
+      const updatedUsers = updateUserPermissions(employee.id, targetUserId, newPermissions);
+      
+      // Store permissions in Supabase if the employee has a real DB ID
+      if (employee.id && !employee.id.includes('user_')) {
+        // Check if permission exists already
+        const { data: existingData } = await supabase
+          .from('user_permissions')
+          .select('*')
+          .eq('user_id', employee.id)
+          .eq('target_user_id', targetUserId)
+          .single();
+        
+        if (existingData) {
+          // Update existing permission
+          await supabase
+            .from('user_permissions')
+            .update({
+              can_view: newPermissions.canView !== undefined ? newPermissions.canView : existingData.can_view,
+              can_edit: newPermissions.canEdit !== undefined ? newPermissions.canEdit : existingData.can_edit
+            })
+            .eq('user_id', employee.id)
+            .eq('target_user_id', targetUserId);
+        } else {
+          // Create new permission
+          await supabase
+            .from('user_permissions')
+            .insert({
+              user_id: employee.id,
+              target_user_id: targetUserId,
+              can_view: newPermissions.canView || false,
+              can_edit: newPermissions.canEdit || false
+            });
+        }
+      }
+      
+      setHasChanges(true);
+    } catch (error) {
+      console.error("Error updating permissions:", error);
+      toast.error("Failed to update permissions");
+    } finally {
+      setSaving(false);
     }
-    
-    // If turning off "canView", also turn off "canEdit"
-    if (permType === "canView" && !value && existingPerm?.canEdit) {
-      newPermissions.canEdit = false;
-    }
-    
-    updateUserPermissions(employee.id, targetUserId, newPermissions);
-    setHasChanges(true);
   };
   
   const getUserPermission = (targetUserId: string): { canView: boolean, canEdit: boolean } => {
@@ -100,6 +146,7 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
                 setIsEditing(false);
                 setHasChanges(false);
               }}
+              disabled={saving}
             >
               Done
             </Button>
@@ -146,11 +193,11 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
                             onCheckedChange={(checked) => 
                               handlePermissionChange(user.id, "canView", !!checked)
                             }
-                            disabled={!isEditing}
+                            disabled={!isEditing || saving}
                           />
                           <Label 
                             htmlFor={`view-${user.id}`}
-                            className={!isEditing ? "text-muted-foreground" : ""}
+                            className={(!isEditing || saving) ? "text-muted-foreground" : ""}
                           >
                             View
                           </Label>
@@ -163,11 +210,11 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
                             onCheckedChange={(checked) => 
                               handlePermissionChange(user.id, "canEdit", !!checked)
                             }
-                            disabled={!isEditing || !userPerm.canView}
+                            disabled={!isEditing || !userPerm.canView || saving}
                           />
                           <Label 
                             htmlFor={`edit-${user.id}`}
-                            className={(!isEditing || !userPerm.canView) ? "text-muted-foreground" : ""}
+                            className={(!isEditing || !userPerm.canView || saving) ? "text-muted-foreground" : ""}
                           >
                             Edit
                           </Label>

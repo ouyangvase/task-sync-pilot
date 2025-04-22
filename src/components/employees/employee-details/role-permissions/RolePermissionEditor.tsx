@@ -10,6 +10,7 @@ import { RolePermissionEditorProps } from "./types";
 import { availableRoles, availablePermissions, rolePermissions } from "./constants";
 import { PermissionsList } from "./PermissionsList";
 import { ConfirmRoleDialog } from "./ConfirmRoleDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePermissionEditorProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(employee.role as UserRole);
@@ -18,6 +19,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   );
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // If not an admin, don't render
   if (!isAdmin) return null;
@@ -42,14 +44,38 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     setIsConfirmDialogOpen(true);
   };
 
-  const confirmSave = () => {
-    // In a real app, this would save both role and permissions
-    onUpdateRole(employee.id, selectedRole);
-    
-    // Display toast notification when role is updated
-    toast.success(`${employee.name}'s role updated to ${selectedRole} with standard ${selectedRole} permissions`);
-    setIsEditing(false);
-    setIsConfirmDialogOpen(false);
+  const confirmSave = async () => {
+    setIsSaving(true);
+    try {
+      // Update role in local state
+      onUpdateRole(employee.id, selectedRole);
+      
+      // If user has a Supabase ID (not a local mock), update in database
+      if (employee.id && !employee.id.includes('user_')) {
+        // Update profile in Supabase
+        const { error } = await supabase
+          .from('profiles')
+          .update({ role: selectedRole })
+          .eq('id', employee.id);
+          
+        if (error) {
+          console.error("Error updating user role in Supabase:", error);
+          toast.error("Error updating role in database");
+          setIsSaving(false);
+          return;
+        }
+      }
+      
+      // Display toast notification when role is updated
+      toast.success(`${employee.name}'s role updated to ${selectedRole} with standard ${selectedRole} permissions`);
+      setIsEditing(false);
+      setIsConfirmDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving role:", error);
+      toast.error("Failed to update role");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -79,11 +105,12 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
                   setSelectedPermissions(rolePermissions[employee.role] || []);
                   setIsEditing(false);
                 }}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           )}

@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { User } from "@/types";
 import { toast } from "sonner";
 import { useTasks } from "@/contexts/TaskContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DeleteUserButtonProps {
   user: User;
@@ -25,7 +26,7 @@ interface DeleteUserButtonProps {
 const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { currentUser, users, setUsers } = useAuth();
+  const { currentUser, users, setUsers, rejectUser } = useAuth();
   const { tasks, setTasks } = useTasks();
 
   // Check if current user is admin
@@ -45,31 +46,32 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
     try {
       setIsDeleting(true);
       
-      // In a real system with a backend, you would make an API call here
-      // For now, we'll simulate a delay and update the local state
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Check if it's a real Supabase user or a mock user
+      const isRealUser = user.id && !user.id.includes('user_');
       
-      // Filter out the user to be deleted
-      const updatedUsers = users.filter(u => u.id !== user.id);
+      if (isRealUser) {
+        // Use the rejectUser function to delete from Supabase
+        await rejectUser(user.id);
+      } else {
+        // For mock users, just update local state
+        // Filter out the user to be deleted
+        const updatedUsers = users.filter(u => u.id !== user.id);
+        setUsers(updatedUsers);
+      }
       
       // Also delete all tasks associated with this user
       const updatedTasks = tasks.filter(task => task.assignee !== user.id);
-      
-      // Update users and tasks state
-      setUsers(updatedUsers);
       setTasks(updatedTasks);
       
-      // Log the deletion action (in a real system, this would be sent to the backend)
-      const logEntry = {
+      // Log the deletion action
+      console.log("User deletion:", {
         adminId: currentUser?.id,
         adminName: currentUser?.name,
         action: "user_deletion",
         targetUserId: user.id,
         targetUserName: user.name,
         timestamp: new Date().toISOString()
-      };
-      
-      console.log("User deletion log:", logEntry);
+      });
       
       // Show success notification
       toast.success(`User ${user.name} has been deleted along with all associated tasks`);
