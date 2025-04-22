@@ -4,11 +4,8 @@ import { rolePermissions } from "@/components/employees/employee-details/role-pe
 
 // Check if a user can view another user
 export const canViewUser = (users: User[], viewerId: string, targetUserId: string): boolean => {
-  // Admins can view everyone
   const viewer = users?.find(u => u.id === viewerId);
   if (!viewer) return false;
-  
-  if (viewer.role === "admin") return true;
   
   // Users can always view themselves
   if (viewerId === targetUserId) return true;
@@ -17,8 +14,12 @@ export const canViewUser = (users: User[], viewerId: string, targetUserId: strin
   const target = users?.find(u => u.id === targetUserId);
   if (!target) return false;
 
+  // Admins can view everyone
+  if (viewer.role === "admin") return true;
+
   // Manager can view team leads and employees
-  if (viewer.role === "manager" && (target.role === "team_lead" || target.role === "employee")) {
+  if (viewer.role === "manager" && 
+    (target.role === "team_lead" || target.role === "employee")) {
     return true;
   }
   
@@ -34,20 +35,21 @@ export const canViewUser = (users: User[], viewerId: string, targetUserId: strin
 
 // Check if a user can edit another user
 export const canEditUser = (users: User[], editorId: string, targetUserId: string): boolean => {
-  // Admins can edit everyone
   const editor = users?.find(u => u.id === editorId);
   if (!editor) return false;
   
-  if (editor.role === "admin") return true;
+  // Admins can edit everyone except other admins
+  if (editor.role === "admin") {
+    const target = users?.find(u => u.id === targetUserId);
+    if (!target) return false;
+    return target.role !== "admin" || editor.id === target.id;
+  }
   
-  // No one can edit admins except other admins
   const target = users?.find(u => u.id === targetUserId);
   if (!target) return false;
   
-  // Handle admin target case separately to avoid type comparison error
-  if (target.role === "admin") {
-    return false; // Non-admin users can't edit admins
-  }
+  // No one except admins can edit admins
+  if (target.role === "admin") return false;
   
   // Role-based editing permissions
   // Manager can edit team leads and employees
