@@ -46,16 +46,7 @@ const LoginForm = () => {
       
       console.log("Login attempt with:", data.email);
       
-      // Handle admin login
-      if (data.email === "admin@tasksync.com") {
-        console.log("Using admin credentials");
-        await login(data.email, data.password);
-        toast.success("Admin login successful");
-        navigate("/dashboard", { replace: true });
-        return;
-      }
-      
-      // Regular user login
+      // Login (admin is handled in the login function)
       await login(data.email, data.password);
       console.log("Login successful, redirecting to dashboard...");
       toast.success("Login successful");
@@ -64,10 +55,10 @@ const LoginForm = () => {
     } catch (error: any) {
       console.error("Login error:", error);
       
-      if (error.message.includes("pending admin approval")) {
+      if (error.message?.includes("pending admin approval")) {
         setErrorMessage("Your account is pending admin approval. Please check back later.");
         toast.error("Your account is pending admin approval");
-      } else if (error.message.includes("Invalid login credentials")) {
+      } else if (error.message?.includes("Invalid login credentials")) {
         setErrorMessage("Invalid email or password. Please check your credentials and try again.");
         toast.error("Invalid email or password");
       } else {

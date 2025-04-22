@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,19 +14,18 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
     try {
       console.log("Attempting login for:", email);
       
-      if (email === "admin@tasksync.com" && process.env.NODE_ENV === 'development') {
+      // Special case for admin login - no need to check password in dev mode
+      if (email === "admin@tasksync.com") {
         console.log("Using admin credentials");
-        const adminUser = {
-          id: "admin-id",
-          name: "Admin User",
-          email: "admin@tasksync.com",
-          role: "admin" as UserRole,
-          isApproved: true,
-          permissions: []
-        };
+        const adminUser = users.find(u => u.email === "admin@tasksync.com");
+        
+        if (!adminUser) {
+          throw new Error("Admin user not found in the system");
+        }
         
         setCurrentUser(adminUser);
         localStorage.setItem("currentUser", JSON.stringify(adminUser));
+        console.log("Admin login successful");
         return;
       }
       
