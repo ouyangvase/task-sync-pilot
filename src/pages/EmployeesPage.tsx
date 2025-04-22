@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -67,17 +66,15 @@ const EmployeesPage = () => {
   // Get accessible employees based on user's role
   let employees: User[] = [];
   if (currentUser) {
-    employees = getAccessibleUsers(currentUser.id).filter(user => {
-      // Filter based on role hierarchies
-      if (userRole === "admin") {
-        return ["employee", "team_lead", "manager"].includes(user.role);
-      } else if (userRole === "manager") {
-        return ["employee", "team_lead"].includes(user.role);
-      } else if (userRole === "team_lead") {
-        return user.role === "employee";
-      }
-      return false;
-    });
+    // For admin, show all users except the admin themselves
+    if (userRole === "admin") {
+      employees = users.filter(user => 
+        user.id !== currentUser.id && user.role !== "admin"
+      );
+    } else {
+      // For managers and team leads, use the accessibility logic
+      employees = getAccessibleUsers(currentUser.id);
+    }
   }
 
   document.title = "Employee Management | TaskSync Pilot";
