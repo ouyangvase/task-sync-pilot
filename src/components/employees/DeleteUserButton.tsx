@@ -46,6 +46,30 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
     try {
       setIsDeleting(true);
       
+      // First, delete all user permission records for this user
+      try {
+        if (user.id && !user.id.includes('user_')) {
+          // Delete permissions where the user is the target
+          await supabase
+            .from('user_permissions')
+            .delete()
+            .eq('target_user_id', user.id);
+            
+          // Delete permissions owned by the user
+          await supabase
+            .from('user_permissions')
+            .delete()
+            .eq('user_id', user.id);
+        }
+      } catch (permError) {
+        console.error("Error deleting user permissions:", permError);
+        // Continue with deletion even if permissions delete fails
+      }
+      
+      // Delete tasks associated with the user
+      const updatedTasks = tasks.filter(task => task.assignee !== user.id);
+      setTasks(updatedTasks);
+      
       // Check if it's a real Supabase user or a mock user
       const isRealUser = user.id && !user.id.includes('user_');
       
@@ -59,10 +83,6 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
         setUsers(updatedUsers);
       }
       
-      // Also delete all tasks associated with this user
-      const updatedTasks = tasks.filter(task => task.assignee !== user.id);
-      setTasks(updatedTasks);
-      
       // Log the deletion action
       console.log("User deletion:", {
         adminId: currentUser?.id,
@@ -74,7 +94,7 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
       });
       
       // Show success notification
-      toast.success(`User ${user.name} has been deleted along with all associated tasks`);
+      toast.success(`User ${user.name} has been deleted successfully`);
       
       // Close the confirmation dialog
       handleCloseDialog();
@@ -85,7 +105,7 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
       }
     } catch (error) {
       console.error("Error deleting user:", error);
-      toast.error("Failed to delete user");
+      toast.error("Failed to delete user. Please try again.");
     } finally {
       setIsDeleting(false);
     }

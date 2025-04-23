@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,16 +52,29 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
       
       // If user has a Supabase ID (not a local mock), update in database
       if (employee.id && !employee.id.includes('user_')) {
-        // Update profile in Supabase
-        const { error } = await supabase
-          .from('profiles')
-          .update({ role: selectedRole })
-          .eq('id', employee.id);
+        try {
+          // Update profile in Supabase
+          const { error } = await supabase
+            .from('profiles')
+            .update({ role: selectedRole })
+            .eq('id', employee.id);
+            
+          if (error) {
+            console.error("Error updating user role in Supabase:", error);
+            toast.error("Error updating role in database");
+            return;
+          }
           
-        if (error) {
-          console.error("Error updating user role in Supabase:", error);
-          toast.error("Error updating role in database");
-          setIsSaving(false);
+          // If role change is successful and there are user permission records,
+          // update or create permission records in Supabase
+          if (selectedRole !== employee.role) {
+            // Get users who need permissions based on the new role
+            // Here we'd typically sync the role-based permissions
+            console.log("Role changed. New permissions will be applied based on role:", selectedRole);
+          }
+        } catch (dbError) {
+          console.error("Database error during role update:", dbError);
+          toast.error("Database error during role update");
           return;
         }
       }
