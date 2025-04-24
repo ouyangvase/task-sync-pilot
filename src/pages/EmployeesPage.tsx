@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -5,12 +6,13 @@ import EmployeesList from "@/components/employees/EmployeesList";
 import EmployeeDetails from "@/components/employees/EmployeeDetails";
 import { User, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { UserPlus, ShieldAlert } from "lucide-react";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { toast } from "sonner";
 import PendingUsersList from "@/components/admin/PendingUsersList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const EmployeesPage = () => {
   const { currentUser, users, getAccessibleUsers, getPendingUsers } = useAuth();
@@ -23,13 +25,17 @@ const EmployeesPage = () => {
   const userRole = currentUser?.role || "employee";
   const userPermissions = rolePermissions[userRole] || [];
   const canViewEmployees = userPermissions.includes("view_employees");
-  const canManageUsers = userPermissions.includes("manage_users");
+  const canManageUsers = userRole === "admin"; // Only admins can manage users
 
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
   };
 
   const handleAddEmployee = () => {
+    if (!canManageUsers) {
+      toast.error("Only administrators can add new employees");
+      return;
+    }
     setIsAddDialogOpen(true);
   };
 
@@ -43,7 +49,7 @@ const EmployeesPage = () => {
   };
 
   const handleRefreshPendingUsers = () => {
-    if (currentUser) {
+    if (currentUser && userRole === "admin") {
       const pendingUsersData = getPendingUsers();
       console.log("Fetched pending users:", pendingUsersData);
       setPendingUsers(pendingUsersData);
@@ -83,6 +89,9 @@ const EmployeesPage = () => {
     return <Navigate to="/dashboard" />;
   }
 
+  // Show access warning for non-admin users
+  const showAccessWarning = currentUser && userRole !== "admin";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -94,6 +103,16 @@ const EmployeesPage = () => {
           </Button>
         )}
       </div>
+
+      {showAccessWarning && (
+        <Alert variant="warning">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Limited Access Mode</AlertTitle>
+          <AlertDescription>
+            You have limited access to employee management features. Only administrators can change user roles and permissions.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {userRole === "admin" && (
         <Tabs defaultValue="employees" value={activeTab} onValueChange={setActiveTab}>

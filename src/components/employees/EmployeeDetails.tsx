@@ -66,7 +66,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
   const userPermissions = rolePermissions[userRole] || [];
   
   // Check for specific permissions
-  const canManageUsers = userPermissions.includes("manage_users");
+  const canManageUsers = userRole === "admin"; // Only admins can manage users
   const canAssignTasks = userPermissions.includes("assign_tasks");
   const canEditEmployees = userPermissions.includes("edit_employees");
   
@@ -141,6 +141,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
         </CardContent>
       </Card>
       
+      {/* Only admins can manage roles */}
       {canManageUsers && (
         <RolePermissionEditor 
           employee={employee}
@@ -167,6 +168,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
           <TaskForm 
             task={null}
             onClose={handleCloseDialog}
+            preselectedAssignee={employee}
           />
         </DialogContent>
       </Dialog>

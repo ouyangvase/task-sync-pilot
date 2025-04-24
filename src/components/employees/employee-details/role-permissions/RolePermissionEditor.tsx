@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, UserRole } from "@/types";
 import { toast } from "sonner";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, AlertTriangle } from "lucide-react";
 import { RolePermissionEditorProps } from "./types";
 import { availableRoles, availablePermissions, rolePermissions } from "./constants";
 import { PermissionsList } from "./PermissionsList";
 import { ConfirmRoleDialog } from "./ConfirmRoleDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth";
 
 export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePermissionEditorProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(employee.role as UserRole);
@@ -21,6 +22,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [initialRole] = useState<UserRole>(employee.role as UserRole);
+  const { currentUser } = useAuth();
 
   // Initialize role and permissions when employee data changes
   useEffect(() => {
@@ -28,8 +30,11 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     setSelectedPermissions(rolePermissions[employee.role] || []);
   }, [employee.role]);
 
-  // If not an admin, don't render
-  if (!isAdmin) return null;
+  // Check if current user is an admin - this is crucial for security
+  const canManageRoles = currentUser?.role === "admin";
+
+  // If not an admin, don't render the role editor
+  if (!isAdmin || !canManageRoles) return null;
 
   const handleRoleChange = (role: string) => {
     setSelectedRole(role as UserRole);
@@ -48,6 +53,18 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   };
 
   const handleSave = () => {
+    // Extra validation before opening confirmation dialog
+    if (!canManageRoles) {
+      toast.error("Only administrators can change user roles");
+      return;
+    }
+    
+    // Prevent changing roles to admin for security reasons
+    if (selectedRole === "admin" && employee.role !== "admin") {
+      toast.error("Cannot promote users to admin role through this interface");
+      return;
+    }
+    
     setIsConfirmDialogOpen(true);
   };
 
@@ -59,8 +76,18 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
       return;
     }
     
+    // Additional security check before proceeding
+    if (!canManageRoles) {
+      toast.error("Permission denied: Only administrators can change user roles");
+      setIsConfirmDialogOpen(false);
+      return;
+    }
+    
     setIsSaving(true);
     try {
+      // Log the role change attempt for audit purposes
+      console.log(`Admin ${currentUser?.name} (${currentUser?.id}) attempting to change ${employee.name}'s role from ${employee.role} to ${selectedRole}`);
+      
       // Update role in local state
       onUpdateRole(employee.id, selectedRole);
       
@@ -70,6 +97,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
           .from('profiles')
           .update({ 
             role: selectedRole,
+            updated_at: new Date().toISOString()
           })
           .eq('id', employee.id);
           
@@ -81,19 +109,27 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
           return;
         }
         
-        // First fetch any existing permissions for this user
-        const { data: existingUserPerms, error: fetchError } = await supabase
-          .from('user_permissions')
-          .select('*')
-          .eq('user_id', employee.id);
-          
-        if (fetchError) {
-          console.error("Error fetching existing permissions:", fetchError);
-        } else {
-          // Update permissions based on the new role
-          // This is a simplified approach - in a more complex system, you might 
-          // want to merge or handle this differently
-          console.log("Existing permissions:", existingUserPerms);
+        // Create an audit log entry for the role change
+        try {
+          const { error: auditError } = await supabase
+            .from('audit_logs')
+            .insert({
+              user_id: currentUser?.id,
+              action: 'role_change',
+              target_user_id: employee.id,
+              details: JSON.stringify({
+                oldRole: employee.role,
+                newRole: selectedRole
+              })
+            });
+            
+          if (auditError) {
+            console.error("Error logging role change:", auditError);
+            // Non-critical error, don't stop the process
+          }
+        } catch (auditErr) {
+          // If the audit_logs table doesn't exist yet, just log to console
+          console.log("Could not create audit log (table may not exist)");
         }
         
         toast.success(`Role updated to ${selectedRole}`);
@@ -171,11 +207,15 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRoles.map(role => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
+                    {availableRoles
+                      // Filter out admin role from selectable options for security
+                      .filter(role => role.id !== "admin" || employee.role === "admin")
+                      .map(role => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
               ) : (
@@ -197,6 +237,16 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
               employeeRole={selectedRole}
             />
           </div>
+
+          {/* Warning notice for non-admin users */}
+          {!canManageRoles && (
+            <div className="mt-4 p-3 bg-amber-100 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-md flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                Only administrators can change user roles
+              </p>
+            </div>
+          )}
         </div>
       </CardContent>
 
@@ -206,6 +256,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
         onConfirm={confirmSave}
         employee={employee}
         selectedRole={selectedRole}
+        isSaving={isSaving}
       />
     </Card>
   );
