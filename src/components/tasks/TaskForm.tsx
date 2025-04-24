@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/contexts/TaskContext";
-import { Task, TaskStatus, User } from "@/types";
+import { Task, TaskStatus } from "@/types";
 import { Form } from "@/components/ui/form";
 import { taskFormSchema, TaskFormValues, defaultTaskValues } from "./taskSchema";
 
@@ -18,20 +18,15 @@ import TaskFormActions from "./TaskFormActions";
 interface TaskFormProps {
   task?: Task | null;
   onClose?: () => void;
-  preselectedAssignee?: User; // Added the preselectedAssignee prop
 }
 
-const TaskForm = ({ task, onClose, preselectedAssignee }: TaskFormProps) => {
+const TaskForm = ({ task, onClose }: TaskFormProps) => {
   const { addTask, updateTask } = useTasks();
   const { currentUser } = useAuth();
   
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
-    defaultValues: {
-      ...defaultTaskValues,
-      // Use preselectedAssignee if provided
-      assignee: preselectedAssignee ? preselectedAssignee.id : defaultTaskValues.assignee
-    },
+    defaultValues: defaultTaskValues,
   });
 
   useEffect(() => {
@@ -46,11 +41,8 @@ const TaskForm = ({ task, onClose, preselectedAssignee }: TaskFormProps) => {
         priority: task.priority,
         points: task.points,
       });
-    } else if (preselectedAssignee) {
-      // If preselectedAssignee is provided but no task, just set the assignee field
-      form.setValue("assignee", preselectedAssignee.id);
     }
-  }, [task, form, preselectedAssignee]);
+  }, [task, form]);
 
   const onSubmit = (values: TaskFormValues) => {
     if (task) {

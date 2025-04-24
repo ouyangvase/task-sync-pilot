@@ -5,13 +5,12 @@ import EmployeesList from "@/components/employees/EmployeesList";
 import EmployeeDetails from "@/components/employees/EmployeeDetails";
 import { User, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
-import { UserPlus, ShieldAlert } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { toast } from "sonner";
 import PendingUsersList from "@/components/admin/PendingUsersList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const EmployeesPage = () => {
   const { currentUser, users, getAccessibleUsers, getPendingUsers } = useAuth();
@@ -24,17 +23,13 @@ const EmployeesPage = () => {
   const userRole = currentUser?.role || "employee";
   const userPermissions = rolePermissions[userRole] || [];
   const canViewEmployees = userPermissions.includes("view_employees");
-  const canManageUsers = userRole === "admin"; // Only admins can manage users
+  const canManageUsers = userPermissions.includes("manage_users");
 
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
   };
 
   const handleAddEmployee = () => {
-    if (!canManageUsers) {
-      toast.error("Only administrators can add new employees");
-      return;
-    }
     setIsAddDialogOpen(true);
   };
 
@@ -48,7 +43,7 @@ const EmployeesPage = () => {
   };
 
   const handleRefreshPendingUsers = () => {
-    if (currentUser && userRole === "admin") {
+    if (currentUser) {
       const pendingUsersData = getPendingUsers();
       console.log("Fetched pending users:", pendingUsersData);
       setPendingUsers(pendingUsersData);
@@ -68,13 +63,16 @@ const EmployeesPage = () => {
     }
   }, [currentUser, users, canViewEmployees]);
 
+  // Get accessible employees based on user's role
   let employees: User[] = [];
   if (currentUser) {
+    // For admin, show all users except the admin themselves
     if (userRole === "admin") {
       employees = users.filter(user => 
         user.id !== currentUser.id && user.role !== "admin"
       );
     } else {
+      // For managers and team leads, use the accessibility logic
       employees = getAccessibleUsers(currentUser.id);
     }
   }
@@ -84,8 +82,6 @@ const EmployeesPage = () => {
   if (redirectToLogin) {
     return <Navigate to="/dashboard" />;
   }
-
-  const showAccessWarning = currentUser && userRole !== "admin";
 
   return (
     <div className="space-y-6">
@@ -98,16 +94,6 @@ const EmployeesPage = () => {
           </Button>
         )}
       </div>
-
-      {showAccessWarning && (
-        <Alert>
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Limited Access Mode</AlertTitle>
-          <AlertDescription>
-            You have limited access to employee management features. Only administrators can change user roles and permissions.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {userRole === "admin" && (
         <Tabs defaultValue="employees" value={activeTab} onValueChange={setActiveTab}>
