@@ -53,10 +53,17 @@ export const useUserManagement = (initialUsers: User[]) => {
   };
 
   const updateUserRole = (userId: string, role: string) => {
+    console.log(`Updating role for user ${userId} to ${role}`);
     // Update users array with the new role
     const updatedUsers = users.map(user => {
       if (user.id === userId) {
-        return { ...user, role: role as UserRole };
+        // Create a new user object with the updated role
+        const updatedUser = { 
+          ...user, 
+          role: role as UserRole 
+        };
+        console.log("Updated user:", updatedUser);
+        return updatedUser;
       }
       return user;
     });
@@ -66,9 +73,9 @@ export const useUserManagement = (initialUsers: User[]) => {
   };
 
   const updateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
+    console.log(`Updating permissions for user ${userId} to target ${targetUserId}:`, newPermissions);
     const updatedUsers = updateUserPermissionsHelper(users, userId, targetUserId, newPermissions);
     setUsers(updatedUsers);
-    toast.success("User permissions updated");
     return updatedUsers;
   };
 

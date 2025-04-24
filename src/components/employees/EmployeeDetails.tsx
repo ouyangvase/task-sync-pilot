@@ -1,8 +1,8 @@
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import { useTasks } from "@/contexts/TaskContext";
 import { useAuth } from "@/contexts/auth";
 import TaskForm from "@/components/tasks/TaskForm";

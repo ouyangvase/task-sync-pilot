@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
   const [saving, setSaving] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [permissionsMap, setPermissionsMap] = useState<Record<string, {canView: boolean, canEdit: boolean}>>({});
+  const [originalPermissionsMap, setOriginalPermissionsMap] = useState<Record<string, {canView: boolean, canEdit: boolean}>>({});
   
   // Check permissions for managing user access
   const isAdmin = currentUser?.role === "admin";
@@ -52,6 +54,7 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
         };
       });
       setPermissionsMap(initialPermissions);
+      setOriginalPermissionsMap({...initialPermissions});
     }
   }, [employee.permissions]);
 
@@ -68,11 +71,12 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
             
           if (error) {
             console.error("Error fetching user permissions:", error);
-            toast.error("Failed to load user permissions");
+            toast.error("Failed to load user permissions: " + error.message);
             return;
           }
           
           if (data && data.length > 0) {
+            console.log("Fetched permissions from DB:", data);
             const dbPermissions: Record<string, {canView: boolean, canEdit: boolean}> = {};
             data.forEach(perm => {
               dbPermissions[perm.target_user_id] = {
@@ -81,19 +85,22 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
               };
             });
             setPermissionsMap(dbPermissions);
+            setOriginalPermissionsMap({...dbPermissions});
+            setHasChanges(false);
           }
         } catch (error) {
           console.error("Error in fetchPermissions:", error);
+          toast.error(`Error loading permissions: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
           setLoadingUsers(false);
         }
       }
     };
     
-    if (isAdmin && isEditing) {
+    if (isEditing) {
       fetchPermissions();
     }
-  }, [employee.id, isAdmin, isEditing]);
+  }, [employee.id, isEditing]);
   
   const handlePermissionChange = async (targetUserId: string, permType: "canView" | "canEdit", value: boolean) => {
     setSaving(true);
@@ -121,6 +128,15 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
       
       // Update local state
       setPermissionsMap(updatedMap);
+      
+      // Check if there are changes compared to original state
+      const hasAnyChanges = Object.keys(updatedMap).some(userId => {
+        const original = originalPermissionsMap[userId] || { canView: false, canEdit: false };
+        const current = updatedMap[userId];
+        return original.canView !== current.canView || original.canEdit !== current.canEdit;
+      });
+      
+      setHasChanges(hasAnyChanges);
       
       // Prepare the new permission object for our context function
       const newPermissions: Partial<UserPermission> = {
@@ -153,17 +169,22 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
           
           if (existingData) {
             // Update existing permission
-            await supabase
+            const { error: updateError } = await supabase
               .from('user_permissions')
               .update({
                 can_view: updatedMap[targetUserId].canView,
-                can_edit: updatedMap[targetUserId].canEdit
+                can_edit: updatedMap[targetUserId].canEdit,
+                updated_at: new Date().toISOString()
               })
               .eq('user_id', employee.id)
               .eq('target_user_id', targetUserId);
+              
+            if (updateError) {
+              throw new Error(`Failed to update permission: ${updateError.message}`);
+            }
           } else {
             // Create new permission
-            await supabase
+            const { error: insertError } = await supabase
               .from('user_permissions')
               .insert({
                 user_id: employee.id,
@@ -171,17 +192,125 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
                 can_view: updatedMap[targetUserId].canView,
                 can_edit: updatedMap[targetUserId].canEdit
               });
+              
+            if (insertError) {
+              throw new Error(`Failed to create permission: ${insertError.message}`);
+            }
           }
+          
+          // Update original permissions map to reflect saved state
+          setOriginalPermissionsMap({...updatedMap});
+          setHasChanges(false);
+          toast.success("Permission updated successfully");
         } catch (dbError) {
           console.error("Failed to update permissions in database:", dbError);
-          toast.error("Failed to update permissions in database");
+          toast.error(`Failed to update permission in database: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+          
+          // Revert local state on error
+          const revertedMap = { ...permissionsMap };
+          revertedMap[targetUserId][permType] = !value;
+          setPermissionsMap(revertedMap);
         }
       }
-      
-      setHasChanges(true);
     } catch (error) {
       console.error("Error updating permissions:", error);
-      toast.error("Failed to update permissions");
+      toast.error(`Failed to update permissions: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      if (employee.id && !employee.id.includes('user_')) {
+        // Get all changes to save at once
+        const changes = Object.entries(permissionsMap).map(([targetUserId, perms]) => {
+          const original = originalPermissionsMap[targetUserId] || { canView: false, canEdit: false };
+          if (original.canView !== perms.canView || original.canEdit !== perms.canEdit) {
+            return {
+              targetUserId,
+              perms
+            };
+          }
+          return null;
+        }).filter(Boolean);
+        
+        if (changes.length === 0) {
+          toast.info("No changes to save");
+          setIsEditing(false);
+          return;
+        }
+        
+        // Save all changes to Supabase
+        for (const change of changes) {
+          if (!change) continue;
+          const { targetUserId, perms } = change;
+          
+          // Check if permission record already exists
+          const { data: existingData } = await supabase
+            .from('user_permissions')
+            .select('*')
+            .eq('user_id', employee.id)
+            .eq('target_user_id', targetUserId)
+            .maybeSingle();
+          
+          if (existingData) {
+            // Update existing permission
+            const { error: updateError } = await supabase
+              .from('user_permissions')
+              .update({
+                can_view: perms.canView,
+                can_edit: perms.canEdit,
+                updated_at: new Date().toISOString()
+              })
+              .eq('user_id', employee.id)
+              .eq('target_user_id', targetUserId);
+              
+            if (updateError) {
+              throw new Error(`Failed to update permission: ${updateError.message}`);
+            }
+          } else if (perms.canView || perms.canEdit) {
+            // Only create new record if at least one permission is enabled
+            const { error: insertError } = await supabase
+              .from('user_permissions')
+              .insert({
+                user_id: employee.id,
+                target_user_id: targetUserId,
+                can_view: perms.canView,
+                can_edit: perms.canEdit
+              });
+              
+            if (insertError) {
+              throw new Error(`Failed to create permission: ${insertError.message}`);
+            }
+          }
+          
+          // Update local state
+          updateUserPermissions(employee.id, targetUserId, {
+            canView: perms.canView,
+            canEdit: perms.canEdit
+          });
+        }
+        
+        // Update original permissions map to reflect saved state
+        setOriginalPermissionsMap({...permissionsMap});
+        setHasChanges(false);
+        toast.success("All permissions saved successfully");
+        setIsEditing(false);
+      } else {
+        // For mock users, just update the local state
+        Object.entries(permissionsMap).forEach(([targetUserId, perms]) => {
+          updateUserPermissions(employee.id, targetUserId, perms);
+        });
+        setOriginalPermissionsMap({...permissionsMap});
+        setHasChanges(false);
+        toast.success("All permissions saved (local only)");
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error("Error saving all permissions:", error);
+      toast.error(`Failed to save all permissions: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setSaving(false);
     }
@@ -230,12 +359,29 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
               variant="ghost" 
               size="sm" 
               onClick={() => {
+                // Revert to original state
+                setPermissionsMap({...originalPermissionsMap});
                 setIsEditing(false);
                 setHasChanges(false);
               }}
               disabled={saving}
             >
-              Done
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveAll}
+              disabled={!hasChanges || saving}
+              variant="default"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </Button>
           </div>
         )}
@@ -268,7 +414,7 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">{user.name}</span>
-                          <span className="text-xs text-muted-foreground">{user.role}</span>
+                          <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
                         </div>
                       </div>
                       

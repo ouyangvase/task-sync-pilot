@@ -1,13 +1,24 @@
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { User, UserRole } from "@/types";
+import { Loader2 } from "lucide-react";
 
 interface ConfirmRoleDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   employee: User;
   selectedRole: UserRole;
+  isSaving?: boolean;
 }
 
 export function ConfirmRoleDialog({
@@ -15,41 +26,42 @@ export function ConfirmRoleDialog({
   onClose,
   onConfirm,
   employee,
-  selectedRole
+  selectedRole,
+  isSaving = false
 }: ConfirmRoleDialogProps) {
-  // Only show confirmation when changing role
-  const isRoleChanging = employee.role !== selectedRole;
+  // Get a display-friendly version of the role name
+  const getRoleDisplay = (role: UserRole) => {
+    return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
   
+  const currentRole = getRoleDisplay(employee.role as UserRole);
+  const newRole = getRoleDisplay(selectedRole);
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Update Role: {employee.name}</AlertDialogTitle>
+          <AlertDialogTitle>Confirm Role Change</AlertDialogTitle>
           <AlertDialogDescription>
-            {isRoleChanging ? (
-              <>
-                You are changing this user's role from <strong>{employee.role}</strong> to <strong>{selectedRole}</strong>.
-                <p className="mt-2">
-                  This will automatically update their permissions to match the standard permissions for the {selectedRole} role.
-                </p>
-                <p className="mt-2">
-                  Are you sure you want to update this user's role and associated permissions?
-                </p>
-              </>
-            ) : (
-              <>
-                You are updating the permissions for <strong>{employee.name}</strong>.
-                <p className="mt-2">
-                  Are you sure you want to save these changes?
-                </p>
-              </>
-            )}
+            Are you sure you want to change {employee.name}'s role from <strong>{currentRole}</strong> to <strong>{newRole}</strong>?
+            <br /><br />
+            This will affect their access level and permissions across the system.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
-            Update {isRoleChanging ? 'Role & Permissions' : 'Permissions'}
+          <AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => onConfirm()}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Confirm Change'
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

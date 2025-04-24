@@ -20,6 +20,13 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialRole] = useState<UserRole>(employee.role as UserRole);
+
+  // Initialize role and permissions when employee data changes
+  useEffect(() => {
+    setSelectedRole(employee.role as UserRole);
+    setSelectedPermissions(rolePermissions[employee.role] || []);
+  }, [employee.role]);
 
   // If not an admin, don't render
   if (!isAdmin) return null;
@@ -45,6 +52,13 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   };
 
   const confirmSave = async () => {
+    if (selectedRole === initialRole) {
+      toast.info("No changes to save");
+      setIsConfirmDialogOpen(false);
+      setIsEditing(false);
+      return;
+    }
+    
     setIsSaving(true);
     try {
       // Update role in local state
@@ -61,18 +75,39 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
           
         if (profileError) {
           console.error("Error updating role in Supabase:", profileError);
-          toast.error("Failed to update role");
+          toast.error("Failed to update role: " + profileError.message);
+          // Revert local state if database update failed
+          onUpdateRole(employee.id, initialRole);
           return;
         }
         
+        // First fetch any existing permissions for this user
+        const { data: existingUserPerms, error: fetchError } = await supabase
+          .from('user_permissions')
+          .select('*')
+          .eq('user_id', employee.id);
+          
+        if (fetchError) {
+          console.error("Error fetching existing permissions:", fetchError);
+        } else {
+          // Update permissions based on the new role
+          // This is a simplified approach - in a more complex system, you might 
+          // want to merge or handle this differently
+          console.log("Existing permissions:", existingUserPerms);
+        }
+        
         toast.success(`Role updated to ${selectedRole}`);
+      } else {
+        toast.success(`Role updated to ${selectedRole} (local only)`);
       }
 
       setIsEditing(false);
       setIsConfirmDialogOpen(false);
     } catch (error) {
       console.error("Error saving role:", error);
-      toast.error("Failed to update role");
+      toast.error(`Failed to update role: ${error instanceof Error ? error.message : String(error)}`);
+      // Revert local state on error
+      onUpdateRole(employee.id, initialRole);
     } finally {
       setIsSaving(false);
     }
@@ -108,7 +143,11 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+            <Button 
+              size="sm" 
+              onClick={handleSave} 
+              disabled={isSaving || selectedRole === initialRole}
+            >
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -155,7 +194,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
               onTogglePermission={handlePermissionToggle}
               isEditing={isEditing}
               rolePermissions={rolePermissions}
-              employeeRole={employee.role}
+              employeeRole={selectedRole}
             />
           </div>
         </div>
