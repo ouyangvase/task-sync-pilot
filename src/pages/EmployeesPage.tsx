@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { Navigate } from "react-router-dom";
@@ -69,16 +68,13 @@ const EmployeesPage = () => {
     }
   }, [currentUser, users, canViewEmployees]);
 
-  // Get accessible employees based on user's role
   let employees: User[] = [];
   if (currentUser) {
-    // For admin, show all users except the admin themselves
     if (userRole === "admin") {
       employees = users.filter(user => 
         user.id !== currentUser.id && user.role !== "admin"
       );
     } else {
-      // For managers and team leads, use the accessibility logic
       employees = getAccessibleUsers(currentUser.id);
     }
   }
@@ -89,7 +85,6 @@ const EmployeesPage = () => {
     return <Navigate to="/dashboard" />;
   }
 
-  // Show access warning for non-admin users
   const showAccessWarning = currentUser && userRole !== "admin";
 
   return (
@@ -105,7 +100,7 @@ const EmployeesPage = () => {
       </div>
 
       {showAccessWarning && (
-        <Alert variant="warning">
+        <Alert>
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Limited Access Mode</AlertTitle>
           <AlertDescription>
