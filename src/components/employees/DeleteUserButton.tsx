@@ -26,10 +26,9 @@ interface DeleteUserButtonProps {
 const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { currentUser, users, setUsers, rejectUser } = useAuth();
+  const { currentUser, users, setUsers } = useAuth();
   const { tasks, setTasks } = useTasks();
 
-  // Check if current user is admin
   const isAdmin = currentUser?.role === "admin";
   
   if (!isAdmin) return null;
@@ -46,66 +45,37 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
     try {
       setIsDeleting(true);
       
-      // First, delete all user permission records for this user
-      try {
-        if (user.id && !user.id.includes('user_')) {
-          // Delete permissions where the user is the target
-          await supabase
-            .from('user_permissions')
-            .delete()
-            .eq('target_user_id', user.id);
-            
-          // Delete permissions owned by the user
-          await supabase
-            .from('user_permissions')
-            .delete()
-            .eq('user_id', user.id);
+      // First, delete the user's profile and all related data
+      if (user.id && !user.id.includes('user_')) {
+        const { error: deleteError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', user.id);
+          
+        if (deleteError) {
+          throw new Error(`Failed to delete user profile: ${deleteError.message}`);
         }
-      } catch (permError) {
-        console.error("Error deleting user permissions:", permError);
-        // Continue with deletion even if permissions delete fails
+        
+        // Delete from auth.users if possible (requires admin rights)
+        const { error: authDeleteError } = await supabase.auth.admin.deleteUser(user.id);
+        if (authDeleteError) {
+          console.error("Could not delete auth user:", authDeleteError);
+        }
       }
       
-      // Delete tasks associated with the user
-      const updatedTasks = tasks.filter(task => task.assignee !== user.id);
-      setTasks(updatedTasks);
+      // Update local state
+      setUsers(users.filter(u => u.id !== user.id));
+      setTasks(tasks.filter(task => task.assignee !== user.id));
       
-      // Check if it's a real Supabase user or a mock user
-      const isRealUser = user.id && !user.id.includes('user_');
-      
-      if (isRealUser) {
-        // Use the rejectUser function to delete from Supabase
-        await rejectUser(user.id);
-      } else {
-        // For mock users, just update local state
-        // Filter out the user to be deleted
-        const updatedUsers = users.filter(u => u.id !== user.id);
-        setUsers(updatedUsers);
-      }
-      
-      // Log the deletion action
-      console.log("User deletion:", {
-        adminId: currentUser?.id,
-        adminName: currentUser?.name,
-        action: "user_deletion",
-        targetUserId: user.id,
-        targetUserName: user.name,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Show success notification
-      toast.success(`User ${user.name} has been deleted successfully`);
-      
-      // Close the confirmation dialog
+      toast.success(`User ${user.name} has been permanently deleted`);
       handleCloseDialog();
       
-      // Call onDeleteSuccess callback if provided
       if (onDeleteSuccess) {
         onDeleteSuccess();
       }
     } catch (error) {
       console.error("Error deleting user:", error);
-      toast.error("Failed to delete user. Please try again.");
+      toast.error(`Failed to delete user: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsDeleting(false);
     }
@@ -129,7 +99,7 @@ const DeleteUserButton = ({ user, onDeleteSuccess }: DeleteUserButtonProps) => {
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete {user.name}? This action cannot be undone.
-              All tasks, points, history, and permissions for this user will be permanently removed.
+              All tasks, roles, permissions and related data will be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

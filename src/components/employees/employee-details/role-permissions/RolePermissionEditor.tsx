@@ -22,32 +22,52 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   const [isSaving, setIsSaving] = useState(false);
   const [initialRole] = useState<UserRole>(employee.role as UserRole);
 
+  // Subscribe to role changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('role-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${employee.id}`
+        },
+        (payload) => {
+          console.log('Role updated:', payload);
+          if (payload.new && payload.new.role !== selectedRole) {
+            setSelectedRole(payload.new.role as UserRole);
+            setSelectedPermissions(rolePermissions[payload.new.role] || []);
+            toast.success(`Role updated to ${payload.new.role}`);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [employee.id]);
+
   // Initialize role and permissions when employee data changes
   useEffect(() => {
     setSelectedRole(employee.role as UserRole);
     setSelectedPermissions(rolePermissions[employee.role] || []);
   }, [employee.role]);
 
-  // If not an admin, don't render
   if (!isAdmin) return null;
 
   const handleRoleChange = (role: string) => {
     setSelectedRole(role as UserRole);
-    // When role changes, automatically update permissions to match the default for that role
     setSelectedPermissions(rolePermissions[role] || []);
   };
 
-  const handlePermissionToggle = (permissionId: string) => {
-    setSelectedPermissions(prev => {
-      if (prev.includes(permissionId)) {
-        return prev.filter(id => id !== permissionId);
-      } else {
-        return [...prev, permissionId];
-      }
-    });
-  };
-
   const handleSave = () => {
+    if (!isAdmin) {
+      toast.error("Only administrators can modify roles");
+      return;
+    }
     setIsConfirmDialogOpen(true);
   };
 
@@ -61,53 +81,31 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     
     setIsSaving(true);
     try {
-      // Update role in local state
+      // Update role in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: selectedRole,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', employee.id);
+        
+      if (updateError) {
+        throw updateError;
+      }
+      
+      // Update local state
       onUpdateRole(employee.id, selectedRole);
       
-      // If user has a Supabase ID (not a local mock), update in database
-      if (employee.id && !employee.id.includes('user_')) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ 
-            role: selectedRole,
-          })
-          .eq('id', employee.id);
-          
-        if (profileError) {
-          console.error("Error updating role in Supabase:", profileError);
-          toast.error("Failed to update role: " + profileError.message);
-          // Revert local state if database update failed
-          onUpdateRole(employee.id, initialRole);
-          return;
-        }
-        
-        // First fetch any existing permissions for this user
-        const { data: existingUserPerms, error: fetchError } = await supabase
-          .from('user_permissions')
-          .select('*')
-          .eq('user_id', employee.id);
-          
-        if (fetchError) {
-          console.error("Error fetching existing permissions:", fetchError);
-        } else {
-          // Update permissions based on the new role
-          // This is a simplified approach - in a more complex system, you might 
-          // want to merge or handle this differently
-          console.log("Existing permissions:", existingUserPerms);
-        }
-        
-        toast.success(`Role updated to ${selectedRole}`);
-      } else {
-        toast.success(`Role updated to ${selectedRole} (local only)`);
-      }
-
       setIsEditing(false);
       setIsConfirmDialogOpen(false);
+      toast.success(`Role successfully updated to ${selectedRole}`);
     } catch (error) {
       console.error("Error saving role:", error);
       toast.error(`Failed to update role: ${error instanceof Error ? error.message : String(error)}`);
       // Revert local state on error
-      onUpdateRole(employee.id, initialRole);
+      setSelectedRole(initialRole);
+      setSelectedPermissions(rolePermissions[initialRole] || []);
     } finally {
       setIsSaving(false);
     }
@@ -135,18 +133,19 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
               variant="ghost" 
               size="sm" 
               onClick={() => {
-                setSelectedRole(employee.role as UserRole);
-                setSelectedPermissions(rolePermissions[employee.role] || []);
+                setSelectedRole(initialRole);
+                setSelectedPermissions(rolePermissions[initialRole] || []);
                 setIsEditing(false);
               }}
               disabled={isSaving}
             >
               Cancel
             </Button>
-            <Button 
-              size="sm" 
-              onClick={handleSave} 
-              disabled={isSaving || selectedRole === initialRole}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!hasChanges || isSaving}
+              variant="default"
             >
               {isSaving ? (
                 <>
@@ -191,8 +190,8 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
             <PermissionsList 
               permissions={availablePermissions}
               selectedPermissions={selectedPermissions}
-              onTogglePermission={handlePermissionToggle}
-              isEditing={isEditing}
+              onTogglePermission={() => {}}
+              isEditing={false}
               rolePermissions={rolePermissions}
               employeeRole={selectedRole}
             />
@@ -206,6 +205,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
         onConfirm={confirmSave}
         employee={employee}
         selectedRole={selectedRole}
+        isSaving={isSaving}
       />
     </Card>
   );
