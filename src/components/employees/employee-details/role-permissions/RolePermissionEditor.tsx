@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Shield } from "lucide-react";
 import { User, UserRole } from "@/types";
 import { toast } from "sonner";
-import { Shield, Loader2 } from "lucide-react";
 import { RolePermissionEditorProps } from "./types";
-import { availableRoles, availablePermissions, rolePermissions } from "./constants";
+import { availablePermissions, rolePermissions } from "./constants";
 import { PermissionsList } from "./PermissionsList";
 import { ConfirmRoleDialog } from "./ConfirmRoleDialog";
+import { RoleSelector } from "./RoleSelector";
+import { RoleEditorActions } from "./RoleEditorActions";
 import { supabase } from "@/integrations/supabase/client";
 
 export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePermissionEditorProps) {
@@ -74,6 +74,12 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     setIsConfirmDialogOpen(true);
   };
 
+  const handleCancel = () => {
+    setSelectedRole(initialRole);
+    setSelectedPermissions(rolePermissions[initialRole] || []);
+    setIsEditing(false);
+  };
+
   const confirmSave = async () => {
     if (selectedRole === initialRole) {
       toast.info("No changes to save");
@@ -84,7 +90,6 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     
     setIsSaving(true);
     try {
-      // Update role in database
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
@@ -97,7 +102,6 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
         throw updateError;
       }
       
-      // Update local state
       onUpdateRole(employee.id, selectedRole);
       
       setIsEditing(false);
@@ -106,7 +110,6 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     } catch (error) {
       console.error("Error saving role:", error);
       toast.error(`Failed to update role: ${error instanceof Error ? error.message : String(error)}`);
-      // Revert local state on error
       setSelectedRole(initialRole);
       setSelectedPermissions(rolePermissions[initialRole] || []);
     } finally {
@@ -126,65 +129,25 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
             Manage employee access level and permissions
           </CardDescription>
         </div>
-        {!isEditing ? (
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-            Edit Access
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => {
-                setSelectedRole(initialRole);
-                setSelectedPermissions(rolePermissions[initialRole] || []);
-                setIsEditing(false);
-              }}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              variant="default"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
-          </div>
-        )}
+        <RoleEditorActions 
+          isEditing={isEditing}
+          isSaving={isSaving}
+          hasChanges={hasChanges}
+          onEdit={() => setIsEditing(true)}
+          onCancel={handleCancel}
+          onSave={handleSave}
+        />
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div>
             <p className="font-medium mb-2">Current Role</p>
             <div className="flex items-center">
-              {isEditing ? (
-                <Select value={selectedRole} onValueChange={handleRoleChange}>
-                  <SelectTrigger className="w-[240px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableRoles.map(role => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="bg-muted/50 py-2 px-3 rounded-md capitalize">
-                  {employee.role}
-                </div>
-              )}
+              <RoleSelector 
+                selectedRole={selectedRole}
+                isEditing={isEditing}
+                onRoleChange={handleRoleChange}
+              />
             </div>
           </div>
 
