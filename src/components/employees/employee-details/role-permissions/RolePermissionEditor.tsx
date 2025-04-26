@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield } from "lucide-react";
@@ -109,7 +110,9 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
       toast.success(`Role successfully updated to ${selectedRole}`);
     } catch (error) {
       console.error("Error saving role:", error);
-      toast.error(`Failed to update role: ${error instanceof Error ? error.message : String(error)}`);
+      // Extract error message properly
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to update role: ${errorMessage}`);
       setSelectedRole(initialRole);
       setSelectedPermissions(rolePermissions[initialRole] || []);
     } finally {
