@@ -110,8 +110,18 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
       toast.success(`Role successfully updated to ${selectedRole}`);
     } catch (error) {
       console.error("Error saving role:", error);
+      
       // Extract error message properly
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      let errorMessage = "Unknown error occurred";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        // Handle Supabase error objects which may have a message or details property
+        errorMessage = (error as any).message || (error as any).details || JSON.stringify(error);
+      } else {
+        errorMessage = String(error);
+      }
+      
       toast.error(`Failed to update role: ${errorMessage}`);
       setSelectedRole(initialRole);
       setSelectedPermissions(rolePermissions[initialRole] || []);
