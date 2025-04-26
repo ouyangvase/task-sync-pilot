@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,10 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [initialRole] = useState<UserRole>(employee.role as UserRole);
+
+  // Calculate whether changes have been made
+  const hasChanges = selectedRole !== initialRole || 
+    JSON.stringify(selectedPermissions) !== JSON.stringify(rolePermissions[initialRole]);
 
   // Subscribe to role changes
   useEffect(() => {
