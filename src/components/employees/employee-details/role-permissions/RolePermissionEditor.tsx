@@ -26,17 +26,17 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   const hasChanges = selectedRole !== initialRole || 
     JSON.stringify(selectedPermissions) !== JSON.stringify(rolePermissions[initialRole]);
 
-  // Subscribe to role changes
+  // Subscribe to role changes - use the user_roles table instead of profiles
   useEffect(() => {
     const channel = supabase
       .channel('role-updates')
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: 'INSERT',
           schema: 'public',
-          table: 'profiles',
-          filter: `id=eq.${employee.id}`
+          table: 'user_roles',
+          filter: `user_id=eq.${employee.id}`
         },
         (payload) => {
           console.log('Role updated:', payload);
