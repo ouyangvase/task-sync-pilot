@@ -39,7 +39,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
           filter: `user_id=eq.${employee.id}`
         },
         (payload) => {
-          console.log('Role updated:', payload);
+          console.log('Role updated from user_roles table:', payload);
           if (payload.new && payload.new.role !== selectedRole) {
             setSelectedRole(payload.new.role as UserRole);
             setSelectedPermissions(rolePermissions[payload.new.role] || []);
@@ -91,7 +91,10 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     
     setIsSaving(true);
     try {
-      const { error: updateError } = await supabase
+      // Update both the profiles table and user_roles table
+      
+      // 1. Update the profiles table for backward compatibility
+      const { error: profileUpdateError } = await supabase
         .from('profiles')
         .update({ 
           role: selectedRole,
@@ -99,8 +102,30 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
         })
         .eq('id', employee.id);
         
-      if (updateError) {
-        throw updateError;
+      if (profileUpdateError) {
+        throw profileUpdateError;
+      }
+      
+      // 2. Handle the user_roles table - first delete existing roles
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', employee.id);
+      
+      if (deleteError) {
+        console.error("Error deleting existing user role:", deleteError);
+      }
+      
+      // 3. Insert the new role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: employee.id,
+          role: selectedRole
+        });
+      
+      if (insertError) {
+        throw insertError;
       }
       
       onUpdateRole(employee.id, selectedRole);

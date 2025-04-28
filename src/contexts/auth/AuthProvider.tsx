@@ -1,4 +1,3 @@
-
 import React, { createContext, useEffect, useState } from "react";
 import { mockUsers } from "@/data/mockData";
 import { AuthContextType } from "./types";
@@ -68,10 +67,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*');
+      
+      if (rolesError) {
+        console.error("Error fetching user roles:", rolesError);
+      }
+      
+      const userRolesMap: Record<string, string> = {};
+      if (rolesData && rolesData.length > 0) {
+        rolesData.forEach((roleEntry: any) => {
+          userRolesMap[roleEntry.user_id] = roleEntry.role;
+        });
+      }
+      
       if (profilesData && profilesData.length > 0) {
         console.log("Fetched profiles from Supabase:", profilesData);
         
-        // Also fetch user permissions
         const { data: permissionsData, error: permissionsError } = await supabase
           .from('user_permissions')
           .select('*');
@@ -92,16 +105,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error("Error fetching permissions:", permissionsError);
         }
         
-        const dbUsers: User[] = profilesData.map((profile: any) => ({
-          id: profile.id,
-          email: profile.email || "",
-          name: profile.full_name || profile.email?.split('@')[0] || "",
-          role: (profile.role as UserRole) || "employee",
-          isApproved: profile.is_approved === true,
-          title: profile.department || "",
-          permissions: permissionsMap[profile.id] || [],
-          avatar: profile.avatar_url || ""
-        }));
+        const dbUsers: User[] = profilesData.map((profile: any) => {
+          const userRole = userRolesMap[profile.id] || profile.role || "employee";
+          
+          return {
+            id: profile.id,
+            email: profile.email || "",
+            name: profile.full_name || profile.email?.split('@')[0] || "",
+            role: userRole as UserRole,
+            isApproved: profile.is_approved === true,
+            title: profile.department || "",
+            permissions: permissionsMap[profile.id] || [],
+            avatar: profile.avatar_url || ""
+          };
+        });
         
         const mockAdmins = mockUsers.filter(user => user.role === "admin");
         const combinedUsers = [...dbUsers, ...mockAdmins];
@@ -154,7 +171,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .maybeSingle();
                 
               if (profileData) {
-                // Fetch this user's permissions
                 const { data: permissionsData } = await supabase
                   .from('user_permissions')
                   .select('*')
@@ -232,7 +248,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return getAccessibleUsersUtil(users, userId);
   };
 
-  // Set up a real-time subscription to role and permission changes
   useEffect(() => {
     const channel = supabase
       .channel('schema-db-changes')
@@ -240,6 +255,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { event: 'UPDATE', schema: 'public', table: 'profiles' }, 
         (payload) => {
           console.log('Profile updated:', payload);
+          fetchAllUsers(); // Refresh all users
+        }
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_roles' },
+        (payload) => {
+          console.log('User role changed:', payload);
           fetchAllUsers(); // Refresh all users
         }
       )

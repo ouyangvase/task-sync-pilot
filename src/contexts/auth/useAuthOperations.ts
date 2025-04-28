@@ -160,6 +160,21 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         throw new Error("Failed to approve user profile");
       }
       
+      // Also add the user to the user_roles table
+      const userToApprove = users.find(user => user.id === userId);
+      if (userToApprove) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userId,
+            role: userToApprove.role || 'employee'
+          });
+          
+        if (roleError && !roleError.message.includes('duplicate')) {
+          console.error("Error inserting user role:", roleError);
+        }
+      }
+      
       const updatedUsers = users.map(user => {
         if (user.id === userId) {
           return { ...user, isApproved: true };

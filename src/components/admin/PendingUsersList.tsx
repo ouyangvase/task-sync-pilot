@@ -74,6 +74,29 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
         console.error("Error updating profile directly:", updateError);
         toast.error("Error updating user role and title");
       } else {
+        // Also update the user_roles table
+        // First delete any existing role
+        const { error: deleteError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', user.id);
+        
+        if (deleteError) {
+          console.error("Error deleting existing user role:", deleteError);
+        }
+        
+        // Insert the new role
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: user.id,
+            role: role
+          });
+        
+        if (insertError && !insertError.message.includes('duplicate')) {
+          console.error("Error inserting user role:", insertError);
+        }
+        
         // Update role and title in local state
         updateUserRole(user.id, role);
         if (title && title !== 'none') {
