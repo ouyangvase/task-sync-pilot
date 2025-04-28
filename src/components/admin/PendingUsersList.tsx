@@ -85,12 +85,13 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
           console.error("Error deleting existing user role:", deleteError);
         }
         
-        // Insert the new role - using role as text type to match our DB schema
+        // Insert the new role - match the existing app_role enum
+        const validatedRole = validateRoleForDatabase(role);
         const { error: insertError } = await supabase
           .from('user_roles')
           .insert({
             user_id: user.id,
-            role: role as string  // Cast to string to avoid type errors
+            role: validatedRole  // Use validated role to match database enum
           });
         
         if (insertError && !insertError.message.includes('duplicate')) {
@@ -131,6 +132,23 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       toast.error(`Failed to approve user: ${error}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [user.id]: false }));
+    }
+  };
+
+  // Helper function to validate the role matches the database enum
+  const validateRoleForDatabase = (role: UserRole): string => {
+    // Map our application's UserRole to the database app_role enum values
+    // Assuming from the error that the database has 'admin', 'tenant', 'landlord', 'merchant'
+    switch(role) {
+      case 'admin':
+        return 'admin'; // This one is the same
+      case 'manager':
+        return 'landlord'; // Map manager to landlord
+      case 'team_lead':
+        return 'tenant'; // Map team_lead to tenant
+      case 'employee':
+      default:
+        return 'merchant'; // Map employee to merchant
     }
   };
 

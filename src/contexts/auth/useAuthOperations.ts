@@ -8,6 +8,36 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to map application role to database role
+  const mapAppRoleToDatabaseRole = (appRole: UserRole | string): string => {
+    switch(appRole) {
+      case 'admin':
+        return 'admin'; // This one is the same
+      case 'manager':
+        return 'landlord'; // Map manager to landlord
+      case 'team_lead':
+        return 'tenant'; // Map team_lead to tenant
+      case 'employee':
+      default:
+        return 'merchant'; // Map employee to merchant
+    }
+  };
+
+  // Helper function to map database role to application role
+  const mapDatabaseRoleToAppRole = (dbRole: string): UserRole => {
+    switch(dbRole) {
+      case 'admin':
+        return 'admin'; // This one is the same
+      case 'landlord':
+        return 'manager'; // Map landlord to manager
+      case 'tenant':
+        return 'team_lead'; // Map tenant to team_lead
+      case 'merchant':
+      default:
+        return 'employee'; // Map merchant to employee
+    }
+  };
+
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     
@@ -163,11 +193,14 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
       // Also add the user to the user_roles table
       const userToApprove = users.find(user => user.id === userId);
       if (userToApprove) {
+        // Map the role to the database role before insertion
+        const dbRole = mapAppRoleToDatabaseRole(userToApprove.role || 'employee');
+        
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: userId,
-            role: userToApprove.role as string || 'employee'  // Cast to string to avoid type errors
+            role: dbRole  // Use the mapped role for the database
           });
           
         if (roleError && !roleError.message.includes('duplicate')) {
