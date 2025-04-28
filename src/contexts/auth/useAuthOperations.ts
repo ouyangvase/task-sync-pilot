@@ -167,7 +167,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
           .from('user_roles')
           .insert({
             user_id: userId,
-            role: userToApprove.role || 'employee'
+            role: userToApprove.role as string || 'employee'  // Cast to string to avoid type errors
           });
           
         if (roleError && !roleError.message.includes('duplicate')) {

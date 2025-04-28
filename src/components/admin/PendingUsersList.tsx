@@ -85,12 +85,12 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
           console.error("Error deleting existing user role:", deleteError);
         }
         
-        // Insert the new role
+        // Insert the new role - using role as text type to match our DB schema
         const { error: insertError } = await supabase
           .from('user_roles')
           .insert({
             user_id: user.id,
-            role: role
+            role: role as string  // Cast to string to avoid type errors
           });
         
         if (insertError && !insertError.message.includes('duplicate')) {

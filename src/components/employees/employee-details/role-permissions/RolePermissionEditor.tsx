@@ -116,12 +116,12 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
         console.error("Error deleting existing user role:", deleteError);
       }
       
-      // 3. Insert the new role
+      // 3. Insert the new role - using role as string to match our DB schema
       const { error: insertError } = await supabase
         .from('user_roles')
         .insert({
           user_id: employee.id,
-          role: selectedRole
+          role: selectedRole as string  // Cast to string to avoid type errors
         });
       
       if (insertError) {
