@@ -25,6 +25,21 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
 
+  // Helper function to map application role to database role
+  const mapAppRoleToDbRole = (appRole: UserRole): "admin" | "landlord" | "tenant" | "merchant" => {
+    switch(appRole) {
+      case 'admin':
+        return 'admin'; // This one is the same
+      case 'manager':
+        return 'landlord'; // Map manager to landlord
+      case 'team_lead':
+        return 'tenant'; // Map team_lead to tenant
+      case 'employee':
+      default:
+        return 'merchant'; // Map employee to merchant
+    }
+  };
+
   // Initialize selected roles/titles from users
   useEffect(() => {
     const initialRoles: Record<string, UserRole> = {};
@@ -86,12 +101,12 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
         }
         
         // Insert the new role - match the existing app_role enum
-        const validatedRole = validateRoleForDatabase(role);
+        const dbRole = mapAppRoleToDbRole(role);
         const { error: insertError } = await supabase
           .from('user_roles')
           .insert({
             user_id: user.id,
-            role: validatedRole  // Use validated role to match database enum
+            role: dbRole  // Use the mapped role to match database enum
           });
         
         if (insertError && !insertError.message.includes('duplicate')) {
@@ -132,23 +147,6 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       toast.error(`Failed to approve user: ${error}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [user.id]: false }));
-    }
-  };
-
-  // Helper function to validate the role matches the database enum
-  const validateRoleForDatabase = (role: UserRole): string => {
-    // Map our application's UserRole to the database app_role enum values
-    // Assuming from the error that the database has 'admin', 'tenant', 'landlord', 'merchant'
-    switch(role) {
-      case 'admin':
-        return 'admin'; // This one is the same
-      case 'manager':
-        return 'landlord'; // Map manager to landlord
-      case 'team_lead':
-        return 'tenant'; // Map team_lead to tenant
-      case 'employee':
-      default:
-        return 'merchant'; // Map employee to merchant
     }
   };
 

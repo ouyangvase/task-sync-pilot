@@ -9,7 +9,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
   const [loading, setLoading] = useState(true);
 
   // Helper function to map application role to database role
-  const mapAppRoleToDatabaseRole = (appRole: UserRole | string): string => {
+  const mapAppRoleToDatabaseRole = (appRole: UserRole | string): "admin" | "landlord" | "tenant" | "merchant" => {
     switch(appRole) {
       case 'admin':
         return 'admin'; // This one is the same

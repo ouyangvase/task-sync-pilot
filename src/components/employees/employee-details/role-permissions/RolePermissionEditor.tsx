@@ -26,6 +26,38 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
   const hasChanges = selectedRole !== initialRole || 
     JSON.stringify(selectedPermissions) !== JSON.stringify(rolePermissions[initialRole]);
 
+  // Map application role to database role
+  const mapAppRoleToDatabaseRole = (appRole: UserRole): "admin" | "landlord" | "tenant" | "merchant" => {
+    switch(appRole) {
+      case 'admin':
+        return 'admin'; // This one is the same
+      case 'manager':
+        return 'landlord'; // Map manager to landlord
+      case 'team_lead':
+        return 'tenant'; // Map team_lead to tenant
+      case 'employee':
+      default:
+        return 'merchant'; // Map employee to merchant
+    }
+  };
+
+  // Helper function to map database role to application role
+  const mapDatabaseRoleToAppRole = (dbRole: string): UserRole => {
+    // Map the database app_role enum values to our application's UserRole
+    switch(dbRole) {
+      case 'admin':
+        return 'admin'; // This one is the same
+      case 'landlord':
+        return 'manager'; // Map landlord to manager
+      case 'tenant':
+        return 'team_lead'; // Map tenant to team_lead
+      case 'merchant':
+        return 'employee'; // Map merchant to employee
+      default:
+        return 'employee'; // Default to employee
+    }
+  };
+
   // Subscribe to role changes - use the user_roles table instead of profiles
   useEffect(() => {
     const channel = supabase
@@ -57,38 +89,6 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
       supabase.removeChannel(channel);
     };
   }, [employee.id]);
-
-  // Helper function to map database role to application role
-  const mapDatabaseRoleToAppRole = (dbRole: string): UserRole => {
-    // Map the database app_role enum values to our application's UserRole
-    switch(dbRole) {
-      case 'admin':
-        return 'admin'; // This one is the same
-      case 'landlord':
-        return 'manager'; // Map landlord to manager
-      case 'tenant':
-        return 'team_lead'; // Map tenant to team_lead
-      case 'merchant':
-        return 'employee'; // Map merchant to employee
-      default:
-        return 'employee'; // Default to employee
-    }
-  };
-
-  // Helper function to map application role to database role
-  const mapAppRoleToDatabaseRole = (appRole: UserRole): string => {
-    switch(appRole) {
-      case 'admin':
-        return 'admin'; // This one is the same
-      case 'manager':
-        return 'landlord'; // Map manager to landlord
-      case 'team_lead':
-        return 'tenant'; // Map team_lead to tenant
-      case 'employee':
-      default:
-        return 'merchant'; // Map employee to merchant
-    }
-  };
 
   // Initialize role and permissions when employee data changes
   useEffect(() => {
