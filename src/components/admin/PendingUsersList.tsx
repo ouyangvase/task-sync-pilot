@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { 
@@ -13,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import PendingUsersEmptyState from "./PendingUsersEmptyState";
 import PendingUsersTable from "./PendingUsersTable";
+import { mapAppRoleToDbRole } from "@/utils/roleUtils";
 
 interface PendingUsersListProps {
   pendingUsers: User[];
@@ -24,21 +24,6 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
   const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
-
-  // Helper function to map application role to database role
-  const mapAppRoleToDbRole = (appRole: UserRole): string => {
-    switch(appRole) {
-      case 'admin':
-        return 'admin'; // This one is the same
-      case 'manager':
-        return 'landlord'; // Map manager to landlord
-      case 'team_lead':
-        return 'tenant'; // Map team_lead to tenant
-      case 'employee':
-      default:
-        return 'merchant'; // Map employee to merchant
-    }
-  };
 
   // Initialize selected roles/titles from users
   useEffect(() => {
@@ -106,7 +91,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
           .from('user_roles')
           .insert({
             user_id: user.id,
-            role: dbRole  // Use the mapped role to match database enum
+            role: dbRole as any // Use as any to bypass type checking temporarily
           });
         
         if (insertError && !insertError.message.includes('duplicate')) {

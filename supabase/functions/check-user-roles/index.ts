@@ -8,6 +8,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Map database role to application role
+function mapDbRoleToAppRole(dbRole: string): string {
+  switch(dbRole) {
+    case 'admin':
+      return 'admin'; // This one is the same
+    case 'landlord':
+      return 'manager'; // Map landlord to manager
+    case 'tenant':
+      return 'team_lead'; // Map tenant to team_lead
+    case 'merchant':
+    default:
+      return 'employee'; // Map merchant to employee
+  }
+}
+
+// Map application role to database role
+function mapAppRoleToDbRole(appRole: string): string {
+  switch(appRole) {
+    case 'admin':
+      return 'admin'; // This one is the same
+    case 'manager':
+      return 'landlord'; // Map manager to landlord
+    case 'team_lead':
+      return 'tenant'; // Map team_lead to tenant
+    case 'employee':
+    default:
+      return 'merchant'; // Map employee to merchant
+  }
+}
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -56,17 +86,10 @@ serve(async (req) => {
         );
       }
       
-      // Create role mapping
-      const roleMapping: Record<string, string> = {
-        "admin": "admin",
-        "manager": "landlord",
-        "team_lead": "tenant",
-        "employee": "merchant"
-      };
+      // Create role mapping from app_role to database role
+      const dbRole = mapAppRoleToDbRole(profileData.role);
       
       // Add user role if missing
-      const dbRole = roleMapping[profileData.role] || "merchant";
-      
       const { error: insertError } = await supabase
         .from("user_roles")
         .insert({ user_id: userId, role: dbRole });
@@ -94,15 +117,8 @@ serve(async (req) => {
       );
     }
     
-    // Map database role back to application role
-    const roleMapping: Record<string, string> = {
-      "admin": "admin",
-      "landlord": "manager",
-      "tenant": "team_lead",
-      "merchant": "employee"
-    };
-    
-    const appRole = roleMapping[roleData.role] || "employee";
+    // Map database role to application role
+    const appRole = mapDbRoleToAppRole(roleData.role);
     
     return new Response(
       JSON.stringify({ 

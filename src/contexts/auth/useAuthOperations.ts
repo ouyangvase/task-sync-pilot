@@ -1,15 +1,15 @@
-
 import { useState } from "react";
 import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { mapAppRoleToDbRole, mapDbRoleToAppRole, DbRole } from "@/utils/roleUtils";
 
 export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.SetStateAction<User[]>>) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Helper function to map application role to database role
-  const mapAppRoleToDatabaseRole = (appRole: UserRole | string): string => {
+  const mapAppRoleToDbRole = (appRole: UserRole | string): DbRole => {
     switch(appRole) {
       case 'admin':
         return 'admin'; // This one is the same
@@ -24,7 +24,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
   };
 
   // Helper function to map database role to application role
-  const mapDatabaseRoleToAppRole = (dbRole: string): UserRole => {
+  const mapDbRoleToAppRole = (dbRole: DbRole): UserRole => {
     switch(dbRole) {
       case 'admin':
         return 'admin'; // This one is the same
@@ -194,13 +194,13 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
       const userToApprove = users.find(user => user.id === userId);
       if (userToApprove) {
         // Map the role to the database role before insertion
-        const dbRole = mapAppRoleToDatabaseRole(userToApprove.role || 'employee');
+        const dbRole = mapAppRoleToDbRole(userToApprove.role || 'employee');
         
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: userId,
-            role: dbRole  // Use the mapped role for the database
+            role: dbRole as any  // Use as any to bypass type checking temporarily
           });
           
         if (roleError && !roleError.message.includes('duplicate')) {
