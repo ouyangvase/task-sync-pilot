@@ -1,6 +1,49 @@
 
-# This file is for configuration on all supabase functions
 project_id = "nejtnguhudgmqixenlpg"
 
-[functions.delete-user]
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+port = 54327
+
+[auth]
+enabled = true
+port = 54328
+
+[realtime]
+enabled = true
+port = 54329
+
+[analytics]
+enabled = true
+port = 54330
+vector_port = 54331
+
+[functions]
+enabled = true
+port = 54335
+
+[functions.check-user-roles]
 verify_jwt = true

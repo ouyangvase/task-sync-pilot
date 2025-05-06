@@ -27,7 +27,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     JSON.stringify(selectedPermissions) !== JSON.stringify(rolePermissions[initialRole]);
 
   // Map application role to database role
-  const mapAppRoleToDatabaseRole = (appRole: UserRole): "admin" | "landlord" | "tenant" | "merchant" => {
+  const mapAppRoleToDatabaseRole = (appRole: UserRole): string => {
     switch(appRole) {
       case 'admin':
         return 'admin'; // This one is the same
@@ -88,7 +88,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [employee.id]);
+  }, [employee.id, selectedRole]);
 
   // Initialize role and permissions when employee data changes
   useEffect(() => {

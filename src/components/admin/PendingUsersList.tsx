@@ -26,7 +26,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
 
   // Helper function to map application role to database role
-  const mapAppRoleToDbRole = (appRole: UserRole): "admin" | "landlord" | "tenant" | "merchant" => {
+  const mapAppRoleToDbRole = (appRole: UserRole): string => {
     switch(appRole) {
       case 'admin':
         return 'admin'; // This one is the same
@@ -144,7 +144,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       onRefresh();
     } catch (error) {
       console.error("Error in handleApprove:", error);
-      toast.error(`Failed to approve user: ${error}`);
+      toast.error(`Failed to approve user: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [user.id]: false }));
     }
@@ -159,7 +159,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       onRefresh();
     } catch (error) {
       console.error("Error rejecting user:", error);
-      toast.error(`Failed to reject user: ${error}`);
+      toast.error(`Failed to reject user: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [userId]: false }));
     }

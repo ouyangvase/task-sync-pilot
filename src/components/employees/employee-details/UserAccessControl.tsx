@@ -153,7 +153,8 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
         newPermissions.canEdit = false;
       }
       
-      // Update the user permissions in state
+      // First update the user permissions in state (even if we fail later)
+      // This helps prevent UI bugs where permissions show as not updated
       const updatedUsers = updateUserPermissions(employee.id, targetUserId, newPermissions);
       
       // Store permissions in Supabase if the employee has a real DB ID
@@ -205,11 +206,6 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
         } catch (dbError) {
           console.error("Failed to update permissions in database:", dbError);
           toast.error(`Failed to update permission in database: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
-          
-          // Revert local state on error
-          const revertedMap = { ...permissionsMap };
-          revertedMap[targetUserId][permType] = !value;
-          setPermissionsMap(revertedMap);
         }
       }
     } catch (error) {
