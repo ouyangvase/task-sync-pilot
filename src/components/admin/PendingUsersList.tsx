@@ -91,7 +91,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
           .from('user_roles')
           .insert({
             user_id: user.id,
-            role: dbRole as any // Use as any to bypass type checking temporarily
+            role: dbRole
           });
         
         if (insertError && !insertError.message.includes('duplicate')) {

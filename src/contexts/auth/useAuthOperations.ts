@@ -200,7 +200,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
           .from('user_roles')
           .insert({
             user_id: userId,
-            role: dbRole as any  // Use as any to bypass type checking temporarily
+            role: dbRole
           });
           
         if (roleError && !roleError.message.includes('duplicate')) {

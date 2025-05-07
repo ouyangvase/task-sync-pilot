@@ -126,7 +126,7 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
         .from('user_roles')
         .insert({
           user_id: employee.id,
-          role: dbRole as any // Use as any to bypass type checking temporarily
+          role: dbRole
         });
       
       if (insertError) {
