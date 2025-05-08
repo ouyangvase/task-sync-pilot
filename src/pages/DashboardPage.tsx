@@ -10,7 +10,6 @@ import RewardsManager from "@/components/rewards/RewardsManager";
 import AchievementsSection from "@/components/dashboard/AchievementsSection";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
-import MyTasks from "@/components/tasks/MyTasks";
 
 const DashboardPage = () => {
   const { currentUser } = useAuth();
@@ -73,9 +72,6 @@ const DashboardPage = () => {
           <RewardsManager />
         </div>
       )}
-      
-      {/* Add My Tasks section */}
-      <MyTasks />
       
       <div className="grid gap-4 md:grid-cols-3">
         <TaskSummaryCard

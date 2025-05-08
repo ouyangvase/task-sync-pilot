@@ -2,9 +2,8 @@
 project_id = "nejtnguhudgmqixenlpg"
 
 [api]
-enabled = true
 port = 54321
-schemas = ["public", "storage"]
+schemas = ["public", "storage", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
@@ -14,36 +13,29 @@ shadow_port = 54320
 major_version = 15
 
 [studio]
-enabled = true
 port = 54323
-api_url = "http://localhost"
 
 [inbucket]
-enabled = true
 port = 54324
 smtp_port = 54325
 pop3_port = 54326
 
 [storage]
-enabled = true
-port = 54327
+file_storage_backend = "file"
+file_storage_upload_directory = "tmp/supabase_storage/v1/upload"
 
 [auth]
-enabled = true
-port = 54328
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+hook_secret = "super-secret-jwt-token-with-at-least-32-characters-long"
+jwt_expiry = 3600
+enable_signup = true
 
-[realtime]
-enabled = true
-port = 54329
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
 
 [analytics]
-enabled = true
-port = 54330
-vector_port = 54331
-
-[functions]
-enabled = true
-port = 54335
-
-[functions.check-user-roles]
-verify_jwt = true
+port = 54327
+vector_port = 54328

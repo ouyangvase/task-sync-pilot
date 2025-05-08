@@ -25,40 +25,18 @@ import {
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
-  showControls?: boolean;
 }
 
-const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const { completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  if (!currentUser) return null;
-  
-  const userRole = currentUser.role || "employee";
-  const userPermissions = rolePermissions[userRole] || [];
-  
-  const isAdmin = userRole === "admin";
-  const isManager = userRole === "manager";
-  const isTeamLead = userRole === "team_lead";
+  const isAdmin = currentUser?.role === "admin";
   const isCompleted = task.status === "completed";
-  const isInProgress = task.status === "in-progress";
-  const isOwnTask = currentUser?.id === task.assignee;
-  
-  // Check for specific permissions
-  const canManageTasks = userPermissions.includes("manage_tasks");
-  const canCompleteOwnTasks = userPermissions.includes("complete_tasks");
-  
-  // Team Lead can only edit tasks assigned to their team
-  // In a real app, this would check if the task's assignee is part of the team lead's team
-  const isTeamMember = true; // This would be a real check in a production app
-  const canManageThisTask = canManageTasks && 
-    (!isTeamLead || (isTeamLead && isTeamMember));
   
   const handleComplete = () => {
     completeTask(task.id);
@@ -96,29 +74,16 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
         return recurrence;
     }
   };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="bg-slate-100 text-slate-800">Current</Badge>;
-      case "in-progress":
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">In Progress</Badge>;
-      case "completed":
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Completed</Badge>;
-      default:
-        return null;
-    }
-  };
 
   return (
     <div 
       className={cn(
-        "task-card group border rounded-lg p-4 bg-card",
-        isCompleted && "completed border-green-200 bg-green-50/30"
+        "task-card group",
+        isCompleted && "completed"
       )}
     >
       <div className="flex items-start gap-3">
-        {!isCompleted && showControls && (canCompleteOwnTasks && isOwnTask || canManageThisTask) && (
+        {!isCompleted && (
           <Checkbox 
             checked={isCompleted}
             onCheckedChange={handleComplete}
@@ -127,19 +92,14 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className={cn(
-                "font-medium truncate",
-                isCompleted && "text-muted-foreground"
-              )}>
-                {task.title}
-              </h3>
-              <div className="mt-1">
-                {getStatusBadge(task.status)}
-              </div>
-            </div>
+            <h3 className={cn(
+              "font-medium truncate",
+              isCompleted && "line-through text-muted-foreground"
+            )}>
+              {task.title}
+            </h3>
             
-            {showControls && ((canManageThisTask) || (isOwnTask && canCompleteOwnTasks && !isCompleted)) && (
+            {(isAdmin || currentUser?.id === task.assignee) && (
               <div className="shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -149,21 +109,19 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {onEdit && canManageThisTask && (
+                    {onEdit && (
                       <DropdownMenuItem onClick={() => onEdit(task)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit task
                       </DropdownMenuItem>
                     )}
-                    {canManageThisTask && (
-                      <DropdownMenuItem 
-                        onClick={() => setDeleteDialogOpen(true)}
-                        className="text-red-500 focus:text-red-500"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete task
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem 
+                      onClick={() => setDeleteDialogOpen(true)}
+                      className="text-red-500 focus:text-red-500"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete task
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
@@ -193,7 +151,7 @@ const TaskCard = ({ task, onEdit, showControls = true }: TaskCardProps) => {
           {task.description && (
             <p className={cn(
               "text-sm text-muted-foreground mt-1",
-              isCompleted && "text-muted-foreground"
+              isCompleted && "line-through"
             )}>
               {task.description}
             </p>

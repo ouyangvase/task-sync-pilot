@@ -4,8 +4,6 @@ import { User } from "@/types";
 import { useTasks } from "@/contexts/TaskContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Award } from "lucide-react";
-import DeleteUserButton from "./DeleteUserButton";
-import { useAuth } from "@/contexts/auth"; // Fix import path
 
 interface EmployeesListProps {
   employees: User[];
@@ -15,8 +13,6 @@ interface EmployeesListProps {
 
 const EmployeesList = ({ employees, onSelectEmployee, selectedEmployee }: EmployeesListProps) => {
   const { getUserTaskStats, getUserPointsStats } = useTasks();
-  const { currentUser } = useAuth();
-  const isAdmin = currentUser?.role === "admin";
 
   if (employees.length === 0) {
     return (
@@ -45,14 +41,12 @@ const EmployeesList = ({ employees, onSelectEmployee, selectedEmployee }: Employ
             return (
               <li 
                 key={employee.id}
-                className="flex flex-col p-4"
+                onClick={() => onSelectEmployee(employee)}
+                className={`p-4 cursor-pointer hover:bg-accent/50 transition-colors ${
+                  selectedEmployee?.id === employee.id ? "bg-accent" : ""
+                }`}
               >
-                <div 
-                  className={`flex items-center space-x-4 cursor-pointer hover:bg-accent/50 transition-colors rounded-md p-2 ${
-                    selectedEmployee?.id === employee.id ? "bg-accent" : ""
-                  }`}
-                  onClick={() => onSelectEmployee(employee)}
-                >
+                <div className="flex items-center space-x-4">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={employee.avatar} alt={employee.name} />
                     <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
@@ -76,12 +70,6 @@ const EmployeesList = ({ employees, onSelectEmployee, selectedEmployee }: Employ
                     </span>
                   </div>
                 </div>
-                
-                {isAdmin && (
-                  <div className="mt-2 flex justify-end">
-                    <DeleteUserButton user={employee} />
-                  </div>
-                )}
               </li>
             );
           })}

@@ -22,13 +22,6 @@ const TaskFormAssignment: React.FC = () => {
   const form = useFormContext<TaskFormValues>();
   const { users } = useAuth();
 
-  // Debug to check users being passed
-  console.log("Available users in TaskFormAssignment:", users);
-
-  const availableEmployees = users.filter(user => 
-    user.isApproved !== false && (user.role === "employee" || user.role === "team_lead")
-  );
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField
@@ -48,15 +41,13 @@ const TaskFormAssignment: React.FC = () => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {availableEmployees.length > 0 ? (
-                  availableEmployees.map((employee) => (
+                {users
+                  .filter((user) => user.role === "employee")
+                  .map((employee) => (
                     <SelectItem key={employee.id} value={employee.id}>
                       {employee.name}
                     </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="none" disabled>No employees available</SelectItem>
-                )}
+                  ))}
               </SelectContent>
             </Select>
             <FormMessage />

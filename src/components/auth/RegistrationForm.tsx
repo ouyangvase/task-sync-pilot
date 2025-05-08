@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -60,19 +60,8 @@ const RegistrationForm = () => {
       navigate("/login");
     } catch (error: any) {
       console.error("Registration error:", error);
-      let message = error.message || "Registration failed";
-      
-      // Make the error message more user-friendly
-      if (message.includes("User already registered")) {
-        message = "This email is already registered. Please use a different email or try logging in.";
-      } else if (message.includes("Invalid email")) {
-        message = "Please enter a valid email address.";
-      } else if (message.includes("type \"user_role\"")) {
-        message = "Registration system is temporarily unavailable. Please try again later.";
-      }
-      
-      setErrorMessage(message);
-      toast.error(message);
+      setErrorMessage(error.message || "Registration failed");
+      toast.error(error.message || "Registration failed");
     } finally {
       setIsSubmitting(false);
     }

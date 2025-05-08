@@ -1,32 +1,16 @@
 
 import { User, UserRole, UserPermission } from "@/types";
-import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 // Check if a user can view another user
 export const canViewUser = (users: User[], viewerId: string, targetUserId: string): boolean => {
-  const viewer = users?.find(u => u.id === viewerId);
+  // Admins can view everyone
+  const viewer = users.find(u => u.id === viewerId);
   if (!viewer) return false;
+  
+  if (viewer.role === "admin") return true;
   
   // Users can always view themselves
   if (viewerId === targetUserId) return true;
-  
-  // Admins can view everyone
-  if (viewer.role === "admin") return true;
-
-  // Get target user
-  const target = users?.find(u => u.id === targetUserId);
-  if (!target) return false;
-  
-  // Manager can view team leads and employees
-  if (viewer.role === "manager" && 
-    (target.role === "team_lead" || target.role === "employee")) {
-    return true;
-  }
-  
-  // Team lead can view employees
-  if (viewer.role === "team_lead" && target.role === "employee") {
-    return true;
-  }
   
   // Check specific permissions
   const permission = viewer.permissions?.find(p => p.targetUserId === targetUserId);
@@ -35,30 +19,11 @@ export const canViewUser = (users: User[], viewerId: string, targetUserId: strin
 
 // Check if a user can edit another user
 export const canEditUser = (users: User[], editorId: string, targetUserId: string): boolean => {
-  const editor = users?.find(u => u.id === editorId);
+  // Admins can edit everyone
+  const editor = users.find(u => u.id === editorId);
   if (!editor) return false;
   
-  // Users can always edit themselves
-  if (editorId === targetUserId) return true;
-  
-  // Get target user
-  const target = users?.find(u => u.id === targetUserId);
-  if (!target) return false;
-  
-  // Admins can edit everyone except other admins (unless it's themselves)
-  if (editor.role === "admin") {
-    return target.role !== "admin" || editor.id === target.id;
-  }
-  
-  // Manager can edit team leads and employees
-  if (editor.role === "manager") {
-    return target.role === "team_lead" || target.role === "employee";
-  }
-  
-  // Team lead can edit employees
-  if (editor.role === "team_lead") {
-    return target.role === "employee";
-  }
+  if (editor.role === "admin") return true;
   
   // Check specific permissions
   const permission = editor.permissions?.find(p => p.targetUserId === targetUserId);
@@ -67,43 +32,18 @@ export const canEditUser = (users: User[], editorId: string, targetUserId: strin
 
 // Get all users that can be viewed by a specific user
 export const getAccessibleUsers = (users: User[], userId: string): User[] => {
-  if (!users || !Array.isArray(users)) {
-    console.error("Invalid users array:", users);
-    return [];
-  }
-
   const user = users.find(u => u.id === userId);
   if (!user) return [];
-
+  
   // Admins can see everyone
-  if (user.role === "admin") {
-    return users.filter(u => u.id !== userId);
-  }
+  if (user.role === "admin") return users.filter(u => u.isApproved !== false);
   
   // Everyone can see themselves
   const accessibleUsers = [user];
   
-  // Role-based access
+  // Add users with specific view permissions
   users.forEach(otherUser => {
-    // Skip self and admins (unless current user is admin)
-    if (otherUser.id === userId || (otherUser.role === "admin" && user.role !== "admin")) return;
-    
-    // Managers can see team leads and employees
-    if (user.role === "manager") {
-      if (otherUser.role === "team_lead" || otherUser.role === "employee") {
-        accessibleUsers.push(otherUser);
-      }
-    }
-    // Team leads can see employees
-    else if (user.role === "team_lead") {
-      if (otherUser.role === "employee") {
-        accessibleUsers.push(otherUser);
-      }
-    }
-    
-    // Check specific permissions
-    const permission = user.permissions?.find(p => p.targetUserId === otherUser.id);
-    if (permission?.canView && !accessibleUsers.includes(otherUser)) {
+    if (otherUser.id !== userId && otherUser.isApproved !== false && canViewUser(users, userId, otherUser.id)) {
       accessibleUsers.push(otherUser);
     }
   });
@@ -145,3 +85,4 @@ export const updateUserPermissionsHelper = (
     return user;
   });
 };
+

@@ -15,12 +15,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(1, { message: "Password is required" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -44,27 +44,16 @@ const LoginForm = () => {
       setIsSubmitting(true);
       setErrorMessage(null);
       
+      // Add debug logs
       console.log("Login attempt with:", data.email);
       
-      // Login (admin is handled in the login function)
       await login(data.email, data.password);
-      console.log("Login successful, redirecting to dashboard...");
       toast.success("Login successful");
-      navigate("/dashboard", { replace: true });
-      
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
-      
-      if (error.message?.includes("pending admin approval")) {
-        setErrorMessage("Your account is pending admin approval. Please check back later.");
-        toast.error("Your account is pending admin approval");
-      } else if (error.message?.includes("Invalid login credentials")) {
-        setErrorMessage("Invalid email or password. Please check your credentials and try again.");
-        toast.error("Invalid email or password");
-      } else {
-        setErrorMessage(error.message || "An error occurred during login. Please try again.");
-        toast.error(error.message || "Login failed");
-      }
+      setErrorMessage(error.message || "Invalid email or password");
+      toast.error(error.message || "Invalid email or password");
     } finally {
       setIsSubmitting(false);
     }

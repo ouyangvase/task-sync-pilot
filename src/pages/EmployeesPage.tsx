@@ -10,7 +10,6 @@ import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { toast } from "sonner";
 import PendingUsersList from "@/components/admin/PendingUsersList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 const EmployeesPage = () => {
   const { currentUser, users, getAccessibleUsers, getPendingUsers } = useAuth();
@@ -20,11 +19,10 @@ const EmployeesPage = () => {
   const [activeTab, setActiveTab] = useState("employees");
   const [redirectToLogin, setRedirectToLogin] = useState(false);
 
-  const userRole = currentUser?.role || "employee";
-  const userPermissions = rolePermissions[userRole] || [];
-  const canViewEmployees = userPermissions.includes("view_employees");
-  const canManageUsers = userPermissions.includes("manage_users");
-
+  // Get only the employees the current user can access based on permissions
+  const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
+  const employees = accessibleUsers.filter(user => user.role === "employee");
+  
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
   };
@@ -44,41 +42,26 @@ const EmployeesPage = () => {
 
   const handleRefreshPendingUsers = () => {
     if (currentUser) {
-      const pendingUsersData = getPendingUsers();
-      console.log("Fetched pending users:", pendingUsersData);
-      setPendingUsers(pendingUsersData);
+      setPendingUsers(getPendingUsers());
     }
   };
 
+  // Load pending users on mount and when current user changes
   useEffect(() => {
-    if (!currentUser) {
-      setRedirectToLogin(true);
-      return;
-    }
-    if (userRole === "admin") {
+    if (currentUser?.role === "admin") {
       handleRefreshPendingUsers();
-    } else if (!canViewEmployees) {
-      toast.error("You don't have permission to access this page");
-      setRedirectToLogin(true);
+    } else if (currentUser) {
+      const allowedRoles: UserRole[] = ["admin", "manager", "team_lead"];
+      if (!allowedRoles.includes(currentUser.role as UserRole)) {
+        toast.error("You don't have permission to access this page");
+        setRedirectToLogin(true);
+      }
     }
-  }, [currentUser, users, canViewEmployees]);
-
-  // Get accessible employees based on user's role
-  let employees: User[] = [];
-  if (currentUser) {
-    // For admin, show all users except the admin themselves
-    if (userRole === "admin") {
-      employees = users.filter(user => 
-        user.id !== currentUser.id && user.role !== "admin"
-      );
-    } else {
-      // For managers and team leads, use the accessibility logic
-      employees = getAccessibleUsers(currentUser.id);
-    }
-  }
+  }, [currentUser]);
 
   document.title = "Employee Management | TaskSync Pilot";
 
+  // Redirect non-admin and non-manager users away from this page
   if (redirectToLogin) {
     return <Navigate to="/dashboard" />;
   }
@@ -87,7 +70,7 @@ const EmployeesPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Employee Management</h1>
-        {canManageUsers && (
+        {currentUser?.role === "admin" && (
           <Button onClick={handleAddEmployee}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Employee
@@ -95,7 +78,7 @@ const EmployeesPage = () => {
         )}
       </div>
 
-      {userRole === "admin" && (
+      {currentUser?.role === "admin" && (
         <Tabs defaultValue="employees" value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="employees">Employees</TabsTrigger>
@@ -137,7 +120,7 @@ const EmployeesPage = () => {
         </Tabs>
       )}
 
-      {userRole !== "admin" && (
+      {currentUser?.role !== "admin" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <EmployeesList 
@@ -158,13 +141,11 @@ const EmployeesPage = () => {
         </div>
       )}
 
-      {canManageUsers && (
-        <AddEmployeeDialog 
-          open={isAddDialogOpen} 
-          onClose={handleCloseAddDialog} 
-          onEmployeeCreated={handleEmployeeCreated}
-        />
-      )}
+      <AddEmployeeDialog 
+        open={isAddDialogOpen} 
+        onClose={handleCloseAddDialog} 
+        onEmployeeCreated={handleEmployeeCreated}
+      />
     </div>
   );
 };

@@ -1,26 +1,17 @@
 
 import { useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/auth";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import LoginForm from "@/components/auth/LoginForm";
 
 const LoginPage = () => {
-  const { isAuthenticated, loading } = useAuth();
-  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     document.title = "Login | TaskSync Pilot";
-    
-    // If user is already authenticated, redirect to dashboard
-    if (isAuthenticated) {
-      console.log("User is already authenticated, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+  }, []);
 
-  // This provides an immediate redirect if auth state is already available
-  if (!loading && isAuthenticated) {
-    console.log("Immediate redirect to dashboard due to authentication");
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 

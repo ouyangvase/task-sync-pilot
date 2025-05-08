@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { rolePermissions } from "@/components/employees/employee-details/role-permissions/constants";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,70 +24,83 @@ interface SidebarProps {
 const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
   const { currentUser, logout } = useAuth();
-  const userRole = currentUser?.role || "employee";
-  const userPermissions = rolePermissions[userRole] || [];
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  const allLinks = [
+  const adminLinks = [
     {
       name: "Dashboard",
       path: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
-      requiredPermission: null,
     },
     {
       name: "All Tasks",
       path: "/tasks",
       icon: <ClipboardList className="h-5 w-5" />,
-      requiredPermission: "view_tasks",
     },
     {
       name: "Calendar",
       path: "/calendar",
       icon: <Calendar className="h-5 w-5" />,
-      requiredPermission: "view_tasks",
     },
     {
       name: "Employees",
       path: "/employees",
       icon: <Users className="h-5 w-5" />,
-      requiredPermission: "view_employees",
     },
     {
       name: "Reports",
       path: "/reports",
       icon: <BarChart3 className="h-5 w-5" />,
-      requiredPermission: "view_reports",
     },
     {
       name: "Achievements",
       path: "/achievements",
       icon: <Trophy className="h-5 w-5" />,
-      requiredPermission: "view_achievements",
     },
     {
       name: "Role Permissions",
       path: "/settings/roles",
       icon: <Shield className="h-5 w-5" />,
-      requiredPermission: "manage_users",
     },
     {
       name: "Settings",
       path: "/settings",
       icon: <Settings className="h-5 w-5" />,
-      requiredPermission: null,
     },
   ];
 
-  const links = allLinks.filter(link => {
-    if (link.requiredPermission === null) {
-      return true;
-    }
-    return userPermissions.includes(link.requiredPermission);
-  });
+  const employeeLinks = [
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      name: "My Tasks",
+      path: "/tasks",
+      icon: <ClipboardList className="h-5 w-5" />,
+    },
+    {
+      name: "Calendar",
+      path: "/calendar",
+      icon: <Calendar className="h-5 w-5" />,
+    },
+    {
+      name: "Achievements",
+      path: "/achievements",
+      icon: <Trophy className="h-5 w-5" />,
+    },
+    {
+      name: "Settings",
+      path: "/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ];
+
+  const links = currentUser?.role === "admin" ? adminLinks : employeeLinks;
 
   return (
     <div

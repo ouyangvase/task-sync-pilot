@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/auth";
 import { 
   Card, 
@@ -8,13 +7,26 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { User, UserRole } from "@/types";
 import { toast } from "sonner";
+import { EMPLOYEE_TITLES } from "../employees/employee-details/constants";
 import { supabase } from "@/integrations/supabase/client";
-import PendingUsersEmptyState from "./PendingUsersEmptyState";
-import PendingUsersTable from "./PendingUsersTable";
-import { mapAppRoleToDbRole } from "@/utils/roleUtils";
-import { Database } from "@/integrations/supabase/types";
 
 interface PendingUsersListProps {
   pendingUsers: User[];
@@ -27,20 +39,6 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
   const [selectedTitles, setSelectedTitles] = useState<Record<string, string>>({});
 
-  // Initialize selected roles/titles from users
-  useEffect(() => {
-    const initialRoles: Record<string, UserRole> = {};
-    const initialTitles: Record<string, string> = {};
-    
-    pendingUsers.forEach(user => {
-      initialRoles[user.id] = user.role || "employee";
-      initialTitles[user.id] = user.title || "";
-    });
-    
-    setSelectedRoles(initialRoles);
-    setSelectedTitles(initialTitles);
-  }, [pendingUsers]);
-
   const handleRoleChange = (userId: string, role: UserRole) => {
     setSelectedRoles(prev => ({ ...prev, [userId]: role }));
   };
@@ -52,64 +50,21 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const handleApprove = async (user: User) => {
     try {
       setProcessingIds(prev => ({ ...prev, [user.id]: true }));
-      console.log("Starting approval process for user:", user.id);
       
       // First approve the user
       await approveUser(user.id);
-      console.log("User approved successfully");
       
-      // Get the selected role and title
+      // Then update role if selected
       const role = selectedRoles[user.id] || "employee";
-      const title = selectedTitles[user.id];
+      await updateUserRole(user.id, role);
       
-      // Update profile in Supabase directly to set role and title
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: role,
-          department: title === 'none' ? null : title,
-          is_approved: true 
-        })
-        .eq('id', user.id);
-        
-      if (updateError) {
-        console.error("Error updating profile directly:", updateError);
-        toast.error("Error updating user role and title");
-      } else {
-        // Also update the user_roles table
-        // First delete any existing role
-        const { error: deleteError } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', user.id);
-        
-        if (deleteError) {
-          console.error("Error deleting existing user role:", deleteError);
-        }
-        
-        // Insert the new role - match the existing app_role enum
-        const dbRole = mapAppRoleToDbRole(role);
-        
-        // Now insert with the properly typed value
-        const { error: insertError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: user.id,
-            role: dbRole
-          });
-        
-        if (insertError && !insertError.message.includes('duplicate')) {
-          console.error("Error inserting user role:", insertError);
-        }
-        
-        // Update role and title in local state
-        updateUserRole(user.id, role);
-        if (title && title !== 'none') {
-          updateUserTitle(user.id, title);
-        }
+      // Update title if selected
+      const title = selectedTitles[user.id];
+      if (title) {
+        await updateUserTitle(user.id, title);
       }
       
-      // Send approval email via Supabase Edge Function if it exists
+      // Send approval email via Supabase Edge Function
       try {
         console.log("Sending approval email for user:", user.name, user.email, role);
         
@@ -123,6 +78,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
         
         if (error) {
           console.error("Error sending approval email:", error);
+          toast.error("Approved user but failed to send notification email");
         }
       } catch (emailError) {
         console.error("Failed to send approval email:", emailError);
@@ -133,7 +89,7 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
       onRefresh();
     } catch (error) {
       console.error("Error in handleApprove:", error);
-      toast.error(`Failed to approve user: ${error instanceof Error ? error.message : String(error)}`);
+      toast.error(`Failed to approve user: ${error}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [user.id]: false }));
     }
@@ -142,20 +98,30 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
   const handleReject = async (userId: string) => {
     try {
       setProcessingIds(prev => ({ ...prev, [userId]: true }));
-      console.log("Rejecting user:", userId);
       await rejectUser(userId);
       toast.success("User has been rejected");
       onRefresh();
     } catch (error) {
-      console.error("Error rejecting user:", error);
-      toast.error(`Failed to reject user: ${error instanceof Error ? error.message : String(error)}`);
+      toast.error(`Failed to reject user: ${error}`);
     } finally {
       setProcessingIds(prev => ({ ...prev, [userId]: false }));
     }
   };
 
   if (pendingUsers.length === 0) {
-    return <PendingUsersEmptyState />;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Pending Approvals</CardTitle>
+          <CardDescription>Users waiting for account approval</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center p-6 text-muted-foreground">
+            No pending approval requests at the moment
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -165,16 +131,81 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
         <CardDescription>Approve or reject new user registrations</CardDescription>
       </CardHeader>
       <CardContent>
-        <PendingUsersTable
-          pendingUsers={pendingUsers}
-          processingIds={processingIds}
-          selectedRoles={selectedRoles}
-          selectedTitles={selectedTitles}
-          onRoleChange={handleRoleChange}
-          onTitleChange={handleTitleChange}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Title (Optional)</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pendingUsers.map((user) => {
+              const isProcessing = processingIds[user.id] || false;
+              const selectedRole = selectedRoles[user.id] || "employee";
+              const selectedTitle = selectedTitles[user.id] || "none";
+
+              return (
+                <TableRow key={user.id}>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Select 
+                      value={selectedRole} 
+                      onValueChange={(value) => handleRoleChange(user.id, value as UserRole)}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="team_lead">Team Lead</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select 
+                      value={selectedTitle} 
+                      onValueChange={(value) => handleTitleChange(user.id, value)}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select title (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Title</SelectItem>
+                        {EMPLOYEE_TITLES.map((title) => (
+                          <SelectItem key={title} value={title}>{title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleApprove(user)}
+                        disabled={isProcessing}
+                      >
+                        Approve
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => handleReject(user.id)}
+                        disabled={isProcessing}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
