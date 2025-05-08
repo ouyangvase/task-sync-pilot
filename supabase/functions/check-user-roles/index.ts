@@ -8,8 +8,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Types for database roles and app roles
+type DbRole = "admin" | "tenant" | "landlord" | "merchant";
+type AppRole = "admin" | "manager" | "team_lead" | "employee";
+
 // Map database role to application role
-function mapDbRoleToAppRole(dbRole: string): string {
+function mapDbRoleToAppRole(dbRole: string): AppRole {
   switch(dbRole) {
     case 'admin':
       return 'admin'; // This one is the same
@@ -24,7 +28,7 @@ function mapDbRoleToAppRole(dbRole: string): string {
 }
 
 // Map application role to database role
-function mapAppRoleToDbRole(appRole: string): string {
+function mapAppRoleToDbRole(appRole: string): DbRole {
   switch(appRole) {
     case 'admin':
       return 'admin'; // This one is the same

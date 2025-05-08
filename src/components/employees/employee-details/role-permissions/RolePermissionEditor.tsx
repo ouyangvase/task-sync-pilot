@@ -11,6 +11,7 @@ import { RoleSelector } from "./RoleSelector";
 import { RoleEditorActions } from "./RoleEditorActions";
 import { supabase } from "@/integrations/supabase/client";
 import { DbRole, mapAppRoleToDbRole, mapDbRoleToAppRole } from "@/utils/roleUtils";
+import { Database } from "@/integrations/supabase/types";
 
 export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePermissionEditorProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(employee.role as UserRole);

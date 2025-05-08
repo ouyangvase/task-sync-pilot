@@ -3,40 +3,11 @@ import { User, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { mapAppRoleToDbRole, mapDbRoleToAppRole, DbRole } from "@/utils/roleUtils";
+import { Database } from "@/integrations/supabase/types";
 
 export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.SetStateAction<User[]>>) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Helper function to map application role to database role
-  const mapAppRoleToDbRole = (appRole: UserRole | string): DbRole => {
-    switch(appRole) {
-      case 'admin':
-        return 'admin'; // This one is the same
-      case 'manager':
-        return 'landlord'; // Map manager to landlord
-      case 'team_lead':
-        return 'tenant'; // Map team_lead to tenant
-      case 'employee':
-      default:
-        return 'merchant'; // Map employee to merchant
-    }
-  };
-
-  // Helper function to map database role to application role
-  const mapDbRoleToAppRole = (dbRole: DbRole): UserRole => {
-    switch(dbRole) {
-      case 'admin':
-        return 'admin'; // This one is the same
-      case 'landlord':
-        return 'manager'; // Map landlord to manager
-      case 'tenant':
-        return 'team_lead'; // Map tenant to team_lead
-      case 'merchant':
-      default:
-        return 'employee'; // Map merchant to employee
-    }
-  };
 
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);

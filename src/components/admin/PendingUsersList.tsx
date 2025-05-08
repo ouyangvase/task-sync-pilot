@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PendingUsersEmptyState from "./PendingUsersEmptyState";
 import PendingUsersTable from "./PendingUsersTable";
 import { mapAppRoleToDbRole } from "@/utils/roleUtils";
+import { Database } from "@/integrations/supabase/types";
 
 interface PendingUsersListProps {
   pendingUsers: User[];

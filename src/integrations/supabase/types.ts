@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          points_required: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          points_required: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          points_required?: number
+          title?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action_type: string
@@ -1048,6 +1078,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_approved: boolean | null
+          points: number | null
           role: string | null
           updated_at: string
           username: string | null
@@ -1062,6 +1093,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_approved?: boolean | null
+          points?: number | null
           role?: string | null
           updated_at?: string
           username?: string | null
@@ -1076,6 +1108,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_approved?: boolean | null
+          points?: number | null
           role?: string | null
           updated_at?: string
           username?: string | null
@@ -1500,6 +1533,63 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          assigned_by: string | null
+          assigned_to: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          points: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assigned_to: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          points?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assigned_to?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          points?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_credit_scores: {
         Row: {
           created_at: string | null
@@ -1622,6 +1712,42 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achieved_at: string
+          achievement_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          achievement_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achieved_at?: string
+          achievement_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_addresses: {
         Row: {
