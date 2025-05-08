@@ -6,6 +6,7 @@ export type DbRole = "admin" | "tenant" | "landlord" | "merchant";
 import { UserRole } from "@/types";
 import { Database } from "@/integrations/supabase/types";
 
+// Get the app_role enum type directly from the Database type
 type AppRoleEnum = Database["public"]["Enums"]["app_role"];
 
 // Map application role to database role
@@ -28,7 +29,7 @@ export const mapAppRoleToDbRole = (appRole: UserRole | string): AppRoleEnum => {
       break;
   }
   
-  // Cast to the specific enum type from the database
+  // Explicitly cast the string value to the specific Supabase enum type
   return dbRole as AppRoleEnum;
 };
 

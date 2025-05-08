@@ -123,6 +123,8 @@ export function RolePermissionEditor({ employee, isAdmin, onUpdateRole }: RolePe
       
       // 3. Insert the new role - map to the database enum
       const dbRole = mapAppRoleToDbRole(selectedRole);
+      
+      // Now insert with the properly typed value
       const { error: insertError } = await supabase
         .from('user_roles')
         .insert({

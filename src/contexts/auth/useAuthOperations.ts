@@ -167,6 +167,7 @@ export const useAuthOperations = (users: User[], setUsers: React.Dispatch<React.
         // Map the role to the database role before insertion
         const dbRole = mapAppRoleToDbRole(userToApprove.role || 'employee');
         
+        // Now insert with the properly typed value
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { 
@@ -88,6 +89,8 @@ const PendingUsersList = ({ pendingUsers, onRefresh }: PendingUsersListProps) =>
         
         // Insert the new role - match the existing app_role enum
         const dbRole = mapAppRoleToDbRole(role);
+        
+        // Now insert with the properly typed value
         const { error: insertError } = await supabase
           .from('user_roles')
           .insert({
