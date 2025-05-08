@@ -56,7 +56,7 @@ const RegistrationForm = () => {
       console.log("Registering with:", data.email, data.fullName);
       
       await registerUser(data.email, data.password, data.fullName);
-      toast.success("Registration successful. Your account is pending admin approval.");
+      toast.success("Registration successful! You can now log in.");
       navigate("/login");
     } catch (error: any) {
       console.error("Registration error:", error);

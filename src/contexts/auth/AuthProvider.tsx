@@ -4,6 +4,7 @@ import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
 import { toast } from "sonner";
 import { AuthContextType } from "./types";
 import { canViewUser, canEditUser, getAccessibleUsers, updateUserPermissionsHelper } from "./authUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -15,7 +16,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mockUsers.map(user => ({
       ...user,
       permissions: user.permissions || [],
-      isApproved: user.isApproved !== undefined ? user.isApproved : true,
+      isApproved: true, // All users are automatically approved now
     }))
   );
 
@@ -58,11 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Debug log for user found
       console.log("Found user:", user);
-
-      if (user.isApproved === false) {
-        console.log("User not approved:", email);
-        throw new Error("Your account is pending admin approval");
-      }
+      
+      // Removed the approval check since all users are now automatically approved
       
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -77,6 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Debug log to verify login success
       console.log("Login successful:", enhancedUser);
+
+      // Call Supabase auth.signIn if using Supabase auth
+      try {
+        await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+      } catch (supabaseError) {
+        console.error("Supabase auth error:", supabaseError);
+        // Continue with mock login even if Supabase fails
+      }
     } finally {
       setLoading(false);
     }
@@ -85,6 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem("currentUser");
+    
+    // Sign out from Supabase if using Supabase auth
+    try {
+      supabase.auth.signOut();
+    } catch (error) {
+      console.error("Supabase signout error:", error);
+    }
   };
 
   const registerUser = async (email: string, password: string, fullName: string): Promise<void> => {
@@ -94,13 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error("Email already registered");
     }
 
-    // Create a new user with pending approval
+    // Create a new user (automatically approved)
     const newUser: User = {
       id: `user_${Date.now()}`,
       email,
       name: fullName,
       role: "employee", // Default role
-      isApproved: false,
+      isApproved: true, // All users are automatically approved
       permissions: [],
     };
 
@@ -110,38 +126,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Update users array
     setUsers(prevUsers => [...prevUsers, newUser]);
     
+    // Try to register with Supabase if using Supabase auth
+    try {
+      await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        }
+      });
+    } catch (supabaseError) {
+      console.error("Supabase registration error:", supabaseError);
+      // Continue with mock registration even if Supabase fails
+    }
+    
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
-  const approveUser = async (userId: string): Promise<void> => {
-    console.log("Approving user:", userId);
+  // Keep only the user role update functionality, no need for approval methods
+  const updateUserRole = (userId: string, role: string) => {
+    // Update users array with the new role
     const updatedUsers = users.map(user => {
       if (user.id === userId) {
-        return { ...user, isApproved: true };
+        return { ...user, role: role as UserRole };
       }
       return user;
     });
     
     setUsers(updatedUsers);
     
-    // Debug log to verify user approval
-    console.log("Updated users after approval:", updatedUsers);
-
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  };
-
-  const rejectUser = async (userId: string) => {
-    const updatedUsers = users.filter(user => user.id !== userId);
-    setUsers(updatedUsers);
-
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  };
-
-  const getPendingUsers = () => {
-    return users.filter(user => user.isApproved === false);
+    // Also update currentUser if it's the same user
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = { ...currentUser, role: role as UserRole };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+    }
   };
 
   const updateUserTitle = (userId: string, title: string) => {
@@ -158,25 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Also update currentUser if it's the same user
     if (currentUser && currentUser.id === userId) {
       const updatedUser = { ...currentUser, title: title === "none" ? "" : title };
-      setCurrentUser(updatedUser);
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    }
-  };
-
-  const updateUserRole = (userId: string, role: string) => {
-    // Update users array with the new role
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, role: role as UserRole };
-      }
-      return user;
-    });
-    
-    setUsers(updatedUsers);
-    
-    // Also update currentUser if it's the same user
-    if (currentUser && currentUser.id === userId) {
-      const updatedUser = { ...currentUser, role: role as UserRole };
       setCurrentUser(updatedUser);
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     }
@@ -228,10 +231,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canViewUser: (viewerId, targetUserId) => canViewUser(users, viewerId, targetUserId),
         canEditUser: (editorId, targetUserId) => canEditUser(users, editorId, targetUserId),
         getAccessibleUsers: (userId) => getAccessibleUsers(users, userId),
-        registerUser,
-        approveUser,
-        rejectUser,
-        getPendingUsers,
+        registerUser
+        // Removed approval-related methods
       }}
     >
       {children}

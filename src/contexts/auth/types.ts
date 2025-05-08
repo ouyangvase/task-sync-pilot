@@ -10,12 +10,10 @@ export interface AuthContextType {
   users: User[];
   updateUserTitle: (userId: string, title: string) => void;
   updateUserRole: (userId: string, role: string) => void;
-  updateUserPermissions: (userId: string, targetUserId: string, permissions: Partial<UserPermission>) => void;
+  updateUserPermissions: (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => void;
   canViewUser: (viewerId: string, targetUserId: string) => boolean;
   canEditUser: (editorId: string, targetUserId: string) => boolean;
   getAccessibleUsers: (userId: string) => User[];
   registerUser: (email: string, password: string, fullName: string) => Promise<void>;
-  approveUser: (userId: string) => Promise<void>;
-  rejectUser: (userId: string) => Promise<void>;
-  getPendingUsers: () => User[];
+  // Removed approval-related methods
 }
