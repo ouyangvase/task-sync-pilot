@@ -11,14 +11,83 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>(
-    // Initialize with empty permissions arrays if not already present
-    mockUsers.map(user => ({
-      ...user,
-      permissions: user.permissions || [],
-      isApproved: true, // All users are automatically approved now
-    }))
-  );
+  const [users, setUsers] = useState<User[]>([]);
+
+  // Function to fetch all user profiles from Supabase
+  const fetchAllProfiles = async () => {
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*');
+        
+      if (error) {
+        console.error("Error fetching all profiles:", error);
+        return;
+      }
+      
+      if (profiles) {
+        console.log("Fetched profiles:", profiles);
+        
+        // Convert Supabase profiles to our User type
+        const mappedUsers: User[] = profiles.map(profile => ({
+          id: profile.id,
+          name: profile.full_name || '',
+          email: profile.email || '',
+          role: profile.role as UserRole,
+          title: profile.department || '',
+          permissions: [],  // Initialize with empty permissions
+          isApproved: profile.is_approved
+        }));
+        
+        setUsers(mappedUsers);
+        
+        // Also update user permissions
+        fetchUserPermissions();
+      }
+    } catch (error) {
+      console.error("Error in fetchAllProfiles:", error);
+    }
+  };
+
+  // Function to fetch user permissions
+  const fetchUserPermissions = async () => {
+    try {
+      const { data: permissions, error } = await supabase
+        .from('user_permissions')
+        .select('*');
+        
+      if (error) {
+        console.error("Error fetching user permissions:", error);
+        return;
+      }
+      
+      if (permissions && permissions.length > 0) {
+        console.log("Fetched permissions:", permissions);
+        
+        // Update users with their permissions
+        setUsers(prevUsers => {
+          return prevUsers.map(user => {
+            // Find all permissions for this user
+            const userPermissions = permissions.filter(p => p.user_id === user.id);
+            
+            // Map to our UserPermission type
+            const mappedPermissions: UserPermission[] = userPermissions.map(p => ({
+              targetUserId: p.target_user_id,
+              canView: p.can_view || false,
+              canEdit: p.can_edit || false
+            }));
+            
+            return {
+              ...user,
+              permissions: mappedPermissions
+            };
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error in fetchUserPermissions:", error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state change listener
@@ -29,6 +98,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Get the user profile from Supabase when a user logs in
           fetchUserProfile(session.user.id);
+          
+          // Also refresh the list of all users
+          setTimeout(() => {
+            fetchAllProfiles();
+          }, 0);
         } else {
           setCurrentUser(null);
           localStorage.removeItem("currentUser");
@@ -63,6 +137,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem("currentUser", JSON.stringify(enhancedUser));
           }
         }
+
+        // Fetch all profiles initially
+        fetchAllProfiles();
+        
+        // Finally, set loading to false
         setLoading(false);
       } catch (error) {
         console.error("Session check error:", error);
@@ -72,8 +151,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkSession();
 
+    // Set up real-time subscription for profiles table changes
+    const profilesChannel = supabase
+      .channel('profiles_changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'profiles' 
+      }, (payload) => {
+        console.log('Profiles change received!', payload);
+        fetchAllProfiles(); // Refresh all profiles when changes occur
+      })
+      .subscribe();
+
     return () => {
       subscription?.unsubscribe();
+      supabase.removeChannel(profilesChannel);
     };
   }, []);
 
@@ -271,74 +364,155 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Keep only the user role update functionality, no need for approval methods
   const updateUserRole = (userId: string, role: string) => {
-    // Update users array with the new role
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, role: role as UserRole };
-      }
-      return user;
-    });
-    
-    setUsers(updatedUsers);
-    
-    // Also update currentUser if it's the same user
-    if (currentUser && currentUser.id === userId) {
-      const updatedUser = { ...currentUser, role: role as UserRole };
-      setCurrentUser(updatedUser);
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    }
+    // Update the role in the Supabase database
+    supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId)
+      .then(({ error }) => {
+        if (error) {
+          console.error("Error updating user role:", error);
+          toast.error("Failed to update user role");
+          return;
+        }
+        
+        // Update users array with the new role
+        const updatedUsers = users.map(user => {
+          if (user.id === userId) {
+            return { ...user, role: role as UserRole };
+          }
+          return user;
+        });
+        
+        setUsers(updatedUsers);
+        
+        // Also update currentUser if it's the same user
+        if (currentUser && currentUser.id === userId) {
+          const updatedUser = { ...currentUser, role: role as UserRole };
+          setCurrentUser(updatedUser);
+          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+        }
+        
+        toast.success("User role updated successfully");
+      });
   };
 
   const updateUserTitle = (userId: string, title: string) => {
-    // Update users array with the new title
-    const updatedUsers = users.map(user => {
-      if (user.id === userId) {
-        return { ...user, title: title === "none" ? "" : title };
-      }
-      return user;
-    });
-    
-    setUsers(updatedUsers);
-    
-    // Also update currentUser if it's the same user
-    if (currentUser && currentUser.id === userId) {
-      const updatedUser = { ...currentUser, title: title === "none" ? "" : title };
-      setCurrentUser(updatedUser);
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    }
+    // Update the department (title) in the Supabase database
+    supabase
+      .from('profiles')
+      .update({ department: title === "none" ? null : title })
+      .eq('id', userId)
+      .then(({ error }) => {
+        if (error) {
+          console.error("Error updating user title:", error);
+          toast.error("Failed to update user title");
+          return;
+        }
+        
+        // Update users array with the new title
+        const updatedUsers = users.map(user => {
+          if (user.id === userId) {
+            return { ...user, title: title === "none" ? "" : title };
+          }
+          return user;
+        });
+        
+        setUsers(updatedUsers);
+        
+        // Also update currentUser if it's the same user
+        if (currentUser && currentUser.id === userId) {
+          const updatedUser = { ...currentUser, title: title === "none" ? "" : title };
+          setCurrentUser(updatedUser);
+          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+        }
+        
+        toast.success("User title updated successfully");
+      });
   };
 
-  const updateUserPermissions = (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
-    const updatedUsers = updateUserPermissionsHelper(users, userId, targetUserId, newPermissions);
-    setUsers(updatedUsers);
-    
-    // Also update currentUser if it's the same user
-    if (currentUser && currentUser.id === userId) {
-      const currentPermissions = [...(currentUser.permissions || [])];
-      
-      const existingPermIndex = currentPermissions.findIndex(p => p.targetUserId === targetUserId);
-      
-      if (existingPermIndex >= 0) {
-        currentPermissions[existingPermIndex] = {
-          ...currentPermissions[existingPermIndex],
-          ...newPermissions
-        };
-      } else {
-        currentPermissions.push({
-          targetUserId,
-          canView: newPermissions.canView || false,
-          canEdit: newPermissions.canEdit || false
-        });
+  const updateUserPermissions = async (userId: string, targetUserId: string, newPermissions: Partial<UserPermission>) => {
+    try {
+      // First check if permission already exists in the database
+      const { data: existingPermission, error: fetchError } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('target_user_id', targetUserId)
+        .maybeSingle();
+        
+      if (fetchError) {
+        console.error("Error checking for existing permission:", fetchError);
+        throw fetchError;
       }
       
-      const updatedUser = { ...currentUser, permissions: currentPermissions };
-      setCurrentUser(updatedUser);
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+      let dbError;
+      
+      if (existingPermission) {
+        // Update existing permission
+        const { error } = await supabase
+          .from('user_permissions')
+          .update({
+            can_view: newPermissions.canView !== undefined ? newPermissions.canView : existingPermission.can_view,
+            can_edit: newPermissions.canEdit !== undefined ? newPermissions.canEdit : existingPermission.can_edit,
+          })
+          .eq('id', existingPermission.id);
+          
+        dbError = error;
+      } else {
+        // Create new permission
+        const { error } = await supabase
+          .from('user_permissions')
+          .insert({
+            user_id: userId,
+            target_user_id: targetUserId,
+            can_view: newPermissions.canView || false,
+            can_edit: newPermissions.canEdit || false,
+          });
+          
+        dbError = error;
+      }
+      
+      if (dbError) {
+        console.error("Error updating permissions in database:", dbError);
+        toast.error("Failed to update permissions");
+        return;
+      }
+      
+      // Update local state
+      const updatedUsers = updateUserPermissionsHelper(users, userId, targetUserId, newPermissions);
+      setUsers(updatedUsers);
+      
+      // Also update currentUser if it's the same user
+      if (currentUser && currentUser.id === userId) {
+        const currentPermissions = [...(currentUser.permissions || [])];
+        
+        const existingPermIndex = currentPermissions.findIndex(p => p.targetUserId === targetUserId);
+        
+        if (existingPermIndex >= 0) {
+          currentPermissions[existingPermIndex] = {
+            ...currentPermissions[existingPermIndex],
+            ...newPermissions
+          };
+        } else {
+          currentPermissions.push({
+            targetUserId,
+            canView: newPermissions.canView || false,
+            canEdit: newPermissions.canEdit || false
+          });
+        }
+        
+        const updatedUser = { ...currentUser, permissions: currentPermissions };
+        setCurrentUser(updatedUser);
+        localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+      }
+      
+      toast.success("User permissions updated");
+    } catch (error) {
+      console.error("Error in updateUserPermissions:", error);
+      toast.error("Failed to update permissions");
     }
-    
-    toast.success("User permissions updated");
   };
 
   return (
