@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "@/types";
-import { useTasks } from "@/contexts/TaskContext";
+import { useTasks } from "@/contexts/task";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Award } from "lucide-react";
 

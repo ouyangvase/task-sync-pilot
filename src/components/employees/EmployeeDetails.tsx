@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { User } from "@/types";
-import { useTasks } from "@/contexts/TaskContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTasks } from "@/contexts/task";
+import { useAuth } from "@/contexts/auth";
 import TaskForm from "@/components/tasks/TaskForm";
 import { ShieldOff } from "lucide-react";
 
