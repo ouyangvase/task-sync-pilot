@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
 import { toast } from "sonner";
@@ -198,20 +197,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       console.log("Attempting login for:", email);
-      
-      // First check if the user exists in our profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', email)
-        .single();
-      
-      if (profileError || !profile) {
-        console.log("User not found in profiles:", profileError);
-        throw new Error("User not found. Please register first or check your email address.");
-      }
-      
-      console.log("User found in profiles:", profile);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,

@@ -69,12 +69,6 @@ const LoginForm = () => {
     }
   };
 
-  // Test credentials helper
-  const fillTestCredentials = () => {
-    form.setValue("email", "test@gmail.com");
-    form.setValue("password", "password123");
-  };
-
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
@@ -89,20 +83,6 @@ const LoginForm = () => {
             {errorMessage}
           </div>
         )}
-        
-        {/* Test credentials helper */}
-        <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-md text-sm">
-          <p className="font-medium mb-2">Test with existing user:</p>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={fillTestCredentials}
-            className="text-xs"
-          >
-            Fill test credentials (test@gmail.com)
-          </Button>
-        </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
