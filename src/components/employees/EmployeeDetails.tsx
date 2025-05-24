@@ -37,7 +37,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
           </div>
           <h3 className="text-xl font-semibold">Access Restricted</h3>
           <p className="text-muted-foreground">
-            You don't have permission to view this employee's details.
+            You don't have permission to view this user's details.
           </p>
         </div>
       </div>
@@ -122,7 +122,7 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
           <DialogHeader>
             <DialogTitle>Assign New Task to {employee.name}</DialogTitle>
             <DialogDescription>
-              Create a new task for this employee
+              Create a new task for this user
             </DialogDescription>
           </DialogHeader>
           <TaskForm 

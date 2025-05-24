@@ -16,9 +16,13 @@ const EmployeesPage = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [redirectToLogin, setRedirectToLogin] = useState(false);
 
-  // Get only the employees the current user can access based on permissions
+  // Get all users the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
-  const employees = accessibleUsers.filter(user => user.role === "employee");
+  
+  // For admins, show all approved users. For others, filter based on their permissions
+  const displayUsers = currentUser?.role === "admin" 
+    ? accessibleUsers.filter(user => user.isApproved !== false)
+    : accessibleUsers;
   
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
@@ -48,7 +52,7 @@ const EmployeesPage = () => {
     }
   }, [currentUser]);
 
-  document.title = "Employee Management | TaskSync Pilot";
+  document.title = "User Management | TaskSync Pilot";
 
   // Redirect non-admin and non-manager users away from this page
   if (redirectToLogin) {
@@ -58,11 +62,11 @@ const EmployeesPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Employee Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
         {currentUser?.role === "admin" && (
           <Button onClick={handleAddEmployee}>
             <UserPlus className="mr-2 h-4 w-4" />
-            Add Employee
+            Add User
           </Button>
         )}
       </div>
@@ -70,7 +74,7 @@ const EmployeesPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <EmployeesList 
-            employees={employees} 
+            employees={displayUsers} 
             onSelectEmployee={handleEmployeeSelect} 
             selectedEmployee={selectedEmployee}
           />
@@ -80,7 +84,7 @@ const EmployeesPage = () => {
             <EmployeeDetails employee={selectedEmployee} />
           ) : (
             <div className="rounded-lg border border-border bg-card p-8 text-center">
-              <p className="text-muted-foreground">Select an employee to view their details</p>
+              <p className="text-muted-foreground">Select a user to view their details</p>
             </div>
           )}
         </div>
