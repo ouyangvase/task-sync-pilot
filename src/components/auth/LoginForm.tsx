@@ -44,7 +44,6 @@ const LoginForm = () => {
       setIsSubmitting(true);
       setErrorMessage(null);
       
-      // Add debug logs
       console.log("Login attempt with:", data.email);
       
       await login(data.email, data.password);
@@ -52,11 +51,28 @@ const LoginForm = () => {
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
-      setErrorMessage(error.message || "Invalid email or password");
-      toast.error(error.message || "Invalid email or password");
+      
+      let errorMsg = "Login failed";
+      
+      if (error.message === "Invalid login credentials") {
+        errorMsg = "Invalid email or password. Please check your credentials and try again.";
+      } else if (error.message === "Email not confirmed") {
+        errorMsg = "Please check your email and click the confirmation link before logging in.";
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Test credentials helper
+  const fillTestCredentials = () => {
+    form.setValue("email", "test@gmail.com");
+    form.setValue("password", "password123");
   };
 
   return (
@@ -73,6 +89,21 @@ const LoginForm = () => {
             {errorMessage}
           </div>
         )}
+        
+        {/* Test credentials helper */}
+        <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-md text-sm">
+          <p className="font-medium mb-2">Test with existing user:</p>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={fillTestCredentials}
+            className="text-xs"
+          >
+            Fill test credentials (test@gmail.com)
+          </Button>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
