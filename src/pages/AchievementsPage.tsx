@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import AchievementsList from "@/components/achievements/AchievementsList";
-import ManageAchievements from "@/components/admin/ManageAchievements";
+import { ManageAchievements } from "@/components/admin/ManageAchievements";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
 import { mockAchievements } from "@/data/mockData";

@@ -141,7 +141,7 @@ export function ManageAchievements() {
         <h2 className="text-2xl font-bold">Manage Achievements</h2>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="primary">
+            <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add Achievement
             </Button>
