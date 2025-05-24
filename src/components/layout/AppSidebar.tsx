@@ -46,7 +46,7 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: <Calendar className="h-5 w-5" />,
     },
     {
-      name: "Employees",
+      name: "User Management",
       path: "/employees",
       icon: <Users className="h-5 w-5" />,
     },
@@ -64,6 +64,39 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Role Permissions",
       path: "/settings/roles",
       icon: <Shield className="h-5 w-5" />,
+    },
+    {
+      name: "Settings",
+      path: "/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ];
+
+  const managerTeamLeadLinks = [
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      name: "All Tasks",
+      path: "/tasks",
+      icon: <ClipboardList className="h-5 w-5" />,
+    },
+    {
+      name: "Calendar",
+      path: "/calendar",
+      icon: <Calendar className="h-5 w-5" />,
+    },
+    {
+      name: "User Management",
+      path: "/employees",
+      icon: <Users className="h-5 w-5" />,
+    },
+    {
+      name: "Achievements",
+      path: "/achievements",
+      icon: <Trophy className="h-5 w-5" />,
     },
     {
       name: "Settings",
@@ -100,7 +133,14 @@ const AppSidebar = ({ isOpen, onClose }: SidebarProps) => {
     },
   ];
 
-  const links = currentUser?.role === "admin" ? adminLinks : employeeLinks;
+  // Determine which links to show based on user role
+  const getLinksForRole = () => {
+    if (currentUser?.role === "admin") return adminLinks;
+    if (currentUser?.role === "manager" || currentUser?.role === "team_lead") return managerTeamLeadLinks;
+    return employeeLinks;
+  };
+
+  const links = getLinksForRole();
 
   return (
     <div

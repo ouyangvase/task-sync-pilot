@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Play, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -32,13 +32,19 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, onEdit }: TaskCardProps) => {
-  const { completeTask, deleteTask } = useTasks();
+  const { startTask, completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const isAdmin = currentUser?.role === "admin";
   const isCompleted = task.status === "completed";
+  const isPending = task.status === "pending";
+  const isInProgress = task.status === "in_progress";
   
-  const handleComplete = () => {
+  const handleStartTask = () => {
+    startTask(task.id);
+  };
+  
+  const handleCompleteTask = () => {
     completeTask(task.id);
   };
   
@@ -57,6 +63,32 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
         return "bg-green-100 text-green-800 border-green-200";
       default:
         return "";
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      case "in_progress":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "completed":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "Pending";
+      case "in_progress":
+        return "In Progress";
+      case "completed":
+        return "Completed";
+      default:
+        return status;
     }
   };
 
@@ -83,13 +115,6 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
       )}
     >
       <div className="flex items-start gap-3">
-        {!isCompleted && (
-          <Checkbox 
-            checked={isCompleted}
-            onCheckedChange={handleComplete}
-            className="mt-1"
-          />
-        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h3 className={cn(
@@ -158,6 +183,10 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
           )}
           
           <div className="flex flex-wrap items-center gap-2 mt-3">
+            <Badge variant="outline" className={getStatusColor(task.status)}>
+              {getStatusText(task.status)}
+            </Badge>
+            
             <Badge variant="outline" className={getPriorityColor(task.priority)}>
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </Badge>
@@ -173,6 +202,31 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             <Badge variant="outline" className="ml-auto">
               Due: {format(new Date(task.dueDate), "MMM d")}
             </Badge>
+          </div>
+          
+          {/* Task Action Buttons */}
+          <div className="flex gap-2 mt-3">
+            {isPending && currentUser?.id === task.assignee && (
+              <Button
+                size="sm"
+                onClick={handleStartTask}
+                className="flex items-center gap-1"
+              >
+                <Play className="h-3 w-3" />
+                Take Job
+              </Button>
+            )}
+            
+            {isInProgress && currentUser?.id === task.assignee && (
+              <Button
+                size="sm"
+                onClick={handleCompleteTask}
+                className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-3 w-3" />
+                Mark Complete
+              </Button>
+            )}
           </div>
           
           {isCompleted && task.completedAt && (

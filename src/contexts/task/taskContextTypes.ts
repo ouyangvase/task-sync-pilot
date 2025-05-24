@@ -5,9 +5,10 @@ export interface TaskContextType {
   tasks: Task[];
   getUserTasks: (userId: string) => Task[];
   getTasksByCategory: (userId: string, category: string) => Task[];
-  addTask: (task: Omit<Task, "id" | "createdAt">) => void;
+  addTask: (taskData: Omit<Task, "id" | "createdAt">) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (taskId: string) => void;
+  startTask: (taskId: string) => void;
   completeTask: (taskId: string) => void;
   getUserTaskStats: (userId: string) => TaskStats;
   getUserPointsStats: (userId: string) => PointsStats;

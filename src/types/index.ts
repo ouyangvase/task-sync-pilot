@@ -1,5 +1,14 @@
 
-export type UserRole = "admin" | "employee" | "team_lead" | "manager";
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  title?: string;
+  avatar?: string;
+  isApproved?: boolean;
+  permissions?: UserPermission[];
+}
 
 export interface UserPermission {
   targetUserId: string;
@@ -7,38 +16,25 @@ export interface UserPermission {
   canEdit: boolean;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatar?: string;
-  monthlyPoints?: number;
-  title?: string; // Added title property for employee titles
-  permissions?: UserPermission[]; // Cross-user permissions
-  isApproved?: boolean; // Added for registration approval workflow
-}
-
-export type TaskCategory = "daily" | "custom" | "completed";
-export type TaskRecurrence = "once" | "daily" | "weekly" | "monthly";
-export type TaskStatus = "pending" | "in-progress" | "completed";
-export type TaskPriority = "low" | "medium" | "high";
+export type UserRole = "admin" | "manager" | "team_lead" | "employee";
 
 export interface Task {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   assignee: string;
-  assignedBy: string;
-  category: TaskCategory;
-  recurrence: TaskRecurrence;
   dueDate: string;
-  createdAt: string;
-  completedAt?: string;
-  priority: TaskPriority;
   status: TaskStatus;
+  priority: "low" | "medium" | "high";
+  category: "daily" | "custom";
+  recurrence: "once" | "daily" | "weekly" | "monthly";
   points: number;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
 }
+
+export type TaskStatus = "pending" | "in_progress" | "completed";
 
 export interface TaskStats {
   completed: number;
@@ -55,8 +51,10 @@ export interface PointsStats {
 
 export interface RewardTier {
   id: string;
+  name: string;
   points: number;
   reward: string;
+  description?: string;
 }
 
 export interface Achievement {
@@ -64,8 +62,14 @@ export interface Achievement {
   title: string;
   description: string;
   icon: string;
-  pointsRequired: number;
+  category: "task" | "points" | "streak" | "special";
+  criteria: {
+    type: "task_count" | "points_earned" | "streak_days" | "custom";
+    value: number;
+    timeframe?: "daily" | "weekly" | "monthly" | "all_time";
+  };
+  reward?: string;
   isUnlocked?: boolean;
-  unlockedDate?: string;
-  currentPoints?: number;
+  unlockedAt?: string;
+  progress?: number;
 }

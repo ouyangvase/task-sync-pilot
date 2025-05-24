@@ -58,10 +58,26 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success("Task deleted successfully");
   };
 
+  const startTask = (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((task) => {
+        if (task.id === taskId && task.status === "pending") {
+          return {
+            ...task,
+            status: "in_progress" as TaskStatus,
+            startedAt: new Date().toISOString(),
+          };
+        }
+        return task;
+      })
+    );
+    toast.success("Task started!");
+  };
+
   const completeTask = (taskId: string) => {
     setTasks((prev) =>
       prev.map((task) => {
-        if (task.id === taskId) {
+        if (task.id === taskId && task.status === "in_progress") {
           const completedTask: Task = {
             ...task,
             status: "completed" as TaskStatus,
@@ -153,6 +169,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addTask,
         updateTask,
         deleteTask,
+        startTask,
         completeTask,
         getUserTaskStats,
         getUserPointsStats,
