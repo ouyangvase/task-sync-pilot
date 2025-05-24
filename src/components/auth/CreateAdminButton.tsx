@@ -10,12 +10,22 @@ const CreateAdminButton = () => {
   const handleCreateAdmin = async () => {
     try {
       setIsCreating(true);
-      await createAdminAccount();
-      toast.success("Admin account created successfully! Email: admin@tasksync.com, Password: admin123456");
+      console.log("Starting admin account creation process...");
+      
+      const result = await createAdminAccount();
+      
+      if (result) {
+        toast.success("Admin account created successfully! You can now login with admin@tasksync.com");
+        console.log("Admin account creation completed successfully");
+      }
     } catch (error: any) {
       console.error("Error creating admin:", error);
+      
       if (error.message?.includes("User already registered")) {
-        toast.error("Admin account already exists");
+        toast.success("Admin account already exists! You can login with admin@tasksync.com");
+        console.log("Admin account already exists - this is OK");
+      } else if (error.message?.includes("email address not authorized")) {
+        toast.error("Email signup disabled. Please enable email signup in Supabase Auth settings.");
       } else {
         toast.error("Failed to create admin account: " + error.message);
       }
@@ -25,15 +35,17 @@ const CreateAdminButton = () => {
   };
 
   return (
-    <Button 
-      onClick={handleCreateAdmin} 
-      disabled={isCreating}
-      variant="outline"
-      size="sm"
-      className="mt-4"
-    >
-      {isCreating ? "Creating Admin..." : "Create Admin Account"}
-    </Button>
+    <div className="space-y-2">
+      <Button 
+        onClick={handleCreateAdmin} 
+        disabled={isCreating}
+        variant="outline"
+        size="sm"
+        className="w-full"
+      >
+        {isCreating ? "Creating Admin Account..." : "Create Admin Account"}
+      </Button>
+    </div>
   );
 };
 
