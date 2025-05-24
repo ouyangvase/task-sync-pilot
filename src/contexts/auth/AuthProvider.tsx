@@ -504,7 +504,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Refresh all profiles to ensure consistency
       await fetchAllProfiles();
       
-      toast.success(data?.message || "User deleted successfully");
+      // Type-safe access to the message property
+      const resultMessage = data && typeof data === 'object' && 'message' in data 
+        ? (data as { message: string }).message 
+        : "User deleted successfully";
+      
+      toast.success(resultMessage);
       return true;
     } catch (error) {
       console.error("Error in deleteUser:", error);
