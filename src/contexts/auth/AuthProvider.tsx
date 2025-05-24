@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
 import { toast } from "sonner";
@@ -318,7 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log(`Updating user ${userId} role to ${role}`);
       
-      // Update the role directly in the Supabase database using RPC to bypass RLS issues
+      // Use the safe RPC function to update role
       const { error } = await supabase.rpc('update_user_role_safe', {
         target_user_id: userId,
         new_role: role

@@ -2095,6 +2095,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      fix_role_update_recursion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -2105,6 +2113,10 @@ export type Database = {
       }
       notify_lease_expiration: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_user_role_safe: {
+        Args: { target_user_id: string; new_role: string }
         Returns: undefined
       }
     }
