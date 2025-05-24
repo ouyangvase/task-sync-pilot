@@ -1,6 +1,6 @@
+
 import React, { createContext, useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
-import { mockUsers, currentUser as mockCurrentUser } from "@/data/mockData";
 import { toast } from "sonner";
 import { AuthContextType } from "./types";
 import { canViewUser, canEditUser, getAccessibleUsers, updateUserPermissionsHelper } from "./authUtils";
@@ -118,27 +118,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           console.log("Found existing session:", session.user.id);
           fetchUserProfile(session.user.id);
-        } else {
-          // For demo purposes, if no session exists, use mock data
-          const savedUser = localStorage.getItem("currentUser");
-          if (savedUser) {
-            const parsedUser = JSON.parse(savedUser);
-            setCurrentUser({
-              ...parsedUser,
-              permissions: parsedUser.permissions || []
-            });
-          } else {
-            // Auto-login as mock user in development
-            const enhancedUser = {
-              ...mockCurrentUser,
-              permissions: mockCurrentUser.permissions || []
-            };
-            setCurrentUser(enhancedUser);
-            localStorage.setItem("currentUser", JSON.stringify(enhancedUser));
-          }
         }
 
-        // Fetch all profiles initially
+        // Always fetch all profiles initially
         fetchAllProfiles();
         
         // Finally, set loading to false
@@ -217,7 +199,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Attempting login for:", email);
       
-      // Try to sign in with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -225,43 +206,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Supabase login error:", error);
-        
-        // Fall back to mock login if Supabase fails
-        fallbackMockLogin(email);
+        throw error;
       } else if (data?.user) {
         console.log("Supabase login successful:", data.user);
         // The auth state change listener will handle setting the user
       }
     } catch (error) {
       console.error("Login error:", error);
-      // Fall back to mock login if Supabase throws
-      fallbackMockLogin(email);
+      throw error;
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Fallback to mock login for development
-  const fallbackMockLogin = (email: string) => {
-    console.log("Falling back to mock login");
-    const user = users.find((u) => u.email === email);
-      
-    if (!user) {
-      console.log("User not found:", email);
-      throw new Error("Invalid email or password");
-    }
-    
-    console.log("Found user:", user);
-    
-    const enhancedUser = {
-      ...user,
-      permissions: user.permissions || []
-    };
-    
-    setCurrentUser(enhancedUser);
-    localStorage.setItem("currentUser", JSON.stringify(enhancedUser));
-    
-    console.log("Mock login successful:", enhancedUser);
   };
 
   const logout = async () => {
@@ -281,12 +236,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const registerUser = async (email: string, password: string, fullName: string): Promise<void> => {
-    // Check if email already exists
-    const existingUser = users.find((u) => u.email === email);
-    if (existingUser) {
-      throw new Error("Email already registered");
-    }
-
     console.log("Registering new user:", { email, fullName });
     
     try {
@@ -309,10 +258,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data?.user) {
         console.log("Supabase registration successful:", data.user);
         
-        // The database trigger will create the profile, but let's ensure it exists
-        // by adding a small delay and checking for it
+        // Wait a moment for the database trigger to create the profile
         await new Promise(resolve => setTimeout(resolve, 1000));
         
+        // Check if profile was created automatically
         try {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -336,6 +285,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               
             if (insertError) {
               console.error("Error creating profile manually:", insertError);
+              throw insertError;
             }
           } else {
             console.log("Profile created successfully:", profile);
@@ -344,17 +294,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error("Error checking for profile:", profileCheckError);
         }
         
-        // Also update our local state
-        const newUser: User = {
-          id: data.user.id,
-          email,
-          name: fullName,
-          role: "employee", // Default role
-          isApproved: true, // All users are automatically approved
-          permissions: [],
-        };
-        
-        setUsers(prevUsers => [...prevUsers, newUser]);
+        // Refresh the users list to include the new user
+        setTimeout(() => {
+          fetchAllProfiles();
+        }, 500);
         
         toast.success("Registration successful! You can now log in.");
       }
