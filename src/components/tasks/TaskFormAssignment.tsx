@@ -22,6 +22,9 @@ const TaskFormAssignment: React.FC = () => {
   const form = useFormContext<TaskFormValues>();
   const { users } = useAuth();
 
+  // Filter to show only approved users
+  const approvedUsers = users.filter((user) => user.isApproved !== false);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField
@@ -37,17 +40,15 @@ const TaskFormAssignment: React.FC = () => {
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
+                  <SelectValue placeholder="Select user" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {users
-                  .filter((user) => user.role === "employee")
-                  .map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
+                {approvedUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name} ({user.role})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <FormMessage />
