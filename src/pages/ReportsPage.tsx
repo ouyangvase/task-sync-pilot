@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -162,7 +161,7 @@ const ReportsPage = () => {
               <CardDescription>
                 Tasks completed over time
               </CardDescription>
-            </Card>
+            </CardHeader>
             <CardContent className="pt-2 h-[300px]">
               <PointsTimeChart dateRange={dateRange} filters={filters} showTasksInstead />
             </CardContent>
