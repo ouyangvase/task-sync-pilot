@@ -17,8 +17,8 @@ export function EmployeeLeaderboard({ dateRange }: EmployeeLeaderboardProps) {
   const { users } = useAuth();
   const { tasks } = useTasks();
   
-  // Only include employees
-  const employees = users.filter(user => user.role === "employee");
+  // Include all users except admins (employees, team leads, and managers)
+  const nonAdminUsers = users.filter(user => user.role !== "admin");
   
   // Filter tasks by date range
   const filteredTasks = tasks.filter(task => {
@@ -28,21 +28,21 @@ export function EmployeeLeaderboard({ dateRange }: EmployeeLeaderboardProps) {
     return isWithinInterval(taskDate, { start: dateRange.from, end: dateRange.to });
   });
   
-  // Calculate statistics for each employee
-  const employeeStats = employees.map(employee => {
-    const employeeTasks = filteredTasks.filter(task => task.assignee === employee.id);
-    const completedTasks = employeeTasks.filter(task => task.status === "completed");
+  // Calculate statistics for each user
+  const userStats = nonAdminUsers.map(user => {
+    const userTasks = filteredTasks.filter(task => task.assignee === user.id);
+    const completedTasks = userTasks.filter(task => task.status === "completed");
     
     const totalPoints = completedTasks.reduce((sum, task) => sum + task.points, 0);
     
-    const totalTasks = employeeTasks.length;
+    const totalTasks = userTasks.length;
     const completedTasksCount = completedTasks.length;
     const completionRate = totalTasks > 0 
       ? Math.round((completedTasksCount / totalTasks) * 100) 
       : 0;
     
     return {
-      employee,
+      user,
       points: totalPoints,
       completionRate,
       tasksCompleted: completedTasksCount,
@@ -51,7 +51,7 @@ export function EmployeeLeaderboard({ dateRange }: EmployeeLeaderboardProps) {
   });
   
   // Sort by points (highest first)
-  const sortedStats = [...employeeStats].sort((a, b) => b.points - a.points);
+  const sortedStats = [...userStats].sort((a, b) => b.points - a.points);
 
   return (
     <div className="relative overflow-x-auto">
@@ -59,7 +59,7 @@ export function EmployeeLeaderboard({ dateRange }: EmployeeLeaderboardProps) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[60px]">Rank</TableHead>
-            <TableHead>Employee</TableHead>
+            <TableHead>User</TableHead>
             <TableHead className="text-right">Completed</TableHead>
             <TableHead className="text-right">Completion Rate</TableHead>
             <TableHead className="text-right">Points Earned</TableHead>
@@ -68,7 +68,7 @@ export function EmployeeLeaderboard({ dateRange }: EmployeeLeaderboardProps) {
         <TableBody>
           {sortedStats.length > 0 ? (
             sortedStats.map((stat, index) => (
-              <TableRow key={stat.employee.id}>
+              <TableRow key={stat.user.id}>
                 <TableCell>
                   {index < 3 ? (
                     <Badge className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -85,12 +85,14 @@ export function EmployeeLeaderboard({ dateRange }: EmployeeLeaderboardProps) {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={stat.employee.avatar} />
-                      <AvatarFallback>{stat.employee.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src={stat.user.avatar} />
+                      <AvatarFallback>{stat.user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{stat.employee.name}</div>
-                      <div className="text-xs text-muted-foreground">{stat.employee.email}</div>
+                      <div className="font-medium">{stat.user.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {stat.user.email} • {stat.user.role}
+                      </div>
                     </div>
                   </div>
                 </TableCell>

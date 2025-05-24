@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -69,7 +70,7 @@ const ReportsPage = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Performance Reports</h1>
           <p className="text-muted-foreground">
-            Analyze task performance and employee productivity
+            Analyze task performance and user productivity
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -92,7 +93,7 @@ const ReportsPage = () => {
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="employees">Employee Performance</TabsTrigger>
+          <TabsTrigger value="employees">User Performance</TabsTrigger>
           <TabsTrigger value="tasks">Task Analysis</TabsTrigger>
         </TabsList>
         
@@ -132,7 +133,7 @@ const ReportsPage = () => {
               <CardHeader className="pb-2">
                 <CardTitle>Top Performers</CardTitle>
                 <CardDescription>
-                  Employees with the highest points this month
+                  Users with the highest points this month
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-2">
@@ -142,7 +143,7 @@ const ReportsPage = () => {
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Employee Leaderboard</CardTitle>
+                <CardTitle>User Leaderboard</CardTitle>
                 <CardDescription>
                   Sorted by points earned during selected period
                 </CardDescription>
@@ -161,7 +162,7 @@ const ReportsPage = () => {
               <CardDescription>
                 Tasks completed over time
               </CardDescription>
-            </CardHeader>
+            </Card>
             <CardContent className="pt-2 h-[300px]">
               <PointsTimeChart dateRange={dateRange} filters={filters} showTasksInstead />
             </CardContent>

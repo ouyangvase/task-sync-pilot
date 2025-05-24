@@ -1,289 +1,276 @@
-
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Achievement } from "@/types";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 
-const achievementSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  icon: z.string().min(1, "Icon is required"),
-  pointsRequired: z.coerce.number().min(1, "Points required must be at least 1"),
-});
-
-type AchievementFormValues = z.infer<typeof achievementSchema>;
-
-interface ManageAchievementsProps {
-  achievements: Achievement[];
-  onAdd?: (achievement: Omit<Achievement, "id" | "isUnlocked" | "unlockedDate" | "currentPoints">) => void;
-  onUpdate?: (id: string, achievement: Partial<Achievement>) => void;
-  onDelete?: (id: string) => void;
+interface AchievementFormValues {
+  title: string;
+  description: string;
+  icon: string;
+  pointsRequired: number;
 }
 
-const ManageAchievements = ({
-  achievements,
-  onAdd,
-  onUpdate,
-  onDelete,
-}: ManageAchievementsProps) => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const form = useForm<AchievementFormValues>({
-    resolver: zodResolver(achievementSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      icon: "🏆",
-      pointsRequired: 100,
+export function ManageAchievements() {
+  const [achievements, setAchievements] = useState<Achievement[]>([
+    {
+      id: "1",
+      title: "First Task",
+      description: "Complete your first task",
+      icon: "✅",
+      category: "task",
+      criteria: {
+        type: "task_count",
+        value: 1,
+      },
+      isUnlocked: true,
+      unlockedDate: "2024-01-01",
     },
-  });
+    {
+      id: "2",
+      title: "5 Tasks",
+      description: "Complete 5 tasks",
+      icon: "💪",
+      category: "task",
+      criteria: {
+        type: "task_count",
+        value: 5,
+      },
+      isUnlocked: false,
+    },
+    {
+      id: "3",
+      title: "100 Points",
+      description: "Earn 100 points",
+      icon: "⭐",
+      category: "points",
+      criteria: {
+        type: "points_earned",
+        value: 100,
+      },
+      isUnlocked: false,
+    },
+  ]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
+  const { toast } = useToast();
 
-  const handleAdd = (data: AchievementFormValues) => {
-    if (onAdd) {
-      onAdd({
-        title: data.title,
-        description: data.description,
-        icon: data.icon,
-        pointsRequired: data.pointsRequired,
-      });
-    }
-    toast.success("Achievement added successfully");
-    form.reset();
+  const handleAddAchievement = (data: any) => {
+    const newAchievement: Omit<Achievement, "id" | "isUnlocked" | "unlockedDate" | "currentPoints"> = {
+      title: data.title,
+      description: data.description,
+      icon: data.icon,
+      category: "points" as const,
+      criteria: {
+        type: "points_earned" as const,
+        value: data.pointsRequired,
+        timeframe: "all_time" as const
+      },
+      pointsRequired: data.pointsRequired
+    };
+    
+    const achievement: Achievement = {
+      id: Date.now().toString(),
+      ...newAchievement,
+      isUnlocked: false,
+      unlockedDate: undefined,
+      currentPoints: 0
+    };
+    
+    setAchievements([...achievements, achievement]);
     setIsAddDialogOpen(false);
   };
 
-  const handleEdit = (achievement: Achievement) => {
-    setEditingAchievement(achievement);
-    form.reset({
-      title: achievement.title,
-      description: achievement.description,
-      icon: achievement.icon,
-      pointsRequired: achievement.pointsRequired,
-    });
-    setIsAddDialogOpen(true);
-  };
-
-  const handleUpdate = (data: AchievementFormValues) => {
-    if (editingAchievement && onUpdate) {
-      onUpdate(editingAchievement.id, {
-        title: data.title,
-        description: data.description,
-        icon: data.icon,
-        pointsRequired: data.pointsRequired,
-      });
-    }
-    toast.success("Achievement updated successfully");
-    form.reset();
+  const handleUpdateAchievement = (data: any) => {
+    const updatedAchievement: Partial<Achievement> = {
+      title: data.title,
+      description: data.description,
+      icon: data.icon,
+      category: "points" as const,
+      criteria: {
+        type: "points_earned" as const,
+        value: data.pointsRequired,
+        timeframe: "all_time" as const
+      },
+      pointsRequired: data.pointsRequired
+    };
+    
+    setAchievements(achievements.map(a => 
+      a.id === editingAchievement?.id 
+        ? { ...a, ...updatedAchievement }
+        : a
+    ));
     setEditingAchievement(null);
-    setIsAddDialogOpen(false);
+    setIsEditDialogOpen(false);
   };
 
-  const confirmDelete = (id: string) => {
-    setDeletingId(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = () => {
-    if (deletingId && onDelete) {
-      onDelete(deletingId);
-      toast.success("Achievement deleted successfully");
-    }
-    setIsDeleteDialogOpen(false);
-    setDeletingId(null);
-  };
-
-  const handleDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      form.reset();
-      setEditingAchievement(null);
-    }
-    setIsAddDialogOpen(open);
+  const handleDeleteAchievement = (id: string) => {
+    setAchievements(achievements.filter(achievement => achievement.id !== id));
+    toast({
+      title: "Achievement deleted.",
+      description: "The achievement has been successfully deleted.",
+    })
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Manage Achievements</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={handleDialogOpenChange}>
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Manage Achievements</h2>
+        <Dialog>
           <DialogTrigger asChild>
-            <Button>
+            <Button variant="primary">
               <Plus className="mr-2 h-4 w-4" />
               Add Achievement
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>
-                {editingAchievement ? "Edit Achievement" : "Add New Achievement"}
-              </DialogTitle>
+              <DialogTitle>Add Achievement</DialogTitle>
+              <DialogDescription>
+                Create a new achievement to motivate your team.
+              </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(editingAchievement ? handleUpdate : handleAdd)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Task Master - 100 Tasks Completed" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe the achievement and how to unlock it"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="icon"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Icon (Emoji)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="🏆" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="pointsRequired"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Points Required</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsAddDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingAchievement ? "Update" : "Add"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Delete Achievement</DialogTitle>
-            </DialogHeader>
-            <p>Are you sure you want to delete this achievement? This action cannot be undone.</p>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDeleteDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                Delete
-              </Button>
-            </div>
+            <AchievementForm onSubmit={handleAddAchievement} />
           </DialogContent>
         </Dialog>
       </div>
-
-      <Separator />
-
-      <div className="grid gap-4">
-        {achievements.map((achievement) => (
-          <Card key={achievement.id}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl">{achievement.icon}</span>
-                  <div>
-                    <h3 className="font-medium">{achievement.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {achievement.pointsRequired} points required
-                    </p>
+      <div className="relative overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Icon</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Points Required</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {achievements.map((achievement) => (
+              <TableRow key={achievement.id}>
+                <TableCell className="font-medium">{achievement.icon}</TableCell>
+                <TableCell>{achievement.title}</TableCell>
+                <TableCell>{achievement.description}</TableCell>
+                <TableCell className="text-right">{achievement.pointsRequired}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => setEditingAchievement(achievement)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Edit Achievement</DialogTitle>
+                          <DialogDescription>
+                            Update the achievement details.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <AchievementForm
+                          onSubmit={handleUpdateAchievement}
+                          initialValues={{
+                            title: achievement.title,
+                            description: achievement.description,
+                            icon: achievement.icon,
+                            pointsRequired: achievement.pointsRequired || 0,
+                          }}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteAchievement(achievement.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(achievement)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    <span className="sr-only">Edit</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive"
-                    onClick={() => confirmDelete(achievement.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Delete</span>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
-};
+}
 
-export default ManageAchievements;
+interface AchievementFormProps {
+  onSubmit: (data: AchievementFormValues) => void;
+  initialValues?: Partial<AchievementFormValues>;
+}
+
+const AchievementForm: React.FC<AchievementFormProps> = ({ onSubmit, initialValues }) => {
+  const [title, setTitle] = useState(initialValues?.title || "");
+  const [description, setDescription] = useState(initialValues?.description || "");
+  const [icon, setIcon] = useState(initialValues?.icon || "");
+  const [pointsRequired, setPointsRequired] = useState(initialValues?.pointsRequired || 0);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    onSubmit({ title, description, icon, pointsRequired });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="icon">Icon</Label>
+        <Input
+          id="icon"
+          value={icon}
+          onChange={(e) => setIcon(e.target.value)}
+          required
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="pointsRequired">Points Required</Label>
+        <Input
+          type="number"
+          id="pointsRequired"
+          value={pointsRequired}
+          onChange={(e) => setPointsRequired(Number(e.target.value))}
+          required
+        />
+      </div>
+      <Button type="submit">Submit</Button>
+    </form>
+  );
+};

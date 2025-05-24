@@ -25,7 +25,8 @@ export function ReportFilters({ filters, setFilters }: ReportFiltersProps) {
   const { users } = useAuth();
   const { tasks } = useTasks();
   
-  const employees = users.filter(user => user.role === "employee");
+  // Include all users except admins (employees, team leads, and managers)
+  const nonAdminUsers = users.filter(user => user.role !== "admin");
   const categories = uniqueCategories(tasks);
   
   return (
@@ -33,19 +34,19 @@ export function ReportFilters({ filters, setFilters }: ReportFiltersProps) {
       <CardContent className="pt-6 px-6 pb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <Label htmlFor="employee-filter">Filter by Employee</Label>
+            <Label htmlFor="employee-filter">Filter by User</Label>
             <Select 
               value={filters.employee} 
               onValueChange={(value) => setFilters(prev => ({ ...prev, employee: value }))}
             >
               <SelectTrigger id="employee-filter">
-                <SelectValue placeholder="All Employees" />
+                <SelectValue placeholder="All Users" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Employees</SelectItem>
-                {employees.map(employee => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    {employee.name}
+                <SelectItem value="all">All Users</SelectItem>
+                {nonAdminUsers.map(user => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name} ({user.role})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -84,7 +85,7 @@ export function ReportFilters({ filters, setFilters }: ReportFiltersProps) {
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
