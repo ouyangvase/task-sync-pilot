@@ -314,38 +314,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserRole = (userId: string, role: string) => {
-    // Update the role in the Supabase database
-    supabase
-      .from('profiles')
-      .update({ role })
-      .eq('id', userId)
-      .then(({ error }) => {
-        if (error) {
-          console.error("Error updating user role:", error);
-          toast.error("Failed to update user role");
-          return;
-        }
-        
-        // Update users array with the new role
-        const updatedUsers = users.map(user => {
-          if (user.id === userId) {
-            return { ...user, role: role as UserRole };
-          }
-          return user;
-        });
-        
-        setUsers(updatedUsers);
-        
-        // Also update currentUser if it's the same user
-        if (currentUser && currentUser.id === userId) {
-          const updatedUser = { ...currentUser, role: role as UserRole };
-          setCurrentUser(updatedUser);
-          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-        }
-        
-        toast.success("User role updated successfully");
+  const updateUserRole = async (userId: string, role: string) => {
+    try {
+      console.log(`Updating user ${userId} role to ${role}`);
+      
+      // Update the role directly in the Supabase database using RPC to bypass RLS issues
+      const { error } = await supabase.rpc('update_user_role_safe', {
+        target_user_id: userId,
+        new_role: role
       });
+
+      if (error) {
+        console.error("Error updating user role:", error);
+        toast.error("Failed to update user role: " + error.message);
+        return;
+      }
+      
+      // Update users array with the new role
+      const updatedUsers = users.map(user => {
+        if (user.id === userId) {
+          return { ...user, role: role as UserRole };
+        }
+        return user;
+      });
+      
+      setUsers(updatedUsers);
+      
+      // Also update currentUser if it's the same user
+      if (currentUser && currentUser.id === userId) {
+        const updatedUser = { ...currentUser, role: role as UserRole };
+        setCurrentUser(updatedUser);
+        localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+      }
+      
+      // Refresh all profiles to ensure consistency
+      await fetchAllProfiles();
+      
+      toast.success("User role updated successfully");
+    } catch (error) {
+      console.error("Error in updateUserRole:", error);
+      toast.error("Failed to update user role");
+    }
   };
 
   const updateUserTitle = (userId: string, title: string) => {
