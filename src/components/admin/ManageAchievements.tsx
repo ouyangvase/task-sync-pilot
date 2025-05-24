@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Achievement } from "@/types";
 import {
@@ -33,46 +34,14 @@ interface AchievementFormValues {
   pointsRequired: number;
 }
 
-export function ManageAchievements() {
-  const [achievements, setAchievements] = useState<Achievement[]>([
-    {
-      id: "1",
-      title: "First Task",
-      description: "Complete your first task",
-      icon: "✅",
-      category: "task",
-      criteria: {
-        type: "task_count",
-        value: 1,
-      },
-      isUnlocked: true,
-      unlockedDate: "2024-01-01",
-    },
-    {
-      id: "2",
-      title: "5 Tasks",
-      description: "Complete 5 tasks",
-      icon: "💪",
-      category: "task",
-      criteria: {
-        type: "task_count",
-        value: 5,
-      },
-      isUnlocked: false,
-    },
-    {
-      id: "3",
-      title: "100 Points",
-      description: "Earn 100 points",
-      icon: "⭐",
-      category: "points",
-      criteria: {
-        type: "points_earned",
-        value: 100,
-      },
-      isUnlocked: false,
-    },
-  ]);
+interface ManageAchievementsProps {
+  achievements: Achievement[];
+  onAdd: (achievement: Omit<Achievement, "id" | "isUnlocked" | "unlockedDate" | "currentPoints">) => void;
+  onUpdate: (id: string, updates: Partial<Achievement>) => void;
+  onDelete: (id: string) => void;
+}
+
+export function ManageAchievements({ achievements, onAdd, onUpdate, onDelete }: ManageAchievementsProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
@@ -92,19 +61,13 @@ export function ManageAchievements() {
       pointsRequired: data.pointsRequired
     };
     
-    const achievement: Achievement = {
-      id: Date.now().toString(),
-      ...newAchievement,
-      isUnlocked: false,
-      unlockedDate: undefined,
-      currentPoints: 0
-    };
-    
-    setAchievements([...achievements, achievement]);
+    onAdd(newAchievement);
     setIsAddDialogOpen(false);
   };
 
   const handleUpdateAchievement = (data: any) => {
+    if (!editingAchievement) return;
+    
     const updatedAchievement: Partial<Achievement> = {
       title: data.title,
       description: data.description,
@@ -118,17 +81,13 @@ export function ManageAchievements() {
       pointsRequired: data.pointsRequired
     };
     
-    setAchievements(achievements.map(a => 
-      a.id === editingAchievement?.id 
-        ? { ...a, ...updatedAchievement }
-        : a
-    ));
+    onUpdate(editingAchievement.id, updatedAchievement);
     setEditingAchievement(null);
     setIsEditDialogOpen(false);
   };
 
   const handleDeleteAchievement = (id: string) => {
-    setAchievements(achievements.filter(achievement => achievement.id !== id));
+    onDelete(id);
     toast({
       title: "Achievement deleted.",
       description: "The achievement has been successfully deleted.",
