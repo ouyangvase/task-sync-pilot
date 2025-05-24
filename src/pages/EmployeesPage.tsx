@@ -41,6 +41,11 @@ const EmployeesPage = () => {
     setIsAddDialogOpen(false);
   };
 
+  const handleUserDeleted = () => {
+    // Clear the selected employee if they were deleted
+    setSelectedEmployee(null);
+  };
+
   // Check permissions on mount
   useEffect(() => {
     if (currentUser) {
@@ -51,6 +56,13 @@ const EmployeesPage = () => {
       }
     }
   }, [currentUser]);
+
+  // Clear selected employee if they're no longer in the list (e.g., after deletion)
+  useEffect(() => {
+    if (selectedEmployee && !displayUsers.find(user => user.id === selectedEmployee.id)) {
+      setSelectedEmployee(null);
+    }
+  }, [displayUsers, selectedEmployee]);
 
   document.title = "User Management | TaskSync Pilot";
 
@@ -81,7 +93,10 @@ const EmployeesPage = () => {
         </div>
         <div className="lg:col-span-2">
           {selectedEmployee ? (
-            <EmployeeDetails employee={selectedEmployee} />
+            <EmployeeDetails 
+              employee={selectedEmployee} 
+              onUserDeleted={handleUserDeleted}
+            />
           ) : (
             <div className="rounded-lg border border-border bg-card p-8 text-center">
               <p className="text-muted-foreground">Select a user to view their details</p>

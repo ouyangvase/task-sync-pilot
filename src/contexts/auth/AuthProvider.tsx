@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from "react";
 import { User, UserRole, UserPermission } from "@/types";
 import { toast } from "sonner";
@@ -475,6 +474,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    try {
+      console.log(`Attempting to delete user ${userId}`);
+      
+      // Call the secure RPC function to delete the user
+      const { data, error } = await supabase.rpc('delete_user_safe', {
+        target_user_id: userId
+      });
+
+      if (error) {
+        console.error("Error deleting user:", error);
+        toast.error("Failed to delete user: " + error.message);
+        return false;
+      }
+      
+      console.log("User deletion result:", data);
+      
+      // Remove the user from the local state
+      const updatedUsers = users.filter(user => user.id !== userId);
+      setUsers(updatedUsers);
+      
+      // Clear currentUser if it's the deleted user (shouldn't happen due to self-deletion prevention)
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(null);
+        localStorage.removeItem("currentUser");
+      }
+      
+      // Refresh all profiles to ensure consistency
+      await fetchAllProfiles();
+      
+      toast.success(data?.message || "User deleted successfully");
+      return true;
+    } catch (error) {
+      console.error("Error in deleteUser:", error);
+      toast.error("Failed to delete user");
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -487,6 +525,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserTitle,
         updateUserRole,
         updateUserPermissions,
+        deleteUser,
         canViewUser: (viewerId, targetUserId) => canViewUser(users, viewerId, targetUserId),
         canEditUser: (editorId, targetUserId) => canEditUser(users, editorId, targetUserId),
         getAccessibleUsers: (userId) => getAccessibleUsers(users, userId),

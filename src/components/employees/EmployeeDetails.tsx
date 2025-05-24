@@ -7,6 +7,7 @@ import { useTasks } from "@/contexts/task";
 import { useAuth } from "@/contexts/auth";
 import TaskForm from "@/components/tasks/TaskForm";
 import { ShieldOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Import refactored components
 import { EmployeeHeader } from "./employee-details/EmployeeHeader";
@@ -20,12 +21,14 @@ import { UserAccessControl } from "./employee-details/UserAccessControl";
 
 interface EmployeeDetailsProps {
   employee: User;
+  onUserDeleted?: () => void;
 }
 
-const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
+const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   const { getUserTasks, getUserTaskStats, getUserPointsStats } = useTasks();
-  const { currentUser, updateUserTitle, updateUserRole, canViewUser, canEditUser } = useAuth();
+  const { currentUser, updateUserTitle, updateUserRole, canViewUser, canEditUser, deleteUser } = useAuth();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Check permissions
   if (currentUser && !canViewUser(currentUser.id, employee.id)) {
@@ -63,6 +66,14 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
     setIsTaskDialogOpen(false);
   };
 
+  const handleUserDelete = async (userId: string) => {
+    const success = await deleteUser(userId);
+    if (success && onUserDeleted) {
+      onUserDeleted();
+    }
+    return success;
+  };
+
   const lastActivityDate = tasks.length > 0 
     ? new Date(
         Math.max(...tasks.map(task => 
@@ -83,6 +94,9 @@ const EmployeeDetails = ({ employee }: EmployeeDetailsProps) => {
               employee={employee} 
               onTaskDialogOpen={handleTaskDialogOpen} 
               canEdit={canEdit}
+              isAdmin={isAdmin}
+              currentUserId={currentUser?.id}
+              onDeleteUser={handleUserDelete}
             />
           </div>
           

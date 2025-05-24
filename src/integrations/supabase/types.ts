@@ -2087,6 +2087,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      delete_user_safe: {
+        Args: { target_user_id: string }
+        Returns: Json
+      }
       expire_points: {
         Args: Record<PropertyKey, never>
         Returns: undefined
