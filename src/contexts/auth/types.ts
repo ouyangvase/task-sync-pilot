@@ -15,5 +15,6 @@ export interface AuthContextType {
   canViewUser: (viewerId: string, targetUserId: string) => boolean;
   canEditUser: (editorId: string, targetUserId: string) => boolean;
   getAccessibleUsers: (userId: string) => User[];
+  getAssignableUsers: (userId: string) => User[];
   registerUser: (email: string, password: string, fullName: string) => Promise<void>;
 }

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +75,8 @@ export function UserAccessControl({ employee }: UserAccessControlProps) {
             User Access Control
           </CardTitle>
           <CardDescription>
-            Manage which employees this user can view or edit
+            Manage which employees this user can view, edit, or assign tasks to. 
+            Users with "view" or "edit" access can be assigned tasks by this user.
           </CardDescription>
         </div>
         {!isEditing ? (

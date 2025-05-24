@@ -518,6 +518,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getAssignableUsers = (userId: string): User[] => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return [];
+    
+    // Admins can assign tasks to all approved users
+    if (user.role === "admin") {
+      return users.filter(u => u.isApproved !== false);
+    }
+    
+    // Team leads can assign tasks to users they have permissions for
+    if (user.role === "team_lead") {
+      const assignableUsers: User[] = [];
+      
+      // Add themselves
+      assignableUsers.push(user);
+      
+      // Add users they have edit or view permissions for
+      users.forEach(otherUser => {
+        if (otherUser.id !== userId && otherUser.isApproved !== false) {
+          const permission = user.permissions?.find(p => p.targetUserId === otherUser.id);
+          if (permission && (permission.canEdit || permission.canView)) {
+            assignableUsers.push(otherUser);
+          }
+        }
+      });
+      
+      return assignableUsers;
+    }
+    
+    // Managers can assign to team leads and employees they have permissions for
+    if (user.role === "manager") {
+      const assignableUsers: User[] = [];
+      
+      // Add themselves
+      assignableUsers.push(user);
+      
+      // Add users they have permissions for
+      users.forEach(otherUser => {
+        if (otherUser.id !== userId && otherUser.isApproved !== false) {
+          const permission = user.permissions?.find(p => p.targetUserId === otherUser.id);
+          if (permission && (permission.canEdit || permission.canView)) {
+            assignableUsers.push(otherUser);
+          }
+        }
+      });
+      
+      return assignableUsers;
+    }
+    
+    // Regular employees can only assign tasks to themselves
+    return [user];
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -534,6 +587,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canViewUser: (viewerId, targetUserId) => canViewUser(users, viewerId, targetUserId),
         canEditUser: (editorId, targetUserId) => canEditUser(users, editorId, targetUserId),
         getAccessibleUsers: (userId) => getAccessibleUsers(users, userId),
+        getAssignableUsers,
         registerUser
       }}
     >

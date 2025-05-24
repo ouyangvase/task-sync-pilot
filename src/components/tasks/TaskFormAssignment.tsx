@@ -20,10 +20,10 @@ import {
 
 const TaskFormAssignment: React.FC = () => {
   const form = useFormContext<TaskFormValues>();
-  const { users } = useAuth();
+  const { currentUser, getAssignableUsers } = useAuth();
 
-  // Filter to show only approved users
-  const approvedUsers = users.filter((user) => user.isApproved !== false);
+  // Get users that the current user can assign tasks to based on their role and permissions
+  const assignableUsers = currentUser ? getAssignableUsers(currentUser.id) : [];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -44,7 +44,7 @@ const TaskFormAssignment: React.FC = () => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {approvedUsers.map((user) => (
+                {assignableUsers.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name} ({user.role})
                   </SelectItem>
