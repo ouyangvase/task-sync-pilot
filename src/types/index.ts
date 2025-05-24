@@ -8,6 +8,7 @@ export interface User {
   avatar?: string;
   isApproved?: boolean;
   permissions?: UserPermission[];
+  monthlyPoints?: number;
 }
 
 export interface UserPermission {
@@ -23,11 +24,12 @@ export interface Task {
   title: string;
   description: string;
   assignee: string;
+  assignedBy?: string;
   dueDate: string;
   status: TaskStatus;
-  priority: "low" | "medium" | "high";
-  category: "daily" | "custom";
-  recurrence: "once" | "daily" | "weekly" | "monthly";
+  priority: TaskPriority;
+  category: TaskCategory;
+  recurrence: TaskRecurrence;
   points: number;
   createdAt: string;
   startedAt?: string;
@@ -35,6 +37,9 @@ export interface Task {
 }
 
 export type TaskStatus = "pending" | "in_progress" | "completed";
+export type TaskPriority = "low" | "medium" | "high";
+export type TaskCategory = "daily" | "custom";
+export type TaskRecurrence = "once" | "daily" | "weekly" | "monthly";
 
 export interface TaskStats {
   completed: number;
@@ -71,5 +76,8 @@ export interface Achievement {
   reward?: string;
   isUnlocked?: boolean;
   unlockedAt?: string;
+  unlockedDate?: string;
   progress?: number;
+  currentPoints?: number;
+  pointsRequired?: number;
 }

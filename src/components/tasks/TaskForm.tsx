@@ -35,7 +35,7 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
         title: task.title,
         description: task.description || "",
         assignee: task.assignee,
-        category: task.category as "daily" | "custom",
+        category: task.category,
         recurrence: task.recurrence,
         dueDate: task.dueDate,
         priority: task.priority,
@@ -52,8 +52,6 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
       });
     } else {
       // Ensure we have required fields for a new task
-      // Since values from the form match the schema requirements,
-      // we can safely assert that they meet our Task type requirements
       const newTask: Omit<Task, "id" | "createdAt"> = {
         title: values.title,
         description: values.description,
@@ -64,7 +62,6 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
         priority: values.priority,
         points: values.points,
         status: "pending" as TaskStatus,
-        assignedBy: currentUser?.id || "",
       };
       
       addTask(newTask);

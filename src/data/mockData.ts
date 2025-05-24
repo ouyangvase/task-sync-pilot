@@ -1,4 +1,5 @@
-import { Task, User, RewardTier } from "@/types";
+
+import { Task, User, RewardTier, Achievement } from "@/types";
 
 // Mock Users
 export const mockUsers: User[] = [
@@ -8,7 +9,6 @@ export const mockUsers: User[] = [
     email: "admin@tasksync.com",
     role: "admin",
     avatar: "https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff",
-    monthlyPoints: 0,
   },
   {
     id: "2",
@@ -16,7 +16,6 @@ export const mockUsers: User[] = [
     email: "john@tasksync.com",
     role: "employee",
     avatar: "https://ui-avatars.com/api/?name=John+Employee&background=2563eb&color=fff",
-    monthlyPoints: 120,
   },
   {
     id: "3",
@@ -24,7 +23,6 @@ export const mockUsers: User[] = [
     email: "sarah@tasksync.com",
     role: "employee",
     avatar: "https://ui-avatars.com/api/?name=Sarah+Team&background=0891b2&color=fff",
-    monthlyPoints: 230,
   },
 ];
 
@@ -40,7 +38,6 @@ export const mockTasks: Task[] = [
     title: "Daily standup meeting",
     description: "Attend the daily standup meeting at 10:00 AM",
     assignee: "2",
-    assignedBy: "1",
     category: "daily",
     recurrence: "daily",
     dueDate: today,
@@ -54,13 +51,12 @@ export const mockTasks: Task[] = [
     title: "Update client documentation",
     description: "Update the client documentation with new features",
     assignee: "2",
-    assignedBy: "1",
     category: "custom",
     recurrence: "once",
     dueDate: today,
     createdAt: yesterday,
     priority: "high",
-    status: "in-progress",
+    status: "in_progress",
     points: 100,
   },
   {
@@ -68,7 +64,6 @@ export const mockTasks: Task[] = [
     title: "Weekly report submission",
     description: "Submit your weekly report by end of day",
     assignee: "2",
-    assignedBy: "1",
     category: "custom",
     recurrence: "weekly",
     dueDate: tomorrow,
@@ -82,7 +77,6 @@ export const mockTasks: Task[] = [
     title: "Review code pull requests",
     description: "Review open pull requests from the development team",
     assignee: "3",
-    assignedBy: "1",
     category: "daily",
     recurrence: "daily",
     dueDate: today,
@@ -97,7 +91,6 @@ export const mockTasks: Task[] = [
     title: "Update timesheet",
     description: "Fill out your timesheet for the week",
     assignee: "3",
-    assignedBy: "1",
     category: "custom",
     recurrence: "weekly",
     dueDate: today,
@@ -111,7 +104,6 @@ export const mockTasks: Task[] = [
     title: "Client follow-up call",
     description: "Call client to discuss project progress",
     assignee: "3",
-    assignedBy: "1",
     category: "custom",
     recurrence: "once",
     dueDate: today,
@@ -126,14 +118,21 @@ export const mockTasks: Task[] = [
 // Mock current user
 export const currentUser = mockUsers[0]; // Default to admin
 
-export const mockAchievements = [
+export const mockAchievements: Achievement[] = [
   {
     id: "1",
     title: "Task Master",
     description: "Completed 50 tasks",
     icon: "🏆",
+    category: "task",
+    criteria: {
+      type: "task_count",
+      value: 50,
+      timeframe: "all_time"
+    },
     pointsRequired: 500,
     isUnlocked: true,
+    unlockedAt: "2023-12-15",
     unlockedDate: "2023-12-15",
   },
   {
@@ -141,8 +140,15 @@ export const mockAchievements = [
     title: "Early Bird",
     description: "Completed 10 tasks before their due date",
     icon: "🐦",
+    category: "task",
+    criteria: {
+      type: "task_count",
+      value: 10,
+      timeframe: "all_time"
+    },
     pointsRequired: 250,
     isUnlocked: true,
+    unlockedAt: "2024-01-22",
     unlockedDate: "2024-01-22", 
   },
   {
@@ -150,6 +156,12 @@ export const mockAchievements = [
     title: "Perfectionist",
     description: "Achieved 100% completion rate for a month",
     icon: "🌟",
+    category: "streak",
+    criteria: {
+      type: "custom",
+      value: 100,
+      timeframe: "monthly"
+    },
     pointsRequired: 1000,
     isUnlocked: false,
     currentPoints: 750,
@@ -159,6 +171,12 @@ export const mockAchievements = [
     title: "Team Player",
     description: "Helped teammates complete 20 tasks",
     icon: "👥",
+    category: "special",
+    criteria: {
+      type: "custom",
+      value: 20,
+      timeframe: "all_time"
+    },
     pointsRequired: 800,
     isUnlocked: false,
     currentPoints: 350,
@@ -168,8 +186,15 @@ export const mockAchievements = [
     title: "Efficiency Expert",
     description: "Completed 5 tasks in a single day",
     icon: "⚡",
+    category: "task",
+    criteria: {
+      type: "task_count",
+      value: 5,
+      timeframe: "daily"
+    },
     pointsRequired: 300,
     isUnlocked: true,
+    unlockedAt: "2024-02-10",
     unlockedDate: "2024-02-10",
   }
 ];

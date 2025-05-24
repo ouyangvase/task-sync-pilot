@@ -15,6 +15,7 @@ const RewardsManager = () => {
   const handleAddTier = () => {
     const newTier: RewardTier = {
       id: `tier-${Date.now()}`,
+      name: "New Tier",
       points: 100,
       reward: "New reward"
     };
@@ -80,6 +81,14 @@ const RewardsManager = () => {
           <div className="space-y-4">
             {tiers.map((tier, index) => (
               <div key={tier.id} className="flex gap-3 items-center">
+                <div className="w-32">
+                  <Input 
+                    value={tier.name}
+                    onChange={(e) => handleTierChange(tier.id, 'name', e.target.value)}
+                    className="w-full"
+                    placeholder="Tier name"
+                  />
+                </div>
                 <div className="w-24">
                   <Input 
                     type="number"
