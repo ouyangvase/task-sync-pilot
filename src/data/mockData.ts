@@ -1,3 +1,4 @@
+
 import { Task, User, RewardTier, Achievement } from "@/types";
 
 // Mock Users
@@ -26,11 +27,11 @@ export const mockUsers: User[] = [
 ];
 
 // Current date formatted as ISO string
-const today = new Date().toISOString().split("T")[0];
-const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+const today = new Date().toISOString();
+const yesterday = new Date(Date.now() - 86400000).toISOString();
+const tomorrow = new Date(Date.now() + 86400000).toISOString();
 
-// Mock Tasks
+// Mock Tasks with proper recurring task structure
 export const mockTasks: Task[] = [
   {
     id: "task-1",
@@ -44,6 +45,7 @@ export const mockTasks: Task[] = [
     priority: "medium",
     status: "pending",
     points: 50,
+    nextOccurrenceDate: tomorrow,
   },
   {
     id: "task-2",
@@ -70,6 +72,7 @@ export const mockTasks: Task[] = [
     priority: "high",
     status: "pending",
     points: 75,
+    nextOccurrenceDate: new Date(Date.now() + 7 * 86400000).toISOString(),
   },
   {
     id: "task-4",
@@ -84,6 +87,7 @@ export const mockTasks: Task[] = [
     status: "completed",
     completedAt: today,
     points: 150,
+    nextOccurrenceDate: tomorrow,
   },
   {
     id: "task-5",
@@ -97,6 +101,7 @@ export const mockTasks: Task[] = [
     priority: "low",
     status: "pending",
     points: 50,
+    nextOccurrenceDate: new Date(Date.now() + 7 * 86400000).toISOString(),
   },
   {
     id: "task-6",

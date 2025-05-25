@@ -34,6 +34,9 @@ export interface Task {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+  isRecurringInstance?: boolean;
+  parentTaskId?: string;
+  nextOccurrenceDate?: string;
 }
 
 export type TaskStatus = "pending" | "in_progress" | "completed";

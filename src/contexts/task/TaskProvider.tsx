@@ -1,11 +1,16 @@
-
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { Task, TaskStats, PointsStats, RewardTier, TaskStatus } from "@/types";
 import { useAuth } from "../AuthContext";
 import { toast } from "@/components/ui/sonner";
 import { TaskContextType } from "./taskContextTypes";
 import { useTaskStorage } from "./useTaskStorage";
 import { useTaskCalculations } from "./useTaskCalculations";
+import { 
+  shouldGenerateNextInstance, 
+  createRecurringTaskInstance, 
+  calculateNextOccurrence,
+  generateMissingRecurringInstances
+} from "@/lib/recurringTaskUtils";
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
@@ -21,6 +26,32 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { tasks, setTasks, rewardTiers, setRewardTiers, monthlyTarget, setMonthlyTarget, userPoints, setUserPoints } = useTaskStorage();
   const { calculateUserPoints } = useTaskCalculations();
   const { currentUser } = useAuth();
+
+  // Generate missing recurring instances on load and periodically
+  useEffect(() => {
+    const generateMissingInstances = () => {
+      const missingInstances = generateMissingRecurringInstances(tasks);
+      if (missingInstances.length > 0) {
+        setTasks(prev => [
+          ...prev,
+          ...missingInstances.map(instance => ({
+            ...instance,
+            id: `task-${Date.now()}-${Math.random()}`,
+            createdAt: new Date().toISOString(),
+          }))
+        ]);
+        console.log(`Generated ${missingInstances.length} missing recurring task instances`);
+      }
+    };
+
+    if (tasks.length > 0) {
+      generateMissingInstances();
+    }
+
+    // Check for missing instances every 5 minutes
+    const interval = setInterval(generateMissingInstances, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [tasks, setTasks]);
 
   const getUserTasks = (userId: string) => {
     return tasks.filter((task) => task.assignee === userId);
@@ -40,6 +71,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...taskData,
       id: `task-${Date.now()}`,
       createdAt: new Date().toISOString(),
+      // For recurring tasks, set the next occurrence date
+      nextOccurrenceDate: taskData.recurrence !== "once" 
+        ? calculateNextOccurrence(taskData.dueDate, taskData.recurrence)
+        : undefined,
     };
 
     setTasks((prev) => [...prev, newTask]);
@@ -48,14 +83,37 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
     setTasks((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
+      prev.map((task) => {
+        if (task.id === taskId) {
+          const updatedTask = { ...task, ...updates };
+          
+          // If updating a recurring template, update the next occurrence date
+          if (updatedTask.recurrence !== "once" && !updatedTask.isRecurringInstance && updates.dueDate) {
+            updatedTask.nextOccurrenceDate = calculateNextOccurrence(updates.dueDate, updatedTask.recurrence);
+          }
+          
+          return updatedTask;
+        }
+        return task;
+      })
     );
     toast.success("Task updated successfully");
   };
 
   const deleteTask = (taskId: string) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId));
-    toast.success("Task deleted successfully");
+    const taskToDelete = tasks.find(task => task.id === taskId);
+    
+    if (taskToDelete?.recurrence !== "once" && !taskToDelete?.isRecurringInstance) {
+      // Deleting a recurring template - also delete all its instances
+      setTasks((prev) => prev.filter((task) => 
+        task.id !== taskId && task.parentTaskId !== taskId
+      ));
+      toast.success("Recurring task template and all instances deleted");
+    } else {
+      // Deleting a single task or instance
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
+      toast.success("Task deleted successfully");
+    }
   };
 
   const startTask = (taskId: string) => {
@@ -75,41 +133,75 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const completeTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id === taskId && task.status === "in_progress") {
-          const completedTask: Task = {
-            ...task,
-            status: "completed" as TaskStatus,
-            completedAt: new Date().toISOString(),
-          };
-          
-          const userId = task.assignee;
-          const taskPoints = task.points || 0;
-          
-          setUserPoints(prev => ({
-            ...prev,
-            [userId]: (prev[userId] || 0) + taskPoints
-          }));
-          
-          const currentPoints = getUserMonthlyPoints(userId);
-          const newTotal = currentPoints + taskPoints;
-          const percentComplete = (newTotal / monthlyTarget) * 100;
-          
-          if (percentComplete >= 50 && percentComplete < 51) {
-            toast.success(`You've reached 50% of your monthly points goal!`);
-          } else if (percentComplete >= 80 && percentComplete < 81) {
-            toast.success(`You're at 80% of your monthly points goal! Almost there!`);
-          } else if (percentComplete >= 100 && percentComplete < 101) {
-            toast.success(`Congratulations! You've reached 100% of your monthly points goal!`);
-          }
-          
-          return completedTask;
+    setTasks((prev) => {
+      const taskToComplete = prev.find(task => task.id === taskId);
+      if (!taskToComplete || taskToComplete.status !== "in_progress") {
+        return prev;
+      }
+
+      const completedTask: Task = {
+        ...taskToComplete,
+        status: "completed" as TaskStatus,
+        completedAt: new Date().toISOString(),
+      };
+
+      let newTasks = prev.map((task) => 
+        task.id === taskId ? completedTask : task
+      );
+
+      // Handle recurring task logic
+      if (shouldGenerateNextInstance(completedTask)) {
+        const nextDueDate = completedTask.nextOccurrenceDate || 
+          calculateNextOccurrence(completedTask.dueDate, completedTask.recurrence);
+        
+        const nextInstance = createRecurringTaskInstance(completedTask, nextDueDate);
+        const newTask: Task = {
+          ...nextInstance,
+          id: `task-${Date.now()}-recurring`,
+          createdAt: new Date().toISOString(),
+        };
+
+        newTasks.push(newTask);
+        
+        // Update the template's next occurrence date if this was a template
+        if (!completedTask.isRecurringInstance) {
+          newTasks = newTasks.map(task => 
+            task.id === taskId 
+              ? { ...task, nextOccurrenceDate: calculateNextOccurrence(nextDueDate, task.recurrence) }
+              : task
+          );
         }
-        return task;
-      })
-    );
-    toast.success("Task completed!");
+
+        toast.success("Task completed! Next occurrence has been scheduled.");
+      }
+
+      // Award points
+      const userId = taskToComplete.assignee;
+      const taskPoints = taskToComplete.points || 0;
+      
+      setUserPoints(prev => ({
+        ...prev,
+        [userId]: (prev[userId] || 0) + taskPoints
+      }));
+      
+      const currentPoints = getUserMonthlyPoints(userId);
+      const newTotal = currentPoints + taskPoints;
+      const percentComplete = (newTotal / monthlyTarget) * 100;
+      
+      if (percentComplete >= 50 && percentComplete < 51) {
+        toast.success(`You've reached 50% of your monthly points goal!`);
+      } else if (percentComplete >= 80 && percentComplete < 81) {
+        toast.success(`You're at 80% of your monthly points goal! Almost there!`);
+      } else if (percentComplete >= 100 && percentComplete < 101) {
+        toast.success(`Congratulations! You've reached 100% of your monthly points goal!`);
+      }
+
+      return newTasks;
+    });
+
+    if (!tasks.find(task => task.id === taskId && shouldGenerateNextInstance(task))) {
+      toast.success("Task completed!");
+    }
   };
 
   const getUserTaskStats = (userId: string): TaskStats => {

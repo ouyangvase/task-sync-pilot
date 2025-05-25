@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Edit, Trash2, Play, CheckCircle } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Play, CheckCircle, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -39,6 +39,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const isCompleted = task.status === "completed";
   const isPending = task.status === "pending";
   const isInProgress = task.status === "in_progress";
+  const isRecurring = task.recurrence !== "once";
   
   const handleStartTask = () => {
     startTask(task.id);
@@ -107,6 +108,13 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
     }
   };
 
+  const getDeleteMessage = () => {
+    if (isRecurring && !task.isRecurringInstance) {
+      return "Are you sure you want to delete this recurring task template? This will also delete all future instances of this task.";
+    }
+    return "Are you sure you want to delete this task? This action cannot be undone.";
+  };
+
   return (
     <div 
       className={cn(
@@ -117,12 +125,22 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={cn(
-              "font-medium truncate",
-              isCompleted && "line-through text-muted-foreground"
-            )}>
-              {task.title}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className={cn(
+                "font-medium truncate",
+                isCompleted && "line-through text-muted-foreground"
+              )}>
+                {task.title}
+              </h3>
+              {isRecurring && (
+                <Repeat className="h-4 w-4 text-blue-500" title="Recurring task" />
+              )}
+              {task.isRecurringInstance && (
+                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                  Instance
+                </Badge>
+              )}
+            </div>
             
             {(isAdmin || currentUser?.id === task.assignee) && (
               <div className="shrink-0">
@@ -155,7 +173,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Task</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete this task? This action cannot be undone.
+                        {getDeleteMessage()}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -191,7 +209,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </Badge>
             
-            <Badge variant="outline">
+            <Badge variant="outline" className={isRecurring ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
               {getRecurrenceText(task.recurrence)}
             </Badge>
 
@@ -200,7 +218,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             </Badge>
             
             <Badge variant="outline" className="ml-auto">
-              Due: {format(new Date(task.dueDate), "MMM d")}
+              Due: {format(new Date(task.dueDate), "MMM d, h:mm a")}
             </Badge>
           </div>
           
@@ -232,6 +250,17 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
           {isCompleted && task.completedAt && (
             <div className="text-xs text-muted-foreground mt-2">
               Completed on {format(new Date(task.completedAt), "MMM d, yyyy 'at' h:mm a")}
+              {isRecurring && (
+                <span className="ml-2 text-blue-600">
+                  • Next occurrence scheduled
+                </span>
+              )}
+            </div>
+          )}
+          
+          {task.nextOccurrenceDate && !isCompleted && isRecurring && (
+            <div className="text-xs text-blue-600 mt-2">
+              Next occurrence: {format(new Date(task.nextOccurrenceDate), "MMM d, yyyy 'at' h:mm a")}
             </div>
           )}
         </div>
