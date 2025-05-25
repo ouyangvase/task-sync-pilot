@@ -1,4 +1,3 @@
-
 import { Task, User, RewardTier, Achievement } from "@/types";
 
 // Mock Users
@@ -38,7 +37,7 @@ export const mockTasks: Task[] = [
     title: "Daily standup meeting",
     description: "Attend the daily standup meeting at 10:00 AM",
     assignee: "2",
-    category: "daily",
+    category: "admin",
     recurrence: "daily",
     dueDate: today,
     createdAt: yesterday,
@@ -77,7 +76,7 @@ export const mockTasks: Task[] = [
     title: "Review code pull requests",
     description: "Review open pull requests from the development team",
     assignee: "3",
-    category: "daily",
+    category: "admin",
     recurrence: "daily",
     dueDate: today,
     createdAt: yesterday,
@@ -104,7 +103,7 @@ export const mockTasks: Task[] = [
     title: "Client follow-up call",
     description: "Call client to discuss project progress",
     assignee: "3",
-    category: "custom",
+    category: "follow_up",
     recurrence: "once",
     dueDate: today,
     createdAt: yesterday,
@@ -118,6 +117,7 @@ export const mockTasks: Task[] = [
 // Mock current user
 export const currentUser = mockUsers[0]; // Default to admin
 
+// Mock Achievements
 export const mockAchievements: Achievement[] = [
   {
     id: "1",
