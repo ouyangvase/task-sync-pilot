@@ -133,7 +133,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                 {task.title}
               </h3>
               {isRecurring && (
-                <Repeat className="h-4 w-4 text-blue-500" title="Recurring task" />
+                <Repeat className="h-4 w-4 text-blue-500" />
               )}
               {task.isRecurringInstance && (
                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
