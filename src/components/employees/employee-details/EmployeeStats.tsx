@@ -29,9 +29,9 @@ export const EmployeeStats = ({
       </div>
       
       <div className="flex flex-col items-center p-4 bg-accent/30 rounded-lg">
-        <span className="text-sm text-muted-foreground">Pending Tasks</span>
+        <span className="text-sm text-muted-foreground">Available Tasks</span>
         <span className="text-2xl font-bold">{taskStats.pending}</span>
-        <span className="text-xs text-muted-foreground">Remaining tasks</span>
+        <span className="text-xs text-muted-foreground">Available today</span>
       </div>
       
       <div className="flex flex-col items-center p-4 bg-accent/30 rounded-lg">

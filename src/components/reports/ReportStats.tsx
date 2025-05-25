@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isWithinInterval } from "date-fns";
 import { Task } from "@/types";
 import { CheckCircle, Clock, Target, Trophy } from "lucide-react";
+import { isTaskAvailable } from "@/lib/taskAvailability";
 
 interface ReportStatsProps {
   dateRange: DateRange;
@@ -38,8 +39,10 @@ export function ReportStats({ dateRange, filters }: ReportStatsProps) {
       return false;
     }
     
-    // Status filter
-    if (filters.status !== "all" && task.status !== filters.status) {
+    // Status filter - for pending, only show tasks available today
+    if (filters.status === "pending") {
+      return task.status !== "completed" && isTaskAvailable(task);
+    } else if (filters.status !== "all" && task.status !== filters.status) {
       return false;
     }
     

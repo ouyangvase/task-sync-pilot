@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect } from "react";
 import { Task, TaskStats, PointsStats, RewardTier, TaskStatus } from "@/types";
 import { useAuth } from "../AuthContext";
@@ -197,13 +198,18 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getUserTaskStats = (userId: string): TaskStats => {
     const userTasks = getUserTasks(userId);
     const completed = userTasks.filter((task) => task.status === "completed").length;
+    
+    // Only count pending tasks that are available today
+    const pendingAvailableToday = userTasks.filter((task) => 
+      task.status !== "completed" && isTaskAvailable(task)
+    ).length;
+    
     const total = userTasks.length;
-    const pending = total - completed;
     const percentComplete = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     return {
       completed,
-      pending,
+      pending: pendingAvailableToday,
       total,
       percentComplete,
     };

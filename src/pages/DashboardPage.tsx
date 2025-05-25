@@ -10,6 +10,7 @@ import RewardsManager from "@/components/rewards/RewardsManager";
 import AchievementsSection from "@/components/dashboard/AchievementsSection";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
+import { isTaskAvailable } from "@/lib/taskAvailability";
 
 const DashboardPage = () => {
   const { currentUser } = useAuth();
@@ -40,14 +41,17 @@ const DashboardPage = () => {
   const pointsStats = getUserPointsStats(currentUser.id);
   const reachedRewards = getUserReachedRewards(currentUser.id);
   
-  // Get counts for summary cards
-  const pendingCount = allTasks.filter((task) => task.status === "pending").length;
+  // Get counts for summary cards - only count tasks available today as pending
+  const pendingCount = allTasks.filter((task) => 
+    task.status !== "completed" && isTaskAvailable(task)
+  ).length;
   const completedCount = allTasks.filter((task) => task.status === "completed").length;
   
-  // Mock overdue count (in a real app, would be based on due dates that have passed)
+  // Count overdue tasks (tasks that are past due and not completed)
   const overdueCount = allTasks.filter((task) => 
     task.status !== "completed" && 
-    new Date(task.dueDate) < new Date()
+    new Date(task.dueDate) < new Date() &&
+    isTaskAvailable(task)
   ).length;
   
   return (
