@@ -31,13 +31,19 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
 
   useEffect(() => {
     if (task) {
+      // Convert ISO string to datetime-local format for editing
+      const formatDateTime = (isoString: string) => {
+        const date = new Date(isoString);
+        return date.toISOString().slice(0, 16);
+      };
+
       form.reset({
         title: task.title,
         description: task.description || "",
         assignee: task.assignee,
         category: task.category,
         recurrence: task.recurrence,
-        dueDate: task.dueDate,
+        dueDate: formatDateTime(task.dueDate),
         priority: task.priority,
         points: task.points,
       });
@@ -45,9 +51,13 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
   }, [task, form]);
 
   const onSubmit = (values: TaskFormValues) => {
+    // Convert datetime-local format back to ISO string
+    const dueDateISO = new Date(values.dueDate).toISOString();
+
     if (task) {
       updateTask(task.id, {
         ...values,
+        dueDate: dueDateISO,
         status: task.status,
       });
     } else {
@@ -58,7 +68,7 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
         assignee: values.assignee,
         category: values.category,
         recurrence: values.recurrence,
-        dueDate: values.dueDate,
+        dueDate: dueDateISO,
         priority: values.priority,
         points: values.points,
         status: "pending" as TaskStatus,

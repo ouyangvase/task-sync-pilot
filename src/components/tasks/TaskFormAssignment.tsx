@@ -9,6 +9,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -25,8 +26,17 @@ const TaskFormAssignment: React.FC = () => {
   // Get users that the current user can assign tasks to based on their role and permissions
   const assignableUsers = currentUser ? getAssignableUsers(currentUser.id) : [];
 
+  const categoryOptions = [
+    { value: "follow_up", label: "Follow Up", description: "Checking in with leads, clients, or pending actions" },
+    { value: "new_sales", label: "New Sales", description: "New sales tasks or outreach activities" },
+    { value: "admin", label: "Admin", description: "Internal team operations and administrative tasks" },
+    { value: "content", label: "Content", description: "Content creation, editing, or posting tasks" },
+    { value: "customer_service", label: "Customer Service", description: "Support-related assignments and customer interactions" },
+    { value: "custom", label: "Custom", description: "Tasks that don't fit existing categories" },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-4">
       <FormField
         control={form.control}
         name="assignee"
@@ -61,7 +71,7 @@ const TaskFormAssignment: React.FC = () => {
         name="category"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Category</FormLabel>
+            <FormLabel>Task Category</FormLabel>
             <Select
               onValueChange={field.onChange}
               defaultValue={field.value}
@@ -73,10 +83,19 @@ const TaskFormAssignment: React.FC = () => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="daily">Daily Fixed</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
+                {categoryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{option.label}</span>
+                      <span className="text-xs text-muted-foreground">{option.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <FormDescription className="text-xs">
+              Choose a category to group tasks by function
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}

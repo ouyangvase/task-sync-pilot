@@ -19,12 +19,15 @@ const TasksPage = () => {
   }
   
   const allTasks = getUserTasks(currentUser.id);
-  const dailyTasks = getTasksByCategory(currentUser.id, "daily");
+  const followUpTasks = getTasksByCategory(currentUser.id, "follow_up");
+  const newSalesTasks = getTasksByCategory(currentUser.id, "new_sales");
+  const adminTasks = getTasksByCategory(currentUser.id, "admin");
+  const contentTasks = getTasksByCategory(currentUser.id, "content");
+  const customerServiceTasks = getTasksByCategory(currentUser.id, "customer_service");
   const customTasks = getTasksByCategory(currentUser.id, "custom");
   const completedTasks = getTasksByCategory(currentUser.id, "completed");
   
-  const pendingDailyTasks = dailyTasks.filter(task => task.status !== "completed");
-  const pendingCustomTasks = customTasks.filter(task => task.status !== "completed");
+  const pendingTasks = allTasks.filter(task => task.status !== "completed");
   
   return (
     <div className="space-y-8">
@@ -33,27 +36,67 @@ const TasksPage = () => {
       </div>
       
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">All Tasks</TabsTrigger>
-          <TabsTrigger value="daily">Daily Fixed</TabsTrigger>
+        <TabsList className="mb-6 grid w-full grid-cols-4 lg:grid-cols-8">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="follow_up">Follow Up</TabsTrigger>
+          <TabsTrigger value="new_sales">Sales</TabsTrigger>
+          <TabsTrigger value="admin">Admin</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="customer_service">Support</TabsTrigger>
           <TabsTrigger value="custom">Custom</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
         </TabsList>
         
         <TabsContent value="all">
           <TaskList
-            title="All Tasks"
-            tasks={allTasks.filter(task => task.status !== "completed")}
-            emptyMessage="No tasks assigned yet"
+            title="All Pending Tasks"
+            tasks={pendingTasks}
+            emptyMessage="No pending tasks"
             showAddButton={true}
           />
         </TabsContent>
         
-        <TabsContent value="daily">
+        <TabsContent value="follow_up">
           <TaskList
-            title="Daily Fixed Tasks"
-            tasks={pendingDailyTasks}
-            emptyMessage="No daily tasks assigned yet"
+            title="Follow Up Tasks"
+            tasks={followUpTasks.filter(task => task.status !== "completed")}
+            emptyMessage="No follow up tasks"
+            showAddButton={true}
+          />
+        </TabsContent>
+        
+        <TabsContent value="new_sales">
+          <TaskList
+            title="New Sales Tasks"
+            tasks={newSalesTasks.filter(task => task.status !== "completed")}
+            emptyMessage="No sales tasks"
+            showAddButton={true}
+          />
+        </TabsContent>
+        
+        <TabsContent value="admin">
+          <TaskList
+            title="Admin Tasks"
+            tasks={adminTasks.filter(task => task.status !== "completed")}
+            emptyMessage="No admin tasks"
+            showAddButton={true}
+          />
+        </TabsContent>
+        
+        <TabsContent value="content">
+          <TaskList
+            title="Content Tasks"
+            tasks={contentTasks.filter(task => task.status !== "completed")}
+            emptyMessage="No content tasks"
+            showAddButton={true}
+          />
+        </TabsContent>
+        
+        <TabsContent value="customer_service">
+          <TaskList
+            title="Customer Service Tasks"
+            tasks={customerServiceTasks.filter(task => task.status !== "completed")}
+            emptyMessage="No customer service tasks"
             showAddButton={true}
           />
         </TabsContent>
@@ -61,8 +104,8 @@ const TasksPage = () => {
         <TabsContent value="custom">
           <TaskList
             title="Custom Tasks"
-            tasks={pendingCustomTasks}
-            emptyMessage="No custom tasks assigned yet"
+            tasks={customTasks.filter(task => task.status !== "completed")}
+            emptyMessage="No custom tasks"
             showAddButton={true}
           />
         </TabsContent>

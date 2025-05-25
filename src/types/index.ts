@@ -38,7 +38,7 @@ export interface Task {
 
 export type TaskStatus = "pending" | "in_progress" | "completed";
 export type TaskPriority = "low" | "medium" | "high";
-export type TaskCategory = "daily" | "custom";
+export type TaskCategory = "follow_up" | "new_sales" | "admin" | "content" | "customer_service" | "custom";
 export type TaskRecurrence = "once" | "daily" | "weekly" | "monthly";
 
 export interface TaskStats {
