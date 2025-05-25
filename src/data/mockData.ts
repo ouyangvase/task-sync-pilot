@@ -1,4 +1,3 @@
-
 import { Task, User, RewardTier, Achievement } from "@/types";
 
 // Mock Users
@@ -27,26 +26,55 @@ export const mockUsers: User[] = [
 ];
 
 // Current date formatted as ISO string
-const today = new Date().toISOString();
-const yesterday = new Date(Date.now() - 86400000).toISOString();
-const tomorrow = new Date(Date.now() + 86400000).toISOString();
+const today = new Date();
+const yesterday = new Date(Date.now() - 86400000);
+const tomorrow = new Date(Date.now() + 86400000);
+
+// Set time to 10 AM for today's tasks
+const todayAt10AM = new Date(today);
+todayAt10AM.setHours(10, 0, 0, 0);
+
+// Set time to 2 PM for today's tasks
+const todayAt2PM = new Date(today);
+todayAt2PM.setHours(14, 0, 0, 0);
+
+// Set time to 9 AM for tomorrow's tasks
+const tomorrowAt9AM = new Date(tomorrow);
+tomorrowAt9AM.setHours(9, 0, 0, 0);
 
 // Mock Tasks with proper recurring task structure
 export const mockTasks: Task[] = [
+  // Daily recurring task template
   {
-    id: "task-1",
+    id: "daily-standup-template",
     title: "Daily standup meeting",
     description: "Attend the daily standup meeting at 10:00 AM",
     assignee: "2",
     category: "admin",
     recurrence: "daily",
-    dueDate: today,
-    createdAt: yesterday,
+    dueDate: todayAt10AM.toISOString(),
+    createdAt: yesterday.toISOString(),
     priority: "medium",
     status: "pending",
     points: 50,
-    nextOccurrenceDate: tomorrow,
+    nextOccurrenceDate: tomorrowAt9AM.toISOString(),
   },
+  // Weekly recurring task template
+  {
+    id: "weekly-report-template",
+    title: "Weekly report submission",
+    description: "Submit your weekly report by end of day",
+    assignee: "2",
+    category: "custom",
+    recurrence: "weekly",
+    dueDate: todayAt2PM.toISOString(),
+    createdAt: yesterday.toISOString(),
+    priority: "high",
+    status: "pending",
+    points: 75,
+    nextOccurrenceDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+  },
+  // One-time tasks
   {
     id: "task-2",
     title: "Update client documentation",
@@ -54,54 +82,11 @@ export const mockTasks: Task[] = [
     assignee: "2",
     category: "custom",
     recurrence: "once",
-    dueDate: today,
-    createdAt: yesterday,
+    dueDate: todayAt2PM.toISOString(),
+    createdAt: yesterday.toISOString(),
     priority: "high",
     status: "in_progress",
     points: 100,
-  },
-  {
-    id: "task-3",
-    title: "Weekly report submission",
-    description: "Submit your weekly report by end of day",
-    assignee: "2",
-    category: "custom",
-    recurrence: "weekly",
-    dueDate: tomorrow,
-    createdAt: today,
-    priority: "high",
-    status: "pending",
-    points: 75,
-    nextOccurrenceDate: new Date(Date.now() + 7 * 86400000).toISOString(),
-  },
-  {
-    id: "task-4",
-    title: "Review code pull requests",
-    description: "Review open pull requests from the development team",
-    assignee: "3",
-    category: "admin",
-    recurrence: "daily",
-    dueDate: today,
-    createdAt: yesterday,
-    priority: "medium",
-    status: "completed",
-    completedAt: today,
-    points: 150,
-    nextOccurrenceDate: tomorrow,
-  },
-  {
-    id: "task-5",
-    title: "Update timesheet",
-    description: "Fill out your timesheet for the week",
-    assignee: "3",
-    category: "custom",
-    recurrence: "weekly",
-    dueDate: today,
-    createdAt: yesterday,
-    priority: "low",
-    status: "pending",
-    points: 50,
-    nextOccurrenceDate: new Date(Date.now() + 7 * 86400000).toISOString(),
   },
   {
     id: "task-6",
@@ -110,12 +95,26 @@ export const mockTasks: Task[] = [
     assignee: "3",
     category: "follow_up",
     recurrence: "once",
-    dueDate: today,
-    createdAt: yesterday,
+    dueDate: yesterday.toISOString(),
+    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
     priority: "high",
     status: "completed",
-    completedAt: today,
+    completedAt: yesterday.toISOString(),
     points: 80,
+  },
+  // Future task that should not be actionable yet
+  {
+    id: "future-task",
+    title: "Prepare next month's presentation",
+    description: "Create slides for next month's team presentation",
+    assignee: "2",
+    category: "content",
+    recurrence: "once",
+    dueDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+    createdAt: today.toISOString(),
+    priority: "medium",
+    status: "pending",
+    points: 120,
   },
 ];
 

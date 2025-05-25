@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Task } from "@/types";
 import { useTasks } from "@/contexts/TaskContext";
@@ -22,9 +21,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Edit, Trash2, Play, CheckCircle, Repeat } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Play, CheckCircle, Repeat, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { isTaskAvailable, getTaskAvailabilityStatus, getDaysUntilDue } from "@/lib/taskAvailability";
 
 interface TaskCardProps {
   task: Task;
@@ -40,12 +40,16 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const isPending = task.status === "pending";
   const isInProgress = task.status === "in_progress";
   const isRecurring = task.recurrence !== "once";
+  const isAvailable = isTaskAvailable(task);
+  const availabilityStatus = getTaskAvailabilityStatus(task);
   
   const handleStartTask = () => {
+    if (!isAvailable) return;
     startTask(task.id);
   };
   
   const handleCompleteTask = () => {
+    if (!isAvailable) return;
     completeTask(task.id);
   };
   
@@ -115,11 +119,35 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
     return "Are you sure you want to delete this task? This action cannot be undone.";
   };
 
+  const getAvailabilityBadge = () => {
+    if (isCompleted) return null;
+    
+    switch (availabilityStatus) {
+      case "overdue":
+        return (
+          <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+            Overdue
+          </Badge>
+        );
+      case "upcoming":
+        const daysUntil = getDaysUntilDue(task);
+        return (
+          <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+            <Clock className="h-3 w-3 mr-1" />
+            {daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div 
       className={cn(
         "task-card group",
-        isCompleted && "completed"
+        isCompleted && "completed",
+        !isAvailable && !isCompleted && "opacity-75"
       )}
     >
       <div className="flex items-start gap-3">
@@ -128,7 +156,8 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             <div className="flex items-center gap-2">
               <h3 className={cn(
                 "font-medium truncate",
-                isCompleted && "line-through text-muted-foreground"
+                isCompleted && "line-through text-muted-foreground",
+                !isAvailable && !isCompleted && "text-muted-foreground"
               )}>
                 {task.title}
               </h3>
@@ -194,7 +223,8 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
           {task.description && (
             <p className={cn(
               "text-sm text-muted-foreground mt-1",
-              isCompleted && "line-through"
+              isCompleted && "line-through",
+              !isAvailable && !isCompleted && "text-muted-foreground"
             )}>
               {task.description}
             </p>
@@ -217,6 +247,8 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               {task.points} pts
             </Badge>
             
+            {getAvailabilityBadge()}
+            
             <Badge variant="outline" className="ml-auto">
               Due: {format(new Date(task.dueDate), "MMM d, h:mm a")}
             </Badge>
@@ -228,10 +260,14 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size="sm"
                 onClick={handleStartTask}
-                className="flex items-center gap-1"
+                disabled={!isAvailable}
+                className={cn(
+                  "flex items-center gap-1",
+                  !isAvailable && "opacity-50 cursor-not-allowed"
+                )}
               >
                 <Play className="h-3 w-3" />
-                Take Job
+                {isAvailable ? "Take Job" : "Not Available Yet"}
               </Button>
             )}
             
@@ -239,10 +275,14 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size="sm"
                 onClick={handleCompleteTask}
-                className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+                disabled={!isAvailable}
+                className={cn(
+                  "flex items-center gap-1 bg-green-600 hover:bg-green-700",
+                  !isAvailable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400"
+                )}
               >
                 <CheckCircle className="h-3 w-3" />
-                Mark Complete
+                {isAvailable ? "Mark Complete" : "Not Available Yet"}
               </Button>
             )}
           </div>

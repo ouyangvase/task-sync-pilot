@@ -61,17 +61,25 @@ export const getRecurringTaskTemplate = (tasks: Task[], taskId: string): Task | 
   return null;
 };
 
-export const hasActiveRecurringInstance = (tasks: Task[], templateId: string): boolean => {
-  return tasks.some(task => 
-    task.parentTaskId === templateId && 
-    task.status !== "completed" &&
-    new Date(task.dueDate) >= new Date()
-  );
+export const hasActiveRecurringInstanceForToday = (tasks: Task[], templateId: string): boolean => {
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  
+  return tasks.some(task => {
+    if (task.parentTaskId !== templateId) return false;
+    
+    const taskDueDate = new Date(task.dueDate);
+    const taskDueDay = new Date(taskDueDate.getFullYear(), taskDueDate.getMonth(), taskDueDate.getDate());
+    
+    // Check if there's an instance due today
+    return taskDueDay >= todayStart && taskDueDay < todayEnd;
+  });
 };
 
-export const generateMissingRecurringInstances = (tasks: Task[]): Omit<Task, "id" | "createdAt">[] => {
+export const generateTodayRecurringInstances = (tasks: Task[]): Omit<Task, "id" | "createdAt">[] => {
   const newInstances: Omit<Task, "id" | "createdAt">[] = [];
-  const now = new Date();
+  const today = new Date();
   
   // Find all recurring task templates
   const recurringTemplates = tasks.filter(task => 
@@ -80,19 +88,53 @@ export const generateMissingRecurringInstances = (tasks: Task[]): Omit<Task, "id
   );
   
   for (const template of recurringTemplates) {
-    // Check if there's an active instance for this template
-    if (!hasActiveRecurringInstance(tasks, template.id)) {
-      // Calculate the next due date based on the template's schedule
-      let nextDueDate = template.nextOccurrenceDate || template.dueDate;
+    // Check if there's already an instance for today
+    if (!hasActiveRecurringInstanceForToday(tasks, template.id)) {
+      // Calculate what the due date should be for today
+      let nextDueDate = template.dueDate;
+      const templateDueDate = new Date(template.dueDate);
       
-      // If the next occurrence is in the past, calculate the next future occurrence
-      while (new Date(nextDueDate) < now) {
-        nextDueDate = calculateNextOccurrence(nextDueDate, template.recurrence);
+      // If template is from the past, calculate the next occurrence that should be today
+      if (template.recurrence === "daily") {
+        // For daily tasks, create an instance for today if none exists
+        const todayInstance = new Date(today);
+        todayInstance.setHours(templateDueDate.getHours(), templateDueDate.getMinutes(), 0, 0);
+        nextDueDate = todayInstance.toISOString();
+      } else if (template.recurrence === "weekly") {
+        // For weekly tasks, check if today matches the template's day of week
+        const templateDayOfWeek = templateDueDate.getDay();
+        const todayDayOfWeek = today.getDay();
+        
+        if (templateDayOfWeek === todayDayOfWeek) {
+          const todayInstance = new Date(today);
+          todayInstance.setHours(templateDueDate.getHours(), templateDueDate.getMinutes(), 0, 0);
+          nextDueDate = todayInstance.toISOString();
+        } else {
+          continue; // Skip if today is not the scheduled day
+        }
+      } else if (template.recurrence === "monthly") {
+        // For monthly tasks, check if today matches the template's day of month
+        const templateDayOfMonth = templateDueDate.getDate();
+        const todayDayOfMonth = today.getDate();
+        
+        if (templateDayOfMonth === todayDayOfMonth) {
+          const todayInstance = new Date(today);
+          todayInstance.setHours(templateDueDate.getHours(), templateDueDate.getMinutes(), 0, 0);
+          nextDueDate = todayInstance.toISOString();
+        } else {
+          continue; // Skip if today is not the scheduled day
+        }
       }
       
-      // Create a new instance
-      const newInstance = createRecurringTaskInstance(template, nextDueDate);
-      newInstances.push(newInstance);
+      // Only create instance if the due date is today
+      const instanceDueDay = new Date(nextDueDate);
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const instanceDay = new Date(instanceDueDay.getFullYear(), instanceDueDay.getMonth(), instanceDueDay.getDate());
+      
+      if (instanceDay.getTime() === todayStart.getTime()) {
+        const newInstance = createRecurringTaskInstance(template, nextDueDate);
+        newInstances.push(newInstance);
+      }
     }
   }
   
