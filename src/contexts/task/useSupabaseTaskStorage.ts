@@ -115,11 +115,22 @@ export function useSupabaseTaskStorage() {
     if (!currentUser) return;
 
     console.log('Loading tasks for user:', currentUser.id);
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .or(`assigned_to.eq.${currentUser.id},assigned_by.eq.${currentUser.id}`)
-      .order('created_at', { ascending: false });
+    
+    // For admins and managers, load all tasks. For others, only load their own tasks
+    const isAdminOrManager = ['admin', 'manager'].includes(currentUser.role);
+    
+    let query = supabase.from('tasks').select('*');
+    
+    if (isAdminOrManager) {
+      // Load all tasks for admin/manager users
+      console.log('Loading all tasks for admin/manager user');
+    } else {
+      // Load only tasks assigned to this user
+      query = query.eq('assigned_to', currentUser.id);
+      console.log('Loading tasks assigned to user:', currentUser.id);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error loading tasks:', error);
@@ -129,13 +140,13 @@ export function useSupabaseTaskStorage() {
 
     console.log(`Loaded ${data?.length || 0} tasks from database`, data);
 
-    const formattedTasks: Task[] = data.map(task => {
+    const formattedTasks: Task[] = (data || []).map(task => {
       console.log('Formatting task:', task);
       return {
         id: task.id,
         title: task.title,
         description: task.description || '',
-        assignee: task.assigned_to,
+        assignee: task.assigned_to, // Map assigned_to to assignee
         assignedBy: task.assigned_by,
         dueDate: task.due_date,
         status: task.status as any,
@@ -338,16 +349,16 @@ export function useSupabaseTaskStorage() {
     console.log('Saving task to database:', 'title' in task ? task.title : 'Unknown task');
     
     try {
-      // Prepare task data without id - let database generate UUID
+      // Prepare task data - map assignee to assigned_to for database
       const taskData = {
         title: task.title,
         description: task.description,
-        assigned_to: task.assignee,
-        assigned_by: task.assignedBy,
+        assigned_to: task.assignee, // Map assignee to assigned_to
+        assigned_by: task.assignedBy || currentUser?.id, // Ensure assigned_by is set
         due_date: task.dueDate,
         status: task.status,
         points: task.points,
-        created_at: task.createdAt,
+        created_at: task.createdAt || new Date().toISOString(),
         started_at: task.startedAt,
         completed_at: task.completedAt,
         updated_at: new Date().toISOString()

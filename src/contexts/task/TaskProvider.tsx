@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect } from "react";
 import { Task, TaskStats, PointsStats, RewardTier, TaskStatus } from "@/types";
 import { useAuth } from "../AuthContext";
@@ -120,7 +121,20 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getUserTasks = (userId: string) => {
     console.log('Getting tasks for user:', userId);
     console.log('All tasks:', tasks);
-    const userTasks = tasks.filter((task) => task.assignee === userId);
+    console.log('Current user role:', currentUser?.role);
+    
+    // For admin/manager users, show all tasks when viewing other users
+    // For regular users, only show their own tasks
+    let userTasks;
+    
+    if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
+      // Admin/manager can see all tasks, but when getting tasks for a specific user, filter by that user
+      userTasks = tasks.filter((task) => task.assignee === userId);
+    } else {
+      // Regular users can only see their own tasks
+      userTasks = tasks.filter((task) => task.assignee === userId && task.assignee === currentUser.id);
+    }
+    
     console.log('Filtered user tasks:', userTasks);
     return userTasks;
   };
@@ -141,6 +155,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Prepare task data without ID - let database generate UUID
     const newTaskData = {
       ...taskData,
+      assignedBy: currentUser.id, // Ensure the current user is set as the creator
       createdAt: new Date().toISOString(),
       // For recurring tasks, set the next occurrence date
       nextOccurrenceDate: taskData.recurrence !== "once" 
@@ -182,7 +197,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .update({
           title: updatedTask.title,
           description: updatedTask.description,
-          assigned_to: updatedTask.assignee,
+          assigned_to: updatedTask.assignee, // Map assignee to assigned_to
           assigned_by: updatedTask.assignedBy,
           due_date: updatedTask.dueDate,
           status: updatedTask.status,
@@ -209,6 +224,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTask = async (taskId: string) => {
     console.log('Deleting task:', taskId);
+    
+    // Check if current user is admin
+    if (currentUser?.role !== 'admin') {
+      toast.error("Only administrators can delete tasks");
+      return;
+    }
     
     try {
       const taskToDelete = tasks.find(task => task.id === taskId);

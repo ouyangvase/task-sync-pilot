@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Task } from "@/types";
-import { useTasks } from "@/contexts/TaskContext";
+import { useTasks } from "@/contexts/task/TaskProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -177,7 +177,8 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               )}
             </div>
             
-            {(isAdmin || currentUser?.id === task.assignee) && (
+            {/* Only show menu if user is admin or if it's an edit-enabled task */}
+            {(isAdmin || (onEdit && currentUser?.id === task.assignee)) && (
               <div className="shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -194,19 +195,22 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-[160px]">
-                    {onEdit && (
+                    {onEdit && (isAdmin || currentUser?.id === task.assignee) && (
                       <DropdownMenuItem onClick={() => onEdit(task)} className="min-h-[44px]">
                         <Edit className="mr-2 h-4 w-4" />
                         Edit task
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem 
-                      onClick={() => setDeleteDialogOpen(true)}
-                      className="text-red-500 focus:text-red-500 min-h-[44px]"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete task
-                    </DropdownMenuItem>
+                    {/* Only show delete option for admin users */}
+                    {isAdmin && (
+                      <DropdownMenuItem 
+                        onClick={() => setDeleteDialogOpen(true)}
+                        className="text-red-500 focus:text-red-500 min-h-[44px]"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete task
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
