@@ -11,30 +11,48 @@ export type Database = {
     Tables: {
       achievements: {
         Row: {
+          category: string | null
           created_at: string
+          criteria_timeframe: string | null
+          criteria_type: string | null
+          criteria_value: number | null
           description: string | null
+          icon: string | null
           icon_url: string | null
           id: string
           is_active: boolean
           points_required: number
+          reward: string | null
           title: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
+          criteria_timeframe?: string | null
+          criteria_type?: string | null
+          criteria_value?: number | null
           description?: string | null
+          icon?: string | null
           icon_url?: string | null
           id?: string
           is_active?: boolean
           points_required: number
+          reward?: string | null
           title: string
         }
         Update: {
+          category?: string | null
           created_at?: string
+          criteria_timeframe?: string | null
+          criteria_type?: string | null
+          criteria_value?: number | null
           description?: string | null
+          icon?: string | null
           icon_url?: string | null
           id?: string
           is_active?: boolean
           points_required?: number
+          reward?: string | null
           title?: string
         }
         Relationships: []
@@ -1597,6 +1615,7 @@ export type Database = {
           due_date: string | null
           id: string
           points: number
+          started_at: string | null
           status: string
           title: string
           updated_at: string
@@ -1610,6 +1629,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           points?: number
+          started_at?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1623,6 +1643,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           points?: number
+          started_at?: string | null
           status?: string
           title?: string
           updated_at?: string

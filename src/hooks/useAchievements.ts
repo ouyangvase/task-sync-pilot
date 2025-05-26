@@ -61,7 +61,7 @@ export function useAchievements() {
       id: ach.id,
       title: ach.title,
       description: ach.description,
-      icon: ach.icon_url || ach.icon || '🏆',
+      icon: ach.icon || ach.icon_url || '🏆',
       category: ach.category || 'points' as any,
       criteria: {
         type: ach.criteria_type || 'points_earned' as any,
