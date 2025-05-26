@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { User } from "@/types";
@@ -28,15 +28,13 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   const { getUserTasks, getUserTaskStats, getUserPointsStats } = useTasks();
   const { currentUser, updateUserTitle, updateUserRole, canViewUser, canEditUser, deleteUser } = useAuth();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0); // Force re-render key
   const navigate = useNavigate();
 
   console.log('EmployeeDetails rendering for employee:', {
     employeeId: employee.id,
     employeeName: employee.name,
     currentUserId: currentUser?.id,
-    currentUserRole: currentUser?.role,
-    refreshKey
+    currentUserRole: currentUser?.role
   });
 
   // Check permissions
@@ -59,36 +57,27 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   const isAdmin = currentUser?.role === "admin";
   const canEdit = currentUser && canEditUser(currentUser.id, employee.id);
   
-  // Force refresh tasks when refreshKey changes
   const tasks = getUserTasks(employee.id);
   const taskStats = getUserTaskStats(employee.id);
   const pointsStats = getUserPointsStats(employee.id);
   
-  console.log('Employee tasks data (current):', {
+  console.log('Employee tasks data:', {
     employeeId: employee.id,
     totalTasks: tasks.length,
     taskTitles: tasks.map(t => t.title),
-    taskStatuses: tasks.map(t => t.status),
-    refreshKey
+    taskStatuses: tasks.map(t => t.status)
   });
   
   const pendingTasks = tasks.filter(task => task.status !== "completed");
   const completedTasks = tasks.filter(task => task.status === "completed");
   const titleIcons = getTitleIcons();
 
-  console.log('Filtered tasks (current):', {
+  console.log('Filtered tasks:', {
     pendingCount: pendingTasks.length,
     completedCount: completedTasks.length,
     pendingTitles: pendingTasks.map(t => t.title),
-    completedTitles: completedTasks.map(t => t.title),
-    refreshKey
+    completedTitles: completedTasks.map(t => t.title)
   });
-
-  // Force refresh when tasks change
-  useEffect(() => {
-    console.log('Tasks changed, triggering refresh. Task count:', tasks.length);
-    setRefreshKey(prev => prev + 1);
-  }, [tasks.length, tasks]);
 
   const handleTaskDialogOpen = () => {
     console.log('Opening task dialog for employee:', employee.id);
@@ -96,14 +85,9 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   };
 
   const handleCloseDialog = () => {
-    console.log('Closing task dialog and forcing refresh');
+    console.log('Closing task dialog and refreshing tasks');
     setIsTaskDialogOpen(false);
-    // Force immediate refresh
-    setRefreshKey(prev => prev + 1);
-    // Small delay to ensure database updates are reflected
-    setTimeout(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 100);
+    // The TaskProvider's real-time subscriptions should handle the refresh
   };
 
   const handleUserDelete = async (userId: string) => {
@@ -112,8 +96,6 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
     if (success && onUserDeleted) {
       onUserDeleted();
     }
-    // Force refresh after deletion
-    setRefreshKey(prev => prev + 1);
     return success;
   };
 
@@ -128,7 +110,7 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
     : "No activity";
 
   return (
-    <div className="space-y-6" key={refreshKey}>
+    <div className="space-y-6">
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -170,10 +152,8 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
       <UserAccessControl employee={employee} />
       
       <EmployeeTaskList 
-        key={`tasks-${refreshKey}`}
         pendingTasks={pendingTasks}
         completedTasks={completedTasks}
-        onTaskUpdate={() => setRefreshKey(prev => prev + 1)}
       />
 
       <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>

@@ -6,13 +6,11 @@ import { TaskItem } from "./TaskItem";
 interface EmployeeTaskListProps {
   pendingTasks: Task[];
   completedTasks: Task[];
-  onTaskUpdate?: () => void;
 }
 
 export const EmployeeTaskList = ({ 
   pendingTasks, 
-  completedTasks,
-  onTaskUpdate 
+  completedTasks 
 }: EmployeeTaskListProps) => {
   console.log('EmployeeTaskList received:', { 
     pendingTasks: pendingTasks.length, 
@@ -35,13 +33,6 @@ export const EmployeeTaskList = ({
     availableTaskTitles: availableTasks.map(t => t.title),
     inProgressTaskTitles: inProgressTasks.map(t => t.title)
   });
-
-  const handleTaskDeleted = () => {
-    console.log('Task deleted, triggering refresh');
-    if (onTaskUpdate) {
-      onTaskUpdate();
-    }
-  };
   
   return (
     <Tabs defaultValue="current">
@@ -57,11 +48,7 @@ export const EmployeeTaskList = ({
             <h3 className="text-lg font-medium mb-4">Pending Tasks ({availableTasks.length})</h3>
             <div className="space-y-4">
               {availableTasks.map((task) => (
-                <TaskItem 
-                  key={task.id} 
-                  task={task} 
-                  onTaskDeleted={handleTaskDeleted}
-                />
+                <TaskItem key={task.id} task={task} />
               ))}
             </div>
           </div>
@@ -73,11 +60,7 @@ export const EmployeeTaskList = ({
             <h3 className="text-lg font-medium mb-4">In Progress Tasks ({inProgressTasks.length})</h3>
             <div className="space-y-4">
               {inProgressTasks.map((task) => (
-                <TaskItem 
-                  key={task.id} 
-                  task={task} 
-                  onTaskDeleted={handleTaskDeleted}
-                />
+                <TaskItem key={task.id} task={task} />
               ))}
             </div>
           </div>
@@ -103,12 +86,7 @@ export const EmployeeTaskList = ({
         ) : (
           <div className="space-y-4">
             {completedTasks.map((task) => (
-              <TaskItem 
-                key={task.id} 
-                task={task} 
-                isCompleted 
-                onTaskDeleted={handleTaskDeleted}
-              />
+              <TaskItem key={task.id} task={task} isCompleted />
             ))}
           </div>
         )}
