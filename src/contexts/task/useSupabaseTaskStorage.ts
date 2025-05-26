@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Task, RewardTier } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +38,10 @@ export function useSupabaseTaskStorage() {
       .channel('tasks-changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'tasks' },
-        () => loadTasks()
+        (payload) => {
+          console.log('Tasks real-time update:', payload);
+          loadTasks();
+        }
       )
       .subscribe();
 
@@ -45,7 +49,10 @@ export function useSupabaseTaskStorage() {
       .channel('rewards-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'reward_tiers' },
-        () => loadRewardTiers()
+        (payload) => {
+          console.log('Reward tiers real-time update:', payload);
+          loadRewardTiers();
+        }
       )
       .subscribe();
 
@@ -53,7 +60,10 @@ export function useSupabaseTaskStorage() {
       .channel('points-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'user_points' },
-        () => loadUserPoints()
+        (payload) => {
+          console.log('User points real-time update:', payload);
+          loadUserPoints();
+        }
       )
       .subscribe();
 
@@ -61,7 +71,10 @@ export function useSupabaseTaskStorage() {
       .channel('settings-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'app_settings' },
-        () => loadMonthlyTarget()
+        (payload) => {
+          console.log('App settings real-time update:', payload);
+          loadMonthlyTarget();
+        }
       )
       .subscribe();
 
@@ -76,6 +89,7 @@ export function useSupabaseTaskStorage() {
   const loadAllData = async () => {
     if (!currentUser) return;
     
+    console.log('Loading all data for user:', currentUser.id);
     setLoading(true);
     try {
       await Promise.all([
@@ -83,8 +97,10 @@ export function useSupabaseTaskStorage() {
         loadRewardTiers(),
         loadUserPoints(),
         loadMonthlyTarget(),
-        migrateLocalStorageData()
+        migrateLocalStorageData(),
+        initializeDefaultData()
       ]);
+      console.log('All data loaded successfully');
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data from database');
@@ -96,6 +112,7 @@ export function useSupabaseTaskStorage() {
   const loadTasks = async () => {
     if (!currentUser) return;
 
+    console.log('Loading tasks for user:', currentUser.id);
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
@@ -104,8 +121,11 @@ export function useSupabaseTaskStorage() {
 
     if (error) {
       console.error('Error loading tasks:', error);
+      toast.error('Failed to load tasks from database');
       return;
     }
+
+    console.log(`Loaded ${data?.length || 0} tasks from database`);
 
     const formattedTasks: Task[] = data.map(task => ({
       id: task.id,
@@ -131,6 +151,7 @@ export function useSupabaseTaskStorage() {
   };
 
   const loadRewardTiers = async () => {
+    console.log('Loading reward tiers');
     const { data, error } = await supabase
       .from('reward_tiers')
       .select('*')
@@ -138,9 +159,11 @@ export function useSupabaseTaskStorage() {
 
     if (error) {
       console.error('Error loading reward tiers:', error);
+      toast.error('Failed to load reward tiers');
       return;
     }
 
+    console.log(`Loaded ${data?.length || 0} reward tiers from database`);
     setRewardTiers(data || []);
   };
 
@@ -148,6 +171,7 @@ export function useSupabaseTaskStorage() {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
+    console.log(`Loading user points for month ${currentMonth}/${currentYear}`);
     const { data, error } = await supabase
       .from('user_points')
       .select('*')
@@ -156,9 +180,11 @@ export function useSupabaseTaskStorage() {
 
     if (error) {
       console.error('Error loading user points:', error);
+      toast.error('Failed to load user points');
       return;
     }
 
+    console.log(`Loaded points for ${data?.length || 0} users`);
     const pointsMap: Record<string, number> = {};
     data?.forEach(point => {
       pointsMap[point.user_id] = point.points;
@@ -168,19 +194,63 @@ export function useSupabaseTaskStorage() {
   };
 
   const loadMonthlyTarget = async () => {
+    console.log('Loading monthly target');
     const { data, error } = await supabase
       .from('app_settings')
       .select('setting_value')
       .eq('setting_key', 'monthly_target')
       .single();
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
       console.error('Error loading monthly target:', error);
       return;
     }
 
     if (data?.setting_value) {
-      setMonthlyTarget(parseInt(data.setting_value as string));
+      const target = parseInt(data.setting_value as string);
+      console.log('Loaded monthly target:', target);
+      setMonthlyTarget(target);
+    } else {
+      console.log('No monthly target found, using default');
+    }
+  };
+
+  const initializeDefaultData = async () => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    
+    console.log('Initializing default data');
+    
+    // Check if reward tiers exist, if not create defaults
+    const { data: existingTiers } = await supabase
+      .from('reward_tiers')
+      .select('id')
+      .limit(1);
+
+    if (!existingTiers || existingTiers.length === 0) {
+      console.log('Creating default reward tiers');
+      const defaultTiers = [
+        { name: "Bronze Achiever", points: 300, reward: "$50 cash bonus", description: "Complete 300 points worth of tasks" },
+        { name: "Silver Performer", points: 500, reward: "$100 cash bonus", description: "Complete 500 points worth of tasks" },
+        { name: "Gold Champion", points: 1000, reward: "$200 cash bonus + extra day off", description: "Complete 1000 points worth of tasks" }
+      ];
+
+      for (const tier of defaultTiers) {
+        await saveRewardTierToDatabase(tier);
+      }
+      toast.success('Default reward tiers created');
+    }
+
+    // Check if monthly target exists, if not create default
+    const { data: existingTarget } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'monthly_target')
+      .single();
+
+    if (!existingTarget) {
+      console.log('Creating default monthly target');
+      await updateMonthlyTargetInDatabase(500);
+      toast.success('Default monthly target set to 500 points');
     }
   };
 
@@ -239,9 +309,10 @@ export function useSupabaseTaskStorage() {
   };
 
   const saveTaskToDatabase = async (task: Task) => {
-    const { error } = await supabase
-      .from('tasks')
-      .insert({
+    console.log('Saving task to database:', task.title);
+    
+    try {
+      const taskData = {
         id: task.id,
         title: task.title,
         description: task.description,
@@ -254,38 +325,108 @@ export function useSupabaseTaskStorage() {
         started_at: task.startedAt,
         completed_at: task.completedAt,
         updated_at: new Date().toISOString()
-      });
+      };
 
-    if (error && !error.message.includes('duplicate key')) {
-      console.error('Error saving task:', error);
+      console.log('Task data being inserted:', taskData);
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(taskData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error saving task:', error);
+        if (!error.message.includes('duplicate key')) {
+          toast.error(`Failed to save task: ${error.message}`);
+          throw error;
+        } else {
+          console.log('Task already exists, updating instead');
+          const { error: updateError } = await supabase
+            .from('tasks')
+            .update(taskData)
+            .eq('id', task.id);
+          
+          if (updateError) {
+            console.error('Error updating existing task:', updateError);
+            throw updateError;
+          }
+        }
+      } else {
+        console.log('Task saved successfully:', data);
+        
+        // Verify the task was saved by querying it back
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('id', task.id)
+          .single();
+        
+        if (verifyError) {
+          console.error('Failed to verify task was saved:', verifyError);
+        } else {
+          console.log('Task verified in database:', verifyData);
+        }
+      }
+    } catch (error) {
+      console.error('Exception saving task:', error);
+      throw error;
     }
   };
 
   const saveRewardTierToDatabase = async (tier: RewardTier) => {
-    const { error } = await supabase
-      .from('reward_tiers')
-      .insert({
-        name: tier.name,
-        points: tier.points,
-        reward: tier.reward,
-        description: tier.description
-      });
+    console.log('Saving reward tier to database:', tier.name);
+    
+    try {
+      const { data, error } = await supabase
+        .from('reward_tiers')
+        .insert({
+          name: tier.name,
+          points: tier.points,
+          reward: tier.reward,
+          description: tier.description
+        })
+        .select()
+        .single();
 
-    if (error && !error.message.includes('duplicate key')) {
-      console.error('Error saving reward tier:', error);
+      if (error) {
+        console.error('Database error saving reward tier:', error);
+        if (!error.message.includes('duplicate key')) {
+          toast.error(`Failed to save reward tier: ${error.message}`);
+          throw error;
+        }
+      } else {
+        console.log('Reward tier saved successfully:', data);
+      }
+    } catch (error) {
+      console.error('Exception saving reward tier:', error);
+      throw error;
     }
   };
 
   const updateMonthlyTargetInDatabase = async (target: number) => {
-    const { error } = await supabase
-      .from('app_settings')
-      .upsert({
-        setting_key: 'monthly_target',
-        setting_value: target.toString()
-      });
+    console.log('Updating monthly target in database:', target);
+    
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .upsert({
+          setting_key: 'monthly_target',
+          setting_value: target.toString()
+        })
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error updating monthly target:', error);
+      if (error) {
+        console.error('Database error updating monthly target:', error);
+        toast.error(`Failed to update monthly target: ${error.message}`);
+        throw error;
+      } else {
+        console.log('Monthly target updated successfully:', data);
+      }
+    } catch (error) {
+      console.error('Exception updating monthly target:', error);
+      throw error;
     }
   };
 
@@ -293,17 +434,30 @@ export function useSupabaseTaskStorage() {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
-    const { error } = await supabase
-      .from('user_points')
-      .upsert({
-        user_id: userId,
-        points: points,
-        month: currentMonth,
-        year: currentYear
-      });
+    console.log(`Updating points for user ${userId}: ${points} points for ${currentMonth}/${currentYear}`);
 
-    if (error) {
-      console.error('Error updating user points:', error);
+    try {
+      const { data, error } = await supabase
+        .from('user_points')
+        .upsert({
+          user_id: userId,
+          points: points,
+          month: currentMonth,
+          year: currentYear
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error updating user points:', error);
+        toast.error(`Failed to update user points: ${error.message}`);
+        throw error;
+      } else {
+        console.log('User points updated successfully:', data);
+      }
+    } catch (error) {
+      console.error('Exception updating user points:', error);
+      throw error;
     }
   };
 

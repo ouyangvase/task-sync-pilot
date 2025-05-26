@@ -129,6 +129,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addTask = async (taskData: Omit<Task, "id" | "createdAt">) => {
     if (!currentUser) return;
     
+    console.log('Adding new task:', taskData.title);
+    
     const newTask: Task = {
       ...taskData,
       id: `task-${Date.now()}`,
@@ -140,18 +142,36 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     try {
+      console.log('Calling saveTaskToDatabase with:', newTask);
       await saveTaskToDatabase(newTask);
+      
+      // Verify the task appears in our local state
+      setTimeout(() => {
+        console.log('Current tasks in state:', tasks.length);
+        const foundTask = tasks.find(t => t.id === newTask.id);
+        if (foundTask) {
+          console.log('Task found in state after save');
+        } else {
+          console.warn('Task not found in state after save - real-time may be delayed');
+        }
+      }, 1000);
+      
       toast.success("Task created successfully");
     } catch (error) {
       console.error("Error creating task:", error);
-      toast.error("Failed to create task");
+      toast.error("Failed to create task. Please try again.");
     }
   };
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    console.log('Updating task:', taskId, updates);
+    
     try {
       const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
+      if (!task) {
+        console.error('Task not found for update:', taskId);
+        return;
+      }
 
       const updatedTask = { ...task, ...updates };
       
@@ -165,32 +185,34 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .update({
           title: updatedTask.title,
           description: updatedTask.description,
-          assignee: updatedTask.assignee,
+          assigned_to: updatedTask.assignee,
           assigned_by: updatedTask.assignedBy,
           due_date: updatedTask.dueDate,
           status: updatedTask.status,
-          priority: updatedTask.priority,
-          category: updatedTask.category,
-          recurrence: updatedTask.recurrence,
           points: updatedTask.points,
           started_at: updatedTask.startedAt,
           completed_at: updatedTask.completedAt,
-          is_recurring_instance: updatedTask.isRecurringInstance,
-          parent_task_id: updatedTask.parentTaskId,
-          next_occurrence_date: updatedTask.nextOccurrenceDate
+          updated_at: new Date().toISOString()
         })
         .eq('id', taskId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error updating task:', error);
+        toast.error(`Failed to update task: ${error.message}`);
+        throw error;
+      }
       
+      console.log('Task updated successfully');
       toast.success("Task updated successfully");
     } catch (error) {
       console.error("Error updating task:", error);
-      toast.error("Failed to update task");
+      toast.error("Failed to update task. Please try again.");
     }
   };
 
   const deleteTask = async (taskId: string) => {
+    console.log('Deleting task:', taskId);
+    
     try {
       const taskToDelete = tasks.find(task => task.id === taskId);
       
@@ -201,7 +223,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .delete()
           .or(`id.eq.${taskId},parent_task_id.eq.${taskId}`);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Database error deleting recurring task:', error);
+          throw error;
+        }
         toast.success("Recurring task template and all instances deleted");
       } else {
         // Deleting a single task or instance
@@ -210,12 +235,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .delete()
           .eq('id', taskId);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Database error deleting task:', error);
+          throw error;
+        }
         toast.success("Task deleted successfully");
       }
+      
+      console.log('Task deleted successfully');
     } catch (error) {
       console.error("Error deleting task:", error);
-      toast.error("Failed to delete task");
+      toast.error("Failed to delete task. Please try again.");
     }
   };
 
