@@ -16,7 +16,9 @@ export const EmployeeTaskList = ({
     pendingTasks: pendingTasks.length, 
     completedTasks: completedTasks.length,
     pendingTaskIds: pendingTasks.map(t => t.id),
-    pendingTaskTitles: pendingTasks.map(t => t.title)
+    pendingTaskTitles: pendingTasks.map(t => t.title),
+    completedTaskIds: completedTasks.map(t => t.id),
+    completedTaskTitles: completedTasks.map(t => t.title)
   });
   
   // Show ALL pending tasks - no availability filtering for display
