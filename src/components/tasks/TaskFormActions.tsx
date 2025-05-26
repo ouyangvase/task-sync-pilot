@@ -5,24 +5,20 @@ import { Button } from "@/components/ui/button";
 interface TaskFormActionsProps {
   onCancel?: () => void;
   isEditing: boolean;
-  isSubmitting?: boolean;
 }
 
 const TaskFormActions: React.FC<TaskFormActionsProps> = ({ 
   onCancel, 
-  isEditing,
-  isSubmitting = false
+  isEditing 
 }) => {
   return (
     <div className="flex justify-end gap-2">
       {onCancel && (
-        <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
+        <Button variant="outline" type="button" onClick={onCancel}>
           Cancel
         </Button>
       )}
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Saving..." : (isEditing ? "Update" : "Create")} Task
-      </Button>
+      <Button type="submit">{isEditing ? "Update" : "Create"} Task</Button>
     </div>
   );
 };
