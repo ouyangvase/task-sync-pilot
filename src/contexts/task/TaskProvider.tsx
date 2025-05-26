@@ -50,15 +50,16 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const todayInstances = generateTodayRecurringInstances(tasks);
       if (todayInstances.length > 0) {
-        const newInstances = todayInstances.map(instance => ({
-          ...instance,
-          id: `task-${Date.now()}-${Math.random()}`,
-          createdAt: new Date().toISOString(),
-        }));
-
-        // Save each instance to database
-        for (const instance of newInstances) {
-          await saveTaskToDatabase(instance);
+        // Save each instance to database - let database generate UUIDs
+        for (const instance of todayInstances) {
+          const instanceWithoutId = {
+            ...instance,
+            createdAt: new Date().toISOString(),
+          };
+          // Remove the id field to let database generate it
+          delete (instanceWithoutId as any).id;
+          
+          await saveTaskToDatabase(instanceWithoutId as Omit<Task, "id">);
         }
         
         console.log(`Generated ${todayInstances.length} recurring task instances for today`);
@@ -131,9 +132,9 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     console.log('Adding new task:', taskData.title);
     
-    const newTask: Task = {
+    // Prepare task data without ID - let database generate UUID
+    const newTaskData = {
       ...taskData,
-      id: `task-${Date.now()}`,
       createdAt: new Date().toISOString(),
       // For recurring tasks, set the next occurrence date
       nextOccurrenceDate: taskData.recurrence !== "once" 
@@ -142,20 +143,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     try {
-      console.log('Calling saveTaskToDatabase with:', newTask);
-      await saveTaskToDatabase(newTask);
+      console.log('Calling saveTaskToDatabase with:', newTaskData);
+      await saveTaskToDatabase(newTaskData);
       
-      // Verify the task appears in our local state
-      setTimeout(() => {
-        console.log('Current tasks in state:', tasks.length);
-        const foundTask = tasks.find(t => t.id === newTask.id);
-        if (foundTask) {
-          console.log('Task found in state after save');
-        } else {
-          console.warn('Task not found in state after save - real-time may be delayed');
-        }
-      }, 1000);
-      
+      console.log('Task creation request sent to database');
       toast.success("Task created successfully");
     } catch (error) {
       console.error("Error creating task:", error);

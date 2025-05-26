@@ -287,7 +287,9 @@ export function useSupabaseTaskStorage() {
         console.log(`Found ${localTasks.length} tasks in localStorage, migrating...`);
         
         for (const task of localTasks) {
-          await saveTaskToDatabase(task);
+          // Remove the id field to let database generate it
+          const { id, ...taskWithoutId } = task;
+          await saveTaskToDatabase(taskWithoutId);
         }
         
         // Clear localStorage after migration
@@ -328,12 +330,12 @@ export function useSupabaseTaskStorage() {
     }
   };
 
-  const saveTaskToDatabase = async (task: Task) => {
-    console.log('Saving task to database:', task.title);
+  const saveTaskToDatabase = async (task: Omit<Task, "id"> | Task) => {
+    console.log('Saving task to database:', 'title' in task ? task.title : 'Unknown task');
     
     try {
+      // Prepare task data without id - let database generate UUID
       const taskData = {
-        id: task.id,
         title: task.title,
         description: task.description,
         assigned_to: task.assignee,
@@ -357,39 +359,12 @@ export function useSupabaseTaskStorage() {
 
       if (error) {
         console.error('Database error saving task:', error);
-        if (!error.message.includes('duplicate key')) {
-          toast.error(`Failed to save task: ${error.message}`);
-          throw error;
-        } else {
-          console.log('Task already exists, updating instead');
-          const { error: updateError } = await supabase
-            .from('tasks')
-            .update(taskData)
-            .eq('id', task.id);
-          
-          if (updateError) {
-            console.error('Error updating existing task:', updateError);
-            toast.error(`Failed to update task: ${updateError.message}`);
-            throw updateError;
-          }
-        }
+        toast.error(`Failed to save task: ${error.message}`);
+        throw error;
       } else {
-        console.log('Task saved successfully:', data);
-        
-        // Verify the task was saved by querying it back
-        const { data: verifyData, error: verifyError } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('id', task.id)
-          .single();
-        
-        if (verifyError) {
-          console.error('Failed to verify task was saved:', verifyError);
-          toast.error('Task may not have been saved properly');
-        } else {
-          console.log('Task verified in database:', verifyData);
-          toast.success('Task saved successfully');
-        }
+        console.log('Task saved successfully with generated UUID:', data.id);
+        toast.success('Task saved successfully');
+        return data; // Return the task with generated UUID
       }
     } catch (error) {
       console.error('Exception saving task:', error);
