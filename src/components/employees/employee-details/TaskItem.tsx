@@ -22,9 +22,10 @@ import {
 interface TaskItemProps {
   task: Task;
   isCompleted?: boolean;
+  onTaskDeleted?: () => void;
 }
 
-export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
+export const TaskItem = ({ task, isCompleted = false, onTaskDeleted }: TaskItemProps) => {
   const { currentUser } = useAuth();
   const { deleteTask } = useTasks();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -47,6 +48,12 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
       await deleteTask(task.id);
       setDeleteDialogOpen(false);
       console.log('Task deleted successfully:', task.id);
+      
+      // Trigger immediate parent refresh
+      if (onTaskDeleted) {
+        console.log('Calling onTaskDeleted callback');
+        onTaskDeleted();
+      }
     } catch (error) {
       console.error('Error deleting task:', error);
     } finally {

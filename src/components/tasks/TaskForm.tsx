@@ -1,32 +1,46 @@
-
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuth } from "@/contexts/AuthContext";
+import { Task, User } from "@/types";
+import { taskSchema, TaskFormData } from "./taskSchema";
 import { useTasks } from "@/contexts/TaskContext";
-import { Task, TaskStatus } from "@/types";
+import { useAuth } from "@/contexts/auth";
 import { Form } from "@/components/ui/form";
-import { taskFormSchema, TaskFormValues, defaultTaskValues } from "./taskSchema";
-
-// Import sub-components
-import TaskFormBasicFields from "./TaskFormBasicFields";
-import TaskFormAssignment from "./TaskFormAssignment";
-import TaskFormScheduling from "./TaskFormScheduling";
-import TaskFormMetrics from "./TaskFormMetrics";
-import TaskFormActions from "./TaskFormActions";
+import { TaskFormBasicFields } from "./TaskFormBasicFields";
+import { TaskFormAssignment } from "./TaskFormAssignment";
+import { TaskFormScheduling } from "./TaskFormScheduling";
+import { TaskFormMetrics } from "./TaskFormMetrics";
+import { TaskFormActions } from "./TaskFormActions";
+import { Separator } from "@/components/ui/separator";
 
 interface TaskFormProps {
   task?: Task | null;
-  onClose?: () => void;
+  onClose: () => void;
 }
 
 const TaskForm = ({ task, onClose }: TaskFormProps) => {
   const { addTask, updateTask } = useTasks();
-  const { currentUser } = useAuth();
-  
-  const form = useForm<TaskFormValues>({
-    resolver: zodResolver(taskFormSchema),
-    defaultValues: defaultTaskValues,
+  const { users, currentUser } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  console.log('TaskForm rendered with:', { 
+    isEdit: !!task, 
+    taskId: task?.id, 
+    currentUser: currentUser?.id 
+  });
+
+  const form = useForm<TaskFormData>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      assignee: "",
+      dueDate: new Date().toISOString().split('T')[0],
+      priority: "medium",
+      category: "custom",
+      points: 10,
+      recurrence: "once",
+    },
   });
 
   useEffect(() => {
@@ -50,46 +64,69 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
     }
   }, [task, form]);
 
-  const onSubmit = (values: TaskFormValues) => {
-    // Convert datetime-local format back to ISO string
-    const dueDateISO = new Date(values.dueDate).toISOString();
+  const onSubmit = async (data: TaskFormData) => {
+    console.log('TaskForm submitting:', data);
+    setIsSubmitting(true);
 
-    if (task) {
-      updateTask(task.id, {
-        ...values,
-        dueDate: dueDateISO,
-        status: task.status,
-      });
-    } else {
-      // Ensure we have required fields for a new task
-      const newTask: Omit<Task, "id" | "createdAt"> = {
-        title: values.title,
-        description: values.description,
-        assignee: values.assignee,
-        category: values.category,
-        recurrence: values.recurrence,
-        dueDate: dueDateISO,
-        priority: values.priority,
-        points: values.points,
-        status: "pending" as TaskStatus,
+    try {
+      const taskData = {
+        ...data,
+        dueDate: new Date(data.dueDate).toISOString(),
+        assignedBy: currentUser?.id,
       };
-      
-      addTask(newTask);
-    }
-    
-    if (onClose) {
+
+      if (task) {
+        console.log('Updating existing task:', task.id);
+        await updateTask(task.id, taskData);
+      } else {
+        console.log('Creating new task');
+        await addTask(taskData);
+      }
+
+      console.log('Task operation successful, closing form');
       onClose();
+      
+      // Force a small delay to ensure database updates are processed
+      setTimeout(() => {
+        console.log('Task form closed with delay');
+      }, 100);
+      
+    } catch (error) {
+      console.error("Error saving task:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const handleCancel = () => {
+    console.log('TaskForm cancelled');
+    onClose();
+  };
+
+  const filteredUsers = users?.filter((user: User) => user.isApproved !== false) || [];
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-        <TaskFormBasicFields />
-        <TaskFormAssignment />
-        <TaskFormScheduling />
-        <TaskFormMetrics />
-        <TaskFormActions onCancel={onClose} isEditing={!!task} />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <TaskFormBasicFields form={form} />
+        
+        <Separator />
+        
+        <TaskFormAssignment form={form} users={filteredUsers} />
+        
+        <Separator />
+        
+        <TaskFormScheduling form={form} />
+        
+        <Separator />
+        
+        <TaskFormMetrics form={form} />
+        
+        <TaskFormActions
+          isSubmitting={isSubmitting}
+          onCancel={handleCancel}
+          isEdit={!!task}
+        />
       </form>
     </Form>
   );
