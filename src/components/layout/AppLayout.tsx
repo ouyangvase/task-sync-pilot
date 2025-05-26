@@ -6,6 +6,7 @@ import AppHeader from "./AppHeader";
 import AppSidebar from "./AppSidebar";
 import { useScreenSize } from "@/hooks/use-mobile";
 import { ResponsiveContainer } from "@/components/ui/responsive-container";
+import { cn } from "@/lib/utils";
 
 const AppLayout = () => {
   const { isAuthenticated, loading } = useAuth();

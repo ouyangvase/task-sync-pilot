@@ -13,6 +13,7 @@ import { Trophy } from "lucide-react";
 import { isTaskAvailable } from "@/lib/taskAvailability";
 import { useScreenSize } from "@/hooks/use-mobile";
 import { ResponsiveContainer } from "@/components/ui/responsive-container";
+import { cn } from "@/lib/utils";
 
 const DashboardPage = () => {
   const { currentUser } = useAuth();
