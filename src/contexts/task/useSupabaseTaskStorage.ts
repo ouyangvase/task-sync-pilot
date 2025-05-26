@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Task, RewardTier } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,18 +10,28 @@ export function useSupabaseTaskStorage() {
   const [monthlyTarget, setMonthlyTarget] = useState<number>(500);
   const [userPoints, setUserPoints] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
 
   // Load data from Supabase on mount
   useEffect(() => {
-    if (currentUser) {
-      loadAllData();
+    // If auth is still loading, wait for it to complete
+    if (authLoading) {
+      return;
     }
-  }, [currentUser]);
 
-  // Set up real-time subscriptions
+    // If user is not authenticated, stop loading
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+
+    // If user is authenticated, load data
+    loadAllData();
+  }, [currentUser, authLoading]);
+
+  // Set up real-time subscriptions only when user is authenticated
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || authLoading) return;
 
     const tasksChannel = supabase
       .channel('tasks-changes')
@@ -62,9 +71,11 @@ export function useSupabaseTaskStorage() {
       supabase.removeChannel(pointsChannel);
       supabase.removeChannel(settingsChannel);
     };
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
   const loadAllData = async () => {
+    if (!currentUser) return;
+    
     setLoading(true);
     try {
       await Promise.all([

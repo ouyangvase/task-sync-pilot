@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect } from "react";
 import { Task, TaskStats, PointsStats, RewardTier, TaskStatus } from "@/types";
 import { useAuth } from "../AuthContext";
@@ -42,12 +41,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   } = useSupabaseTaskStorage();
   
   const { calculateUserPoints } = useTaskCalculations();
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
 
-  // Generate today's recurring instances on load and periodically
+  // Generate today's recurring instances on load and periodically - only when authenticated
   useEffect(() => {
     const generateTodayInstances = async () => {
-      if (!currentUser || loading) return;
+      if (!currentUser || loading || authLoading) return;
       
       const todayInstances = generateTodayRecurringInstances(tasks);
       if (todayInstances.length > 0) {
@@ -66,14 +65,55 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    if (tasks.length > 0 && !loading) {
+    if (tasks.length > 0 && !loading && !authLoading && currentUser) {
       generateTodayInstances();
     }
 
-    // Check for new instances every hour
-    const interval = setInterval(generateTodayInstances, 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [tasks, loading, currentUser, saveTaskToDatabase]);
+    // Check for new instances every hour, but only if authenticated
+    if (currentUser && !authLoading) {
+      const interval = setInterval(generateTodayInstances, 60 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [tasks, loading, authLoading, currentUser, saveTaskToDatabase]);
+
+  // Show loading only when auth is loading or when we're loading data for authenticated users
+  if (authLoading || (currentUser && loading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-lg">
+          {authLoading ? "Checking authentication..." : "Loading tasks from database..."}
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, render children (which should handle redirect to login)
+  if (!currentUser) {
+    return (
+      <TaskContext.Provider
+        value={{
+          tasks: [],
+          getUserTasks: () => [],
+          getTasksByCategory: () => [],
+          addTask: async () => {},
+          updateTask: async () => {},
+          deleteTask: async () => {},
+          startTask: async () => {},
+          completeTask: async () => {},
+          getUserTaskStats: () => ({ completed: 0, pending: 0, total: 0, percentComplete: 0 }),
+          getUserPointsStats: () => ({ earned: 0, target: 500, percentComplete: 0 }),
+          rewardTiers: [],
+          updateRewardTiers: async () => {},
+          monthlyTarget: 500,
+          updateMonthlyTarget: async () => {},
+          getUserReachedRewards: () => [],
+          getUserMonthlyPoints: () => 0,
+        }}
+      >
+        {children}
+      </TaskContext.Provider>
+    );
+  }
 
   const getUserTasks = (userId: string) => {
     return tasks.filter((task) => task.assignee === userId);
