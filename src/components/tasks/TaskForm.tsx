@@ -1,24 +1,26 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Task, User } from "@/types";
-import { taskSchema, TaskFormData } from "./taskSchema";
+import { taskFormSchema, TaskFormValues } from "./taskSchema";
 import { useTasks } from "@/contexts/TaskContext";
 import { useAuth } from "@/contexts/auth";
 import { Form } from "@/components/ui/form";
-import { TaskFormBasicFields } from "./TaskFormBasicFields";
-import { TaskFormAssignment } from "./TaskFormAssignment";
-import { TaskFormScheduling } from "./TaskFormScheduling";
-import { TaskFormMetrics } from "./TaskFormMetrics";
-import { TaskFormActions } from "./TaskFormActions";
+import TaskFormBasicFields from "./TaskFormBasicFields";
+import TaskFormAssignment from "./TaskFormAssignment";
+import TaskFormScheduling from "./TaskFormScheduling";
+import TaskFormMetrics from "./TaskFormMetrics";
+import TaskFormActions from "./TaskFormActions";
 import { Separator } from "@/components/ui/separator";
 
 interface TaskFormProps {
   task?: Task | null;
   onClose: () => void;
+  onTaskUpdate?: () => void;
 }
 
-const TaskForm = ({ task, onClose }: TaskFormProps) => {
+const TaskForm = ({ task, onClose, onTaskUpdate }: TaskFormProps) => {
   const { addTask, updateTask } = useTasks();
   const { users, currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,8 +31,8 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
     currentUser: currentUser?.id 
   });
 
-  const form = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema),
+  const form = useForm<TaskFormValues>({
+    resolver: zodResolver(taskFormSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -64,7 +66,7 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
     }
   }, [task, form]);
 
-  const onSubmit = async (data: TaskFormData) => {
+  const onSubmit = async (data: TaskFormValues) => {
     console.log('TaskForm submitting:', data);
     setIsSubmitting(true);
 
@@ -83,12 +85,21 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
         await addTask(taskData);
       }
 
-      console.log('Task operation successful, closing form');
+      console.log('Task operation successful, triggering refresh');
+      
+      // Trigger immediate refresh
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+      
       onClose();
       
       // Force a small delay to ensure database updates are processed
       setTimeout(() => {
         console.log('Task form closed with delay');
+        if (onTaskUpdate) {
+          onTaskUpdate();
+        }
       }, 100);
       
     } catch (error) {
@@ -108,24 +119,24 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <TaskFormBasicFields form={form} />
+        <TaskFormBasicFields />
         
         <Separator />
         
-        <TaskFormAssignment form={form} users={filteredUsers} />
+        <TaskFormAssignment />
         
         <Separator />
         
-        <TaskFormScheduling form={form} />
+        <TaskFormScheduling />
         
         <Separator />
         
-        <TaskFormMetrics form={form} />
+        <TaskFormMetrics />
         
         <TaskFormActions
           isSubmitting={isSubmitting}
           onCancel={handleCancel}
-          isEdit={!!task}
+          isEditing={!!task}
         />
       </form>
     </Form>
