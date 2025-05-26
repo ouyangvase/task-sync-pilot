@@ -32,6 +32,13 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
   // Only show delete button for admin users
   const isAdmin = currentUser?.role === "admin";
 
+  console.log('TaskItem rendering:', {
+    taskId: task.id,
+    taskTitle: task.title,
+    isAdmin,
+    currentUserRole: currentUser?.role
+  });
+
   const handleDelete = async () => {
     try {
       await deleteTask(task.id);
@@ -108,7 +115,7 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogTitle>Delete Task (Admin Only)</AlertDialogTitle>
             <AlertDialogDescription>
               {getDeleteMessage()}
             </AlertDialogDescription>

@@ -12,18 +12,24 @@ export const EmployeeTaskList = ({
   pendingTasks, 
   completedTasks 
 }: EmployeeTaskListProps) => {
-  console.log('EmployeeTaskList received:', { pendingTasks, completedTasks });
+  console.log('EmployeeTaskList received:', { 
+    pendingTasks: pendingTasks.length, 
+    completedTasks: completedTasks.length,
+    pendingTaskIds: pendingTasks.map(t => t.id),
+    pendingTaskTitles: pendingTasks.map(t => t.title)
+  });
   
-  // Show ALL pending tasks, not just available ones
-  // Remove the availability filtering to ensure all tasks are visible
+  // Show ALL pending tasks - no availability filtering for display
   const availableTasks = pendingTasks.filter(task => task.status === 'pending');
   const inProgressTasks = pendingTasks.filter(task => task.status === 'in_progress');
   
-  console.log('Task breakdown:', { 
+  console.log('Task breakdown after filtering:', { 
     availableTasks: availableTasks.length, 
     inProgressTasks: inProgressTasks.length,
     completedTasks: completedTasks.length,
-    totalPending: pendingTasks.length
+    totalPending: pendingTasks.length,
+    availableTaskTitles: availableTasks.map(t => t.title),
+    inProgressTaskTitles: inProgressTasks.map(t => t.title)
   });
   
   return (
@@ -59,7 +65,12 @@ export const EmployeeTaskList = ({
         )}
         
         {pendingTasks.length === 0 && (
-          <p className="text-muted-foreground">No pending tasks found</p>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-lg mb-2">No pending tasks found</p>
+            <p className="text-sm text-muted-foreground">
+              Create a new task using the "Assign Task" button above.
+            </p>
+          </div>
         )}
       </TabsContent>
       
@@ -67,7 +78,9 @@ export const EmployeeTaskList = ({
         <h3 className="text-lg font-medium">Completed Tasks ({completedTasks.length})</h3>
         
         {completedTasks.length === 0 ? (
-          <p className="text-muted-foreground">No completed tasks found</p>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No completed tasks found</p>
+          </div>
         ) : (
           <div className="space-y-4">
             {completedTasks.map((task) => (

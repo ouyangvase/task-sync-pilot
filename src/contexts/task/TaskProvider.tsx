@@ -12,7 +12,7 @@ import {
   calculateNextOccurrence,
   generateTodayRecurringInstances
 } from "@/lib/recurringTaskUtils";
-import { isTaskAvailable } from "@/lib/taskAvailability";
+import { isTaskActionable } from "@/lib/taskAvailability";
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
@@ -119,10 +119,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getUserTasks = (userId: string) => {
     console.log('Getting tasks for user:', userId);
-    console.log('All tasks:', tasks);
+    console.log('All tasks count:', tasks.length);
     console.log('Current user role:', currentUser?.role);
+    console.log('All task assignees:', tasks.map(t => ({ id: t.id, title: t.title, assignee: t.assignee })));
     
-    // Fixed filtering logic - ensure we're comparing the right fields
+    // FIXED: Remove restrictive filtering - show ALL tasks for the user
     let userTasks;
     
     if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
@@ -135,7 +136,13 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Regular user viewing own tasks. User ID:', currentUser.id, 'Found:', userTasks.length);
     }
     
-    console.log('Filtered user tasks:', userTasks);
+    console.log('Final filtered user tasks:', userTasks.map(t => ({ 
+      id: t.id, 
+      title: t.title, 
+      status: t.status, 
+      assignee: t.assignee 
+    })));
+    
     return userTasks;
   };
 
@@ -269,7 +276,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const startTask = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task || !isTaskAvailable(task)) {
+    if (!task || !isTaskActionable(task)) {
       toast.error("This task is not available yet");
       return;
     }
@@ -290,7 +297,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const completeTask = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task || !isTaskAvailable(task)) {
+    if (!task || !isTaskActionable(task)) {
       toast.error("This task is not available yet");
       return;
     }

@@ -24,7 +24,7 @@ import {
 import { MoreVertical, Edit, Trash2, Play, CheckCircle, Repeat, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { isTaskAvailable, getTaskAvailabilityStatus, getDaysUntilDue } from "@/lib/taskAvailability";
+import { isTaskActionable, getTaskAvailabilityStatus, getDaysUntilDue } from "@/lib/taskAvailability";
 import { useScreenSize } from "@/hooks/use-mobile";
 
 interface TaskCardProps {
@@ -44,16 +44,26 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const isPending = task.status === "pending";
   const isInProgress = task.status === "in_progress";
   const isRecurring = task.recurrence !== "once";
-  const isAvailable = isTaskAvailable(task);
+  const isActionable = isTaskActionable(task); // Use new actionable function
   const availabilityStatus = getTaskAvailabilityStatus(task);
   
+  console.log('TaskCard rendering:', {
+    taskId: task.id,
+    taskTitle: task.title,
+    status: task.status,
+    isActionable,
+    availabilityStatus,
+    currentUserId: currentUser?.id,
+    assignee: task.assignee
+  });
+  
   const handleStartTask = () => {
-    if (!isAvailable) return;
+    if (!isActionable) return;
     startTask(task.id);
   };
   
   const handleCompleteTask = () => {
-    if (!isAvailable) return;
+    if (!isActionable) return;
     completeTask(task.id);
   };
   
@@ -156,7 +166,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
       className={cn(
         "task-card group",
         isCompleted && "completed",
-        !isAvailable && !isCompleted && "opacity-75",
+        !isActionable && !isCompleted && "opacity-75",
         "touch-manipulation" // Improve touch responsiveness
       )}
     >
@@ -167,8 +177,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <h3 className={cn(
                 "font-medium text-sm sm:text-base",
                 isMobile ? "leading-5" : "truncate",
-                isCompleted && "line-through text-muted-foreground",
-                !isAvailable && !isCompleted && "text-muted-foreground"
+                isCompleted && "line-through text-muted-foreground"
               )}>
                 {task.title}
               </h3>
@@ -213,7 +222,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                         className="text-red-500 focus:text-red-500 min-h-[44px]"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete task
+                        Delete task (Admin Only)
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -222,7 +231,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                 <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                   <AlertDialogContent className="mx-4 max-w-md">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                      <AlertDialogTitle>Delete Task (Admin Only)</AlertDialogTitle>
                       <AlertDialogDescription>
                         {getDeleteMessage()}
                       </AlertDialogDescription>
@@ -246,8 +255,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             <p className={cn(
               "text-sm text-muted-foreground mt-1",
               isMobile ? "leading-5" : "",
-              isCompleted && "line-through",
-              !isAvailable && !isCompleted && "text-muted-foreground"
+              isCompleted && "line-through"
             )}>
               {task.description}
             </p>
@@ -292,15 +300,15 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleStartTask}
-                disabled={!isAvailable}
+                disabled={!isActionable}
                 className={cn(
                   "flex items-center gap-1 touch-manipulation min-h-[44px]",
-                  !isAvailable && "opacity-50 cursor-not-allowed",
+                  !isActionable && "opacity-50 cursor-not-allowed",
                   isMobile && "w-full justify-center"
                 )}
               >
                 <Play className="h-3 w-3" />
-                {isAvailable ? "Take Job" : "Not Available Yet"}
+                {isActionable ? "Take Job" : "Not Available Yet"}
               </Button>
             )}
             
@@ -308,15 +316,15 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleCompleteTask}
-                disabled={!isAvailable}
+                disabled={!isActionable}
                 className={cn(
                   "flex items-center gap-1 bg-green-600 hover:bg-green-700 touch-manipulation min-h-[44px]",
-                  !isAvailable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
+                  !isActionable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
                   isMobile && "w-full justify-center"
                 )}
               >
                 <CheckCircle className="h-3 w-3" />
-                {isAvailable ? "Mark Complete" : "Not Available Yet"}
+                {isActionable ? "Mark Complete" : "Not Available Yet"}
               </Button>
             )}
           </div>
