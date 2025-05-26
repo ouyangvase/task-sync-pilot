@@ -132,6 +132,14 @@ export const migrateLocalStorageToSupabase = async (currentUserId: string, isAdm
       }
     }
 
+    // Migrate achievements data
+    const savedAchievements = localStorage.getItem("achievements");
+    if (savedAchievements) {
+      console.log('Found achievements in localStorage - removing as they now come from database');
+      localStorage.removeItem("achievements");
+      toast.success('Cleared local achievements data - now using database');
+    }
+
     console.log('Data migration completed successfully');
     return true;
   } catch (error) {

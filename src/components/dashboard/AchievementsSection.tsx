@@ -1,37 +1,14 @@
 
-import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import AchievementsList from "@/components/achievements/AchievementsList";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
-import { mockAchievements } from "@/data/mockData";
-import { Achievement } from "@/types";
+import { useAchievements } from "@/hooks/useAchievements";
 
 const AchievementsSection = () => {
   const { currentUser } = useAuth();
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // In a real application, we would fetch this data from an API
-    // based on the current user's ID
-    const loadAchievements = async () => {
-      try {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setAchievements(mockAchievements);
-      } catch (error) {
-        console.error("Error loading achievements:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (currentUser) {
-      loadAchievements();
-    }
-  }, [currentUser]);
+  const { achievements, loading } = useAchievements();
 
   const unlockedCount = achievements.filter(a => a.isUnlocked).length;
   
