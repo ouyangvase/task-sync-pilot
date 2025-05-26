@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Task, RewardTier } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +32,8 @@ export function useSupabaseTaskStorage() {
   // Set up real-time subscriptions only when user is authenticated
   useEffect(() => {
     if (!currentUser || authLoading) return;
+
+    console.log('Setting up real-time subscriptions for user:', currentUser.id);
 
     const tasksChannel = supabase
       .channel('tasks-changes')
@@ -79,6 +80,7 @@ export function useSupabaseTaskStorage() {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscriptions');
       supabase.removeChannel(tasksChannel);
       supabase.removeChannel(rewardsChannel);
       supabase.removeChannel(pointsChannel);
@@ -228,10 +230,28 @@ export function useSupabaseTaskStorage() {
 
     if (!existingTiers || existingTiers.length === 0) {
       console.log('Creating default reward tiers');
-      const defaultTiers = [
-        { name: "Bronze Achiever", points: 300, reward: "$50 cash bonus", description: "Complete 300 points worth of tasks" },
-        { name: "Silver Performer", points: 500, reward: "$100 cash bonus", description: "Complete 500 points worth of tasks" },
-        { name: "Gold Champion", points: 1000, reward: "$200 cash bonus + extra day off", description: "Complete 1000 points worth of tasks" }
+      const defaultTiers: RewardTier[] = [
+        { 
+          id: "tier-bronze", 
+          name: "Bronze Achiever", 
+          points: 300, 
+          reward: "$50 cash bonus", 
+          description: "Complete 300 points worth of tasks" 
+        },
+        { 
+          id: "tier-silver", 
+          name: "Silver Performer", 
+          points: 500, 
+          reward: "$100 cash bonus", 
+          description: "Complete 500 points worth of tasks" 
+        },
+        { 
+          id: "tier-gold", 
+          name: "Gold Champion", 
+          points: 1000, 
+          reward: "$200 cash bonus + extra day off", 
+          description: "Complete 1000 points worth of tasks" 
+        }
       ];
 
       for (const tier of defaultTiers) {
@@ -349,6 +369,7 @@ export function useSupabaseTaskStorage() {
           
           if (updateError) {
             console.error('Error updating existing task:', updateError);
+            toast.error(`Failed to update task: ${updateError.message}`);
             throw updateError;
           }
         }
@@ -364,8 +385,10 @@ export function useSupabaseTaskStorage() {
         
         if (verifyError) {
           console.error('Failed to verify task was saved:', verifyError);
+          toast.error('Task may not have been saved properly');
         } else {
           console.log('Task verified in database:', verifyData);
+          toast.success('Task saved successfully');
         }
       }
     } catch (error) {
