@@ -75,6 +75,7 @@ const TaskForm = ({ task, onClose, onTaskUpdate }: TaskFormProps) => {
         ...data,
         dueDate: new Date(data.dueDate).toISOString(),
         assignedBy: currentUser?.id,
+        status: "pending" as const, // Add the missing status property
       };
 
       if (task) {
