@@ -39,6 +39,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action_type: string
@@ -1503,6 +1527,36 @@ export type Database = {
           },
         ]
       }
+      reward_tiers: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          points: number
+          reward: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          points: number
+          reward: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          points?: number
+          reward?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rewards: {
         Row: {
           created_at: string
@@ -1956,6 +2010,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_points: {
+        Row: {
+          created_at: string
+          id: string
+          month: number
+          points: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: number
+          points?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: number
+          points?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
