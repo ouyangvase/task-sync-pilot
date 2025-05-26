@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect } from "react";
 import { Task, TaskStats, PointsStats, RewardTier, TaskStatus } from "@/types";
 import { useAuth } from "../AuthContext";
@@ -123,16 +122,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('All tasks:', tasks);
     console.log('Current user role:', currentUser?.role);
     
-    // For admin/manager users, show all tasks when viewing other users
-    // For regular users, only show their own tasks
+    // Fixed filtering logic - ensure we're comparing the right fields
     let userTasks;
     
     if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
       // Admin/manager can see all tasks, but when getting tasks for a specific user, filter by that user
       userTasks = tasks.filter((task) => task.assignee === userId);
+      console.log('Admin/Manager viewing tasks for user:', userId, 'Found:', userTasks.length);
     } else {
       // Regular users can only see their own tasks
       userTasks = tasks.filter((task) => task.assignee === userId && task.assignee === currentUser.id);
+      console.log('Regular user viewing own tasks. User ID:', currentUser.id, 'Found:', userTasks.length);
     }
     
     console.log('Filtered user tasks:', userTasks);

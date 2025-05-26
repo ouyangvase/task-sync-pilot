@@ -29,11 +29,24 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
   const { deleteTask } = useTasks();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
+  // Only show delete button for admin users
   const isAdmin = currentUser?.role === "admin";
 
-  const handleDelete = () => {
-    deleteTask(task.id);
-    setDeleteDialogOpen(false);
+  const handleDelete = async () => {
+    try {
+      await deleteTask(task.id);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      // Error handling is done in the deleteTask function
+    }
+  };
+
+  const getDeleteMessage = () => {
+    if (task.recurrence && task.recurrence !== "once" && !task.isRecurringInstance) {
+      return "Are you sure you want to delete this recurring task template? This will also delete all future instances of this task.";
+    }
+    return "Are you sure you want to delete this task? This action cannot be undone.";
   };
 
   return (
@@ -97,7 +110,7 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this task? This action cannot be undone.
+              {getDeleteMessage()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

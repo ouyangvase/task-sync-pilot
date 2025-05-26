@@ -18,18 +18,21 @@ export const isTaskAvailable = (task: Task): boolean => {
     return true;
   }
   
-  // Set both dates to start of day for comparison
+  // For pending and in_progress tasks, make them more permissive
+  // Tasks are available if due date is today or in the past, OR if it's within 7 days
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const dueDay = new Date(taskDueDate.getFullYear(), taskDueDate.getMonth(), taskDueDate.getDate());
+  const daysDifference = Math.ceil((dueDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   
   console.log('Date comparison:', {
     today: today.toISOString(),
     dueDay: dueDay.toISOString(),
-    isAvailable: dueDay <= today
+    daysDifference,
+    isAvailable: daysDifference <= 7 // Show tasks up to 7 days in advance
   });
   
-  // Task is available if due date is today or in the past
-  return dueDay <= today;
+  // Task is available if due date is within 7 days (past or future)
+  return daysDifference <= 7;
 };
 
 export const isTaskOverdue = (task: Task): boolean => {

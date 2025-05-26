@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Task } from "@/types";
 import { useTasks } from "@/contexts/task/TaskProvider";
@@ -39,6 +38,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { isMobile } = useScreenSize();
   
+  // Only admin users can delete tasks
   const isAdmin = currentUser?.role === "admin";
   const isCompleted = task.status === "completed";
   const isPending = task.status === "pending";
@@ -57,9 +57,14 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
     completeTask(task.id);
   };
   
-  const handleDelete = () => {
-    deleteTask(task.id);
-    setDeleteDialogOpen(false);
+  const handleDelete = async () => {
+    try {
+      await deleteTask(task.id);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      // Error handling is done in the deleteTask function
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -177,7 +182,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               )}
             </div>
             
-            {/* Only show menu if user is admin or if it's an edit-enabled task */}
+            {/* Show menu for edit/delete - only show delete for admin users */}
             {(isAdmin || (onEdit && currentUser?.id === task.assignee)) && (
               <div className="shrink-0">
                 <DropdownMenu>

@@ -2,7 +2,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task } from "@/types";
 import { TaskItem } from "./TaskItem";
-import { isTaskAvailable } from "@/lib/taskAvailability";
 
 interface EmployeeTaskListProps {
   pendingTasks: Task[];
@@ -15,14 +14,16 @@ export const EmployeeTaskList = ({
 }: EmployeeTaskListProps) => {
   console.log('EmployeeTaskList received:', { pendingTasks, completedTasks });
   
-  // Separate available and upcoming tasks for better organization
-  const availableTasks = pendingTasks.filter(task => isTaskAvailable(task));
-  const upcomingTasks = pendingTasks.filter(task => !isTaskAvailable(task));
+  // Show ALL pending tasks, not just available ones
+  // Remove the availability filtering to ensure all tasks are visible
+  const availableTasks = pendingTasks.filter(task => task.status === 'pending');
+  const inProgressTasks = pendingTasks.filter(task => task.status === 'in_progress');
   
   console.log('Task breakdown:', { 
     availableTasks: availableTasks.length, 
-    upcomingTasks: upcomingTasks.length,
-    completedTasks: completedTasks.length 
+    inProgressTasks: inProgressTasks.length,
+    completedTasks: completedTasks.length,
+    totalPending: pendingTasks.length
   });
   
   return (
@@ -33,26 +34,24 @@ export const EmployeeTaskList = ({
       </TabsList>
       
       <TabsContent value="current" className="space-y-6 mt-6">
-        {/* Available Tasks */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Available Tasks ({availableTasks.length})</h3>
-          {availableTasks.length === 0 ? (
-            <p className="text-muted-foreground">No tasks available to work on right now</p>
-          ) : (
+        {/* Pending Tasks */}
+        {availableTasks.length > 0 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Pending Tasks ({availableTasks.length})</h3>
             <div className="space-y-4">
               {availableTasks.map((task) => (
                 <TaskItem key={task.id} task={task} />
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
         
-        {/* Upcoming Tasks */}
-        {upcomingTasks.length > 0 && (
+        {/* In Progress Tasks */}
+        {inProgressTasks.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium mb-4">Upcoming Tasks ({upcomingTasks.length})</h3>
+            <h3 className="text-lg font-medium mb-4">In Progress Tasks ({inProgressTasks.length})</h3>
             <div className="space-y-4">
-              {upcomingTasks.map((task) => (
+              {inProgressTasks.map((task) => (
                 <TaskItem key={task.id} task={task} />
               ))}
             </div>
