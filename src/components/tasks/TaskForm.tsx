@@ -72,10 +72,16 @@ const TaskForm = ({ task, onClose, onTaskUpdate }: TaskFormProps) => {
 
     try {
       const taskData = {
-        ...data,
+        title: data.title,
+        description: data.description || "",
+        assignee: data.assignee,
+        category: data.category,
+        recurrence: data.recurrence,
+        priority: data.priority,
+        points: data.points,
         dueDate: new Date(data.dueDate).toISOString(),
         assignedBy: currentUser?.id,
-        status: "pending" as const, // Add the missing status property
+        status: "pending" as const,
       };
 
       if (task) {
