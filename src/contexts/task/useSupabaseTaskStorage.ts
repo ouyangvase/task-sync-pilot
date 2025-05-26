@@ -127,28 +127,32 @@ export function useSupabaseTaskStorage() {
       return;
     }
 
-    console.log(`Loaded ${data?.length || 0} tasks from database`);
+    console.log(`Loaded ${data?.length || 0} tasks from database`, data);
 
-    const formattedTasks: Task[] = data.map(task => ({
-      id: task.id,
-      title: task.title,
-      description: task.description || '',
-      assignee: task.assigned_to,
-      assignedBy: task.assigned_by,
-      dueDate: task.due_date,
-      status: task.status as any,
-      priority: 'medium' as any, // Default since column doesn't exist yet
-      category: 'custom' as any, // Default since column doesn't exist yet
-      recurrence: 'once' as any, // Default since column doesn't exist yet
-      points: task.points,
-      createdAt: task.created_at,
-      startedAt: task.started_at,
-      completedAt: task.completed_at,
-      isRecurringInstance: false, // Default since column doesn't exist yet
-      parentTaskId: undefined, // Default since column doesn't exist yet
-      nextOccurrenceDate: undefined // Default since column doesn't exist yet
-    }));
+    const formattedTasks: Task[] = data.map(task => {
+      console.log('Formatting task:', task);
+      return {
+        id: task.id,
+        title: task.title,
+        description: task.description || '',
+        assignee: task.assigned_to,
+        assignedBy: task.assigned_by,
+        dueDate: task.due_date,
+        status: task.status as any,
+        priority: 'medium' as any, // Default since column doesn't exist yet
+        category: 'custom' as any, // Default since column doesn't exist yet
+        recurrence: 'once' as any, // Default since column doesn't exist yet
+        points: task.points,
+        createdAt: task.created_at,
+        startedAt: task.started_at,
+        completedAt: task.completed_at,
+        isRecurringInstance: false, // Default since column doesn't exist yet
+        parentTaskId: undefined, // Default since column doesn't exist yet
+        nextOccurrenceDate: undefined // Default since column doesn't exist yet
+      };
+    });
 
+    console.log('Formatted tasks:', formattedTasks);
     setTasks(formattedTasks);
   };
 

@@ -50,6 +50,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const todayInstances = generateTodayRecurringInstances(tasks);
       if (todayInstances.length > 0) {
+        console.log(`Generating ${todayInstances.length} recurring task instances for today`);
         // Save each instance to database - let database generate UUIDs
         for (const instance of todayInstances) {
           const instanceWithoutId = {
@@ -117,20 +118,25 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const getUserTasks = (userId: string) => {
-    return tasks.filter((task) => task.assignee === userId);
+    console.log('Getting tasks for user:', userId);
+    console.log('All tasks:', tasks);
+    const userTasks = tasks.filter((task) => task.assignee === userId);
+    console.log('Filtered user tasks:', userTasks);
+    return userTasks;
   };
 
   const getTasksByCategory = (userId: string, category: string) => {
-    return tasks.filter(
-      (task) => task.assignee === userId && 
-      (category === "completed" ? task.status === "completed" : task.category === category)
+    const userTasks = getUserTasks(userId);
+    console.log('Getting tasks by category:', { userId, category, userTasks });
+    return userTasks.filter(
+      (task) => category === "completed" ? task.status === "completed" : task.category === category
     );
   };
 
   const addTask = async (taskData: Omit<Task, "id" | "createdAt">) => {
     if (!currentUser) return;
     
-    console.log('Adding new task:', taskData.title);
+    console.log('Adding new task:', taskData);
     
     // Prepare task data without ID - let database generate UUID
     const newTaskData = {
@@ -144,9 +150,9 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       console.log('Calling saveTaskToDatabase with:', newTaskData);
-      await saveTaskToDatabase(newTaskData);
+      const savedTask = await saveTaskToDatabase(newTaskData);
       
-      console.log('Task creation request sent to database');
+      console.log('Task creation successful, saved task:', savedTask);
       toast.success("Task created successfully");
     } catch (error) {
       console.error("Error creating task:", error);
@@ -308,17 +314,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userTasks = getUserTasks(userId);
     const completed = userTasks.filter((task) => task.status === "completed").length;
     
-    // Only count pending tasks that are available today
-    const pendingAvailableToday = userTasks.filter((task) => 
-      task.status !== "completed" && isTaskAvailable(task)
-    ).length;
+    // Count ALL pending tasks, not just those available today
+    const pending = userTasks.filter((task) => task.status !== "completed").length;
     
     const total = userTasks.length;
     const percentComplete = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+    console.log('Task stats for user:', { userId, completed, pending, total, percentComplete });
+
     return {
       completed,
-      pending: pendingAvailableToday,
+      pending,
       total,
       percentComplete,
     };
