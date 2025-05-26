@@ -88,7 +88,7 @@ export function useSupabaseTaskStorage() {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .or(`assignee.eq.${currentUser.id},assigned_by.eq.${currentUser.id}`)
+      .or(`assigned_to.eq.${currentUser.id},assigned_by.eq.${currentUser.id}`)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -100,20 +100,20 @@ export function useSupabaseTaskStorage() {
       id: task.id,
       title: task.title,
       description: task.description || '',
-      assignee: task.assignee || task.assigned_to,
+      assignee: task.assigned_to,
       assignedBy: task.assigned_by,
       dueDate: task.due_date,
       status: task.status as any,
-      priority: (task.priority || 'medium') as any,
-      category: (task.category || 'custom') as any,
-      recurrence: (task.recurrence || 'once') as any,
+      priority: 'medium' as any, // Default since column doesn't exist yet
+      category: 'custom' as any, // Default since column doesn't exist yet
+      recurrence: 'once' as any, // Default since column doesn't exist yet
       points: task.points,
       createdAt: task.created_at,
       startedAt: task.started_at,
       completedAt: task.completed_at,
-      isRecurringInstance: task.is_recurring_instance || false,
-      parentTaskId: task.parent_task_id,
-      nextOccurrenceDate: task.next_occurrence_date
+      isRecurringInstance: false, // Default since column doesn't exist yet
+      parentTaskId: undefined, // Default since column doesn't exist yet
+      nextOccurrenceDate: undefined // Default since column doesn't exist yet
     }));
 
     setTasks(formattedTasks);
@@ -234,20 +234,15 @@ export function useSupabaseTaskStorage() {
         id: task.id,
         title: task.title,
         description: task.description,
-        assignee: task.assignee,
+        assigned_to: task.assignee,
         assigned_by: task.assignedBy,
         due_date: task.dueDate,
         status: task.status,
-        priority: task.priority,
-        category: task.category,
-        recurrence: task.recurrence,
         points: task.points,
         created_at: task.createdAt,
         started_at: task.startedAt,
         completed_at: task.completedAt,
-        is_recurring_instance: task.isRecurringInstance,
-        parent_task_id: task.parentTaskId,
-        next_occurrence_date: task.nextOccurrenceDate
+        updated_at: new Date().toISOString()
       });
 
     if (error && !error.message.includes('duplicate key')) {

@@ -20,20 +20,15 @@ export const migrateLocalStorageToSupabase = async (currentUserId: string, isAdm
             id: task.id,
             title: task.title,
             description: task.description,
-            assignee: task.assignee,
+            assigned_to: task.assignee,
             assigned_by: task.assignedBy,
             due_date: task.dueDate,
             status: task.status,
-            priority: task.priority,
-            category: task.category,
-            recurrence: task.recurrence,
             points: task.points,
             created_at: task.createdAt,
             started_at: task.startedAt,
             completed_at: task.completedAt,
-            is_recurring_instance: task.isRecurringInstance,
-            parent_task_id: task.parentTaskId,
-            next_occurrence_date: task.nextOccurrenceDate
+            updated_at: new Date().toISOString()
           });
 
         if (!error || error.message.includes('duplicate key')) {

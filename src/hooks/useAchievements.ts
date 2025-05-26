@@ -61,11 +61,11 @@ export function useAchievements() {
       id: ach.id,
       title: ach.title,
       description: ach.description,
-      icon: ach.icon,
-      category: ach.category as any,
+      icon: ach.icon_url || ach.icon || '🏆',
+      category: ach.category || 'points' as any,
       criteria: {
-        type: ach.criteria_type as any,
-        value: ach.criteria_value,
+        type: ach.criteria_type || 'points_earned' as any,
+        value: ach.criteria_value || 0,
         timeframe: ach.criteria_timeframe as any
       },
       reward: ach.reward,
