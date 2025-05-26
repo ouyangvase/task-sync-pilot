@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Task } from "@/types";
 import { useTasks } from "@/contexts/TaskContext";
@@ -25,6 +26,7 @@ import { MoreVertical, Edit, Trash2, Play, CheckCircle, Repeat, Clock } from "lu
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { isTaskAvailable, getTaskAvailabilityStatus, getDaysUntilDue } from "@/lib/taskAvailability";
+import { useScreenSize } from "@/hooks/use-mobile";
 
 interface TaskCardProps {
   task: Task;
@@ -35,6 +37,8 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const { startTask, completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { isMobile } = useScreenSize();
+  
   const isAdmin = currentUser?.role === "admin";
   const isCompleted = task.status === "completed";
   const isPending = task.status === "pending";
@@ -147,25 +151,27 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
       className={cn(
         "task-card group",
         isCompleted && "completed",
-        !isAvailable && !isCompleted && "opacity-75"
+        !isAvailable && !isCompleted && "opacity-75",
+        "touch-manipulation" // Improve touch responsiveness
       )}
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <h3 className={cn(
-                "font-medium truncate",
+                "font-medium text-sm sm:text-base",
+                isMobile ? "leading-5" : "truncate",
                 isCompleted && "line-through text-muted-foreground",
                 !isAvailable && !isCompleted && "text-muted-foreground"
               )}>
                 {task.title}
               </h3>
               {isRecurring && (
-                <Repeat className="h-4 w-4 text-blue-500" />
+                <Repeat className="h-4 w-4 text-blue-500 shrink-0" />
               )}
               {task.isRecurringInstance && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 shrink-0">
                   Instance
                 </Badge>
               )}
@@ -175,21 +181,28 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <div className="shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn(
+                        "h-8 w-8 touch-manipulation min-h-[44px] min-w-[44px]",
+                        isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}
+                    >
                       <MoreVertical className="h-4 w-4" />
                       <span className="sr-only">Menu</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="min-w-[160px]">
                     {onEdit && (
-                      <DropdownMenuItem onClick={() => onEdit(task)}>
+                      <DropdownMenuItem onClick={() => onEdit(task)} className="min-h-[44px]">
                         <Edit className="mr-2 h-4 w-4" />
                         Edit task
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem 
                       onClick={() => setDeleteDialogOpen(true)}
-                      className="text-red-500 focus:text-red-500"
+                      className="text-red-500 focus:text-red-500 min-h-[44px]"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete task
@@ -198,18 +211,18 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                 </DropdownMenu>
                 
                 <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="mx-4 max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Task</AlertDialogTitle>
                       <AlertDialogDescription>
                         {getDeleteMessage()}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                      <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDelete}
-                        className="bg-red-500 hover:bg-red-600"
+                        className="bg-red-500 hover:bg-red-600 min-h-[44px]"
                       >
                         Delete
                       </AlertDialogAction>
@@ -223,6 +236,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
           {task.description && (
             <p className={cn(
               "text-sm text-muted-foreground mt-1",
+              isMobile ? "leading-5" : "",
               isCompleted && "line-through",
               !isAvailable && !isCompleted && "text-muted-foreground"
             )}>
@@ -230,40 +244,50 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             </p>
           )}
           
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            <Badge variant="outline" className={getStatusColor(task.status)}>
+          <div className={cn(
+            "flex flex-wrap items-center gap-2 mt-3",
+            isMobile && "gap-1.5"
+          )}>
+            <Badge variant="outline" className={cn(getStatusColor(task.status), "text-xs")}>
               {getStatusText(task.status)}
             </Badge>
             
-            <Badge variant="outline" className={getPriorityColor(task.priority)}>
+            <Badge variant="outline" className={cn(getPriorityColor(task.priority), "text-xs")}>
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </Badge>
             
-            <Badge variant="outline" className={isRecurring ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
+            <Badge variant="outline" className={cn(
+              isRecurring ? "bg-blue-100 text-blue-800 border-blue-200" : "",
+              "text-xs"
+            )}>
               {getRecurrenceText(task.recurrence)}
             </Badge>
 
-            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
               {task.points} pts
             </Badge>
             
             {getAvailabilityBadge()}
             
-            <Badge variant="outline" className="ml-auto">
-              Due: {format(new Date(task.dueDate), "MMM d, h:mm a")}
+            <Badge variant="outline" className={cn("text-xs", isMobile ? "w-full mt-1" : "ml-auto")}>
+              Due: {format(new Date(task.dueDate), isMobile ? "MMM d, h:mm a" : "MMM d, h:mm a")}
             </Badge>
           </div>
           
           {/* Task Action Buttons */}
-          <div className="flex gap-2 mt-3">
+          <div className={cn(
+            "flex gap-2 mt-3",
+            isMobile && "flex-col"
+          )}>
             {isPending && currentUser?.id === task.assignee && (
               <Button
-                size="sm"
+                size={isMobile ? "default" : "sm"}
                 onClick={handleStartTask}
                 disabled={!isAvailable}
                 className={cn(
-                  "flex items-center gap-1",
-                  !isAvailable && "opacity-50 cursor-not-allowed"
+                  "flex items-center gap-1 touch-manipulation min-h-[44px]",
+                  !isAvailable && "opacity-50 cursor-not-allowed",
+                  isMobile && "w-full justify-center"
                 )}
               >
                 <Play className="h-3 w-3" />
@@ -273,12 +297,13 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             
             {isInProgress && currentUser?.id === task.assignee && (
               <Button
-                size="sm"
+                size={isMobile ? "default" : "sm"}
                 onClick={handleCompleteTask}
                 disabled={!isAvailable}
                 className={cn(
-                  "flex items-center gap-1 bg-green-600 hover:bg-green-700",
-                  !isAvailable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400"
+                  "flex items-center gap-1 bg-green-600 hover:bg-green-700 touch-manipulation min-h-[44px]",
+                  !isAvailable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
+                  isMobile && "w-full justify-center"
                 )}
               >
                 <CheckCircle className="h-3 w-3" />

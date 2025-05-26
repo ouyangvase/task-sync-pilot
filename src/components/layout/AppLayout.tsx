@@ -4,28 +4,29 @@ import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AppHeader from "./AppHeader";
 import AppSidebar from "./AppSidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useScreenSize } from "@/hooks/use-mobile";
+import { ResponsiveContainer } from "@/components/ui/responsive-container";
 
 const AppLayout = () => {
   const { isAuthenticated, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const isMobile = useIsMobile();
+  const { isMobile, isTablet, isDesktop } = useScreenSize();
   
   useEffect(() => {
-    if (isMobile) {
+    if (isMobile || isTablet) {
       setSidebarOpen(false);
     } else {
       setSidebarOpen(true);
     }
-  }, [isMobile]);
+  }, [isMobile, isTablet]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Close sidebar when clicking outside on mobile
+  // Close sidebar when clicking outside on mobile/tablet
   const handleContentClick = () => {
-    if (isMobile && sidebarOpen) {
+    if ((isMobile || isTablet) && sidebarOpen) {
       setSidebarOpen(false);
     }
   };
@@ -33,7 +34,7 @@ const AppLayout = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Loading...</div>
+        <div className="animate-pulse text-lg">Loading...</div>
       </div>
     );
   }
@@ -43,28 +44,30 @@ const AppLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full">
       <AppHeader toggleSidebar={toggleSidebar} />
       <AppSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      {/* Overlay for mobile */}
-      {isMobile && sidebarOpen && (
+      {/* Overlay for mobile and tablet */}
+      {(isMobile || isTablet) && sidebarOpen && (
         <div 
-          className="fixed inset-0 z-10 bg-black/20"
+          className="fixed inset-0 z-10 bg-black/20 backdrop-blur-sm"
           onClick={handleContentClick}
           aria-hidden="true"
         />
       )}
       
       <main
-        className={`pt-16 min-h-screen transition-all duration-300 ${
-          sidebarOpen ? "md:pl-64" : ""
-        }`}
+        className={cn(
+          "pt-16 min-h-screen transition-all duration-300",
+          sidebarOpen && isDesktop ? "md:pl-64" : "",
+          "w-full"
+        )}
         onClick={handleContentClick}
       >
-        <div className="container py-6 px-4 md:px-6">
+        <ResponsiveContainer variant="page">
           <Outlet />
-        </div>
+        </ResponsiveContainer>
       </main>
     </div>
   );

@@ -1,6 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { useScreenSize } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface TaskSummaryCardProps {
   title: string;
@@ -9,14 +11,17 @@ interface TaskSummaryCardProps {
 }
 
 const TaskSummaryCard = ({ title, count, type }: TaskSummaryCardProps) => {
+  const { isMobile } = useScreenSize();
+
   const getIcon = () => {
+    const iconClass = isMobile ? "h-4 w-4" : "h-5 w-5";
     switch (type) {
       case "completed":
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className={cn(iconClass, "text-green-500")} />;
       case "pending":
-        return <Clock className="h-5 w-5 text-amber-500" />;
+        return <Clock className={cn(iconClass, "text-amber-500")} />;
       case "overdue":
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className={cn(iconClass, "text-red-500")} />;
       default:
         return null;
     }
@@ -36,15 +41,25 @@ const TaskSummaryCard = ({ title, count, type }: TaskSummaryCardProps) => {
   };
 
   return (
-    <Card className={getCardStyle()}>
-      <CardHeader className="pb-2">
+    <Card className={cn(getCardStyle(), "touch-manipulation")}>
+      <CardHeader className={cn("pb-2", isMobile ? "px-4 pt-4" : "")}>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-md font-medium">{title}</CardTitle>
+          <CardTitle className={cn(
+            "font-medium", 
+            isMobile ? "text-sm" : "text-md"
+          )}>
+            {title}
+          </CardTitle>
           {getIcon()}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold">{count}</div>
+      <CardContent className={isMobile ? "px-4 pb-4" : ""}>
+        <div className={cn(
+          "font-bold",
+          isMobile ? "text-2xl" : "text-3xl"
+        )}>
+          {count}
+        </div>
         <p className="text-xs text-muted-foreground mt-1">Tasks</p>
       </CardContent>
     </Card>

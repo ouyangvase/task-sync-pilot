@@ -9,12 +9,16 @@ import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import { toast } from "sonner";
+import { useScreenSize } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 const EmployeesPage = () => {
   const { currentUser, users, getAccessibleUsers } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [redirectToLogin, setRedirectToLogin] = useState(false);
+  const [showEmployeeList, setShowEmployeeList] = useState(true);
+  const { isMobile } = useScreenSize();
 
   // Get all users the current user can access based on permissions
   const accessibleUsers = currentUser ? getAccessibleUsers(currentUser.id) : [];
@@ -26,6 +30,14 @@ const EmployeesPage = () => {
   
   const handleEmployeeSelect = (employee: User) => {
     setSelectedEmployee(employee);
+    if (isMobile) {
+      setShowEmployeeList(false);
+    }
+  };
+
+  const handleBackToList = () => {
+    setShowEmployeeList(true);
+    setSelectedEmployee(null);
   };
 
   const handleAddEmployee = () => {
@@ -44,6 +56,9 @@ const EmployeesPage = () => {
   const handleUserDeleted = () => {
     // Clear the selected employee if they were deleted
     setSelectedEmployee(null);
+    if (isMobile) {
+      setShowEmployeeList(true);
+    }
   };
 
   // Check permissions on mount
@@ -61,8 +76,11 @@ const EmployeesPage = () => {
   useEffect(() => {
     if (selectedEmployee && !displayUsers.find(user => user.id === selectedEmployee.id)) {
       setSelectedEmployee(null);
+      if (isMobile) {
+        setShowEmployeeList(true);
+      }
     }
-  }, [displayUsers, selectedEmployee]);
+  }, [displayUsers, selectedEmployee, isMobile]);
 
   document.title = "User Management | TaskSync Pilot";
 
@@ -71,6 +89,54 @@ const EmployeesPage = () => {
     return <Navigate to="/dashboard" />;
   }
 
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
+          {currentUser?.role === "admin" && (
+            <Button onClick={handleAddEmployee} size="sm" className="min-h-[44px]">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add User
+            </Button>
+          )}
+        </div>
+
+        {/* Mobile: Show either list or details */}
+        {showEmployeeList ? (
+          <EmployeesList 
+            employees={displayUsers} 
+            onSelectEmployee={handleEmployeeSelect} 
+            selectedEmployee={selectedEmployee}
+          />
+        ) : (
+          <div className="space-y-4">
+            <Button 
+              variant="outline" 
+              onClick={handleBackToList}
+              className="min-h-[44px] w-full sm:w-auto"
+            >
+              ← Back to List
+            </Button>
+            {selectedEmployee && (
+              <EmployeeDetails 
+                employee={selectedEmployee} 
+                onUserDeleted={handleUserDeleted}
+              />
+            )}
+          </div>
+        )}
+
+        <AddEmployeeDialog 
+          open={isAddDialogOpen} 
+          onClose={handleCloseAddDialog} 
+          onEmployeeCreated={handleEmployeeCreated}
+        />
+      </div>
+    );
+  }
+
+  // Desktop layout
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

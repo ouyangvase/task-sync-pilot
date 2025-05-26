@@ -11,6 +11,8 @@ import AchievementsSection from "@/components/dashboard/AchievementsSection";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
 import { isTaskAvailable } from "@/lib/taskAvailability";
+import { useScreenSize } from "@/hooks/use-mobile";
+import { ResponsiveContainer } from "@/components/ui/responsive-container";
 
 const DashboardPage = () => {
   const { currentUser } = useAuth();
@@ -23,6 +25,7 @@ const DashboardPage = () => {
     rewardTiers
   } = useTasks();
   const [showRewardsSettings, setShowRewardsSettings] = useState(false);
+  const { isMobile, isTablet } = useScreenSize();
   
   useEffect(() => {
     document.title = "Dashboard | TaskSync Pilot";
@@ -55,29 +58,35 @@ const DashboardPage = () => {
   ).length;
   
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+    <div className="space-y-6 sm:space-y-8 w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
         {isAdmin && (
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setShowRewardsSettings(prev => !prev)}
-              className="flex items-center gap-1 px-3 py-1 text-sm rounded-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors"
+              className="flex items-center gap-1 px-3 py-2 text-sm rounded-md bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors touch-manipulation min-h-[44px]"
             >
               <Trophy className="h-4 w-4" />
-              {showRewardsSettings ? "Hide Rewards Settings" : "Manage Rewards"}
+              <span className="hidden sm:inline">
+                {showRewardsSettings ? "Hide Rewards Settings" : "Manage Rewards"}
+              </span>
+              <span className="sm:hidden">Rewards</span>
             </button>
           </div>
         )}
       </div>
       
       {isAdmin && showRewardsSettings && (
-        <div className="mb-8">
+        <ResponsiveContainer variant="section" className="mb-6 sm:mb-8">
           <RewardsManager />
-        </div>
+        </ResponsiveContainer>
       )}
       
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={cn(
+        "grid gap-4",
+        isMobile ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"
+      )}>
         <TaskSummaryCard
           title="Tasks Completed"
           count={completedCount}
@@ -95,7 +104,10 @@ const DashboardPage = () => {
         />
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className={cn(
+        "grid gap-6",
+        isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+      )}>
         <ProgressCard stats={taskStats} />
         <PointsProgressCard 
           stats={pointsStats} 
@@ -103,10 +115,9 @@ const DashboardPage = () => {
         />
       </div>
 
-      {/* Add Achievements Section */}
       <AchievementsSection />
       
-      <div className="grid gap-8">
+      <div className="grid gap-6 sm:gap-8">
         <TaskList
           title="Daily Fixed Tasks"
           tasks={dailyTasks.filter(task => task.status !== "completed")}
