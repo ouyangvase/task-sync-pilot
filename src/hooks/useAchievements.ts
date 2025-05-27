@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Achievement } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,27 +14,32 @@ export function useAchievements() {
     if (currentUser) {
       loadAchievements();
       loadUserAchievements();
-      migrateLocalStorageAchievements();
     }
   }, [currentUser]);
 
-  // Set up real-time subscriptions
+  // Set up real-time subscriptions for immediate updates
   useEffect(() => {
     if (!currentUser) return;
 
     const achievementsChannel = supabase
-      .channel('achievements-changes')
+      .channel('achievements-realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'achievements' },
-        () => loadAchievements()
+        (payload) => {
+          console.log('Achievements real-time update:', payload);
+          loadAchievements();
+        }
       )
       .subscribe();
 
     const userAchievementsChannel = supabase
-      .channel('user-achievements-changes')
+      .channel('user-achievements-realtime')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'user_achievements' },
-        () => loadUserAchievements()
+        (payload) => {
+          console.log('User achievements real-time update:', payload);
+          loadUserAchievements();
+        }
       )
       .subscribe();
 
@@ -46,64 +50,62 @@ export function useAchievements() {
   }, [currentUser]);
 
   const loadAchievements = async () => {
-    const { data, error } = await supabase
-      .from('achievements')
-      .select('*')
-      .eq('is_active', true)
-      .order('points_required', { ascending: true });
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('is_active', true)
+        .order('points_required', { ascending: true });
 
-    if (error) {
-      console.error('Error loading achievements:', error);
-      return;
+      if (error) {
+        console.error('Error loading achievements:', error);
+        return;
+      }
+
+      const formattedAchievements: Achievement[] = data.map(ach => ({
+        id: ach.id,
+        title: ach.title,
+        description: ach.description,
+        icon: ach.icon || ach.icon_url || '🏆',
+        category: ach.category || 'points' as any,
+        criteria: {
+          type: ach.criteria_type || 'points_earned' as any,
+          value: ach.criteria_value || 0,
+          timeframe: ach.criteria_timeframe as any
+        },
+        reward: ach.reward,
+        pointsRequired: ach.points_required,
+        isUnlocked: false,
+        progress: 0,
+        currentPoints: 0
+      }));
+
+      setAchievements(formattedAchievements);
+    } catch (error) {
+      console.error('Error in loadAchievements:', error);
+    } finally {
+      setLoading(false);
     }
-
-    const formattedAchievements: Achievement[] = data.map(ach => ({
-      id: ach.id,
-      title: ach.title,
-      description: ach.description,
-      icon: ach.icon || ach.icon_url || '🏆',
-      category: ach.category || 'points' as any,
-      criteria: {
-        type: ach.criteria_type || 'points_earned' as any,
-        value: ach.criteria_value || 0,
-        timeframe: ach.criteria_timeframe as any
-      },
-      reward: ach.reward,
-      pointsRequired: ach.points_required,
-      isUnlocked: false,
-      progress: 0,
-      currentPoints: 0
-    }));
-
-    setAchievements(formattedAchievements);
   };
 
   const loadUserAchievements = async () => {
     if (!currentUser) return;
 
-    const { data, error } = await supabase
-      .from('user_achievements')
-      .select('*')
-      .eq('user_id', currentUser.id);
-
-    if (error) {
-      console.error('Error loading user achievements:', error);
-      return;
-    }
-
-    setUserAchievements(data || []);
-  };
-
-  const migrateLocalStorageAchievements = async () => {
     try {
-      const savedAchievements = localStorage.getItem("achievements");
-      if (savedAchievements) {
-        console.log('Found achievements in localStorage, migrating...');
-        localStorage.removeItem("achievements");
-        toast.success('Migrated achievements data to database');
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select('*')
+        .eq('user_id', currentUser.id);
+
+      if (error) {
+        console.error('Error loading user achievements:', error);
+        return;
       }
+
+      setUserAchievements(data || []);
     } catch (error) {
-      console.error('Error migrating achievements from localStorage:', error);
+      console.error('Error in loadUserAchievements:', error);
     }
   };
 
@@ -111,17 +113,29 @@ export function useAchievements() {
     if (!currentUser) return;
 
     try {
+      // Optimistic update
+      setUserAchievements(prev => [
+        ...prev,
+        {
+          user_id: currentUser.id,
+          achievement_id: achievementId,
+          achieved_at: new Date().toISOString()
+        }
+      ]);
+
       const { error } = await supabase
         .from('user_achievements')
         .insert({
           user_id: currentUser.id,
-          achievement_id: achievementId,
-          progress: 100,
-          current_points: 0
+          achievement_id: achievementId
         });
 
       if (error && !error.message.includes('duplicate key')) {
         console.error('Error unlocking achievement:', error);
+        // Revert optimistic update
+        setUserAchievements(prev => 
+          prev.filter(ua => !(ua.user_id === currentUser.id && ua.achievement_id === achievementId))
+        );
       } else {
         const achievement = achievements.find(a => a.id === achievementId);
         if (achievement) {
@@ -159,6 +173,7 @@ export function useAchievements() {
         toast.error('Failed to add achievement');
       } else {
         toast.success('Achievement added successfully');
+        loadAchievements(); // Refresh the list
       }
     } catch (error) {
       console.error('Error adding achievement:', error);
@@ -193,6 +208,7 @@ export function useAchievements() {
         toast.error('Failed to update achievement');
       } else {
         toast.success('Achievement updated successfully');
+        loadAchievements(); // Refresh the list
       }
     } catch (error) {
       console.error('Error updating achievement:', error);
@@ -217,6 +233,7 @@ export function useAchievements() {
         toast.error('Failed to delete achievement');
       } else {
         toast.success('Achievement deleted successfully');
+        loadAchievements(); // Refresh the list
       }
     } catch (error) {
       console.error('Error deleting achievement:', error);
@@ -224,15 +241,15 @@ export function useAchievements() {
     }
   };
 
-  // Merge achievements with user progress
+  // Merge achievements with user progress for real-time updates
   const achievementsWithProgress = achievements.map(achievement => {
     const userAch = userAchievements.find(ua => ua.achievement_id === achievement.id);
     return {
       ...achievement,
       isUnlocked: !!userAch,
-      unlockedAt: userAch?.unlocked_at,
-      progress: userAch?.progress || 0,
-      currentPoints: userAch?.current_points || 0
+      unlockedAt: userAch?.achieved_at,
+      progress: userAch ? 100 : 0,
+      currentPoints: userAch ? achievement.pointsRequired : 0
     };
   });
 

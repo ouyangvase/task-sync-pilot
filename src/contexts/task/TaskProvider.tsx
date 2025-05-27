@@ -6,12 +6,6 @@ import { TaskContextType } from "./taskContextTypes";
 import { useSupabaseTaskStorage } from "./useSupabaseTaskStorage";
 import { useTaskCalculations } from "./useTaskCalculations";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  shouldGenerateNextInstance, 
-  createRecurringTaskInstance, 
-  calculateNextOccurrence,
-  generateTodayRecurringInstances
-} from "@/lib/recurringTaskUtils";
 import { isTaskActionable } from "@/lib/taskAvailability";
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -37,46 +31,12 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     saveTaskToDatabase,
     updateUserPointsInDatabase,
-    updateMonthlyTargetInDatabase
+    updateMonthlyTargetInDatabase,
+    forceRefresh
   } = useSupabaseTaskStorage();
   
   const { calculateUserPoints } = useTaskCalculations();
   const { currentUser, loading: authLoading } = useAuth();
-
-  // Generate today's recurring instances on load and periodically - only when authenticated
-  useEffect(() => {
-    const generateTodayInstances = async () => {
-      if (!currentUser || loading || authLoading) return;
-      
-      const todayInstances = generateTodayRecurringInstances(tasks);
-      if (todayInstances.length > 0) {
-        console.log(`Generating ${todayInstances.length} recurring task instances for today`);
-        // Save each instance to database - let database generate UUIDs
-        for (const instance of todayInstances) {
-          const instanceWithoutId = {
-            ...instance,
-            createdAt: new Date().toISOString(),
-          };
-          // Remove the id field to let database generate it
-          delete (instanceWithoutId as any).id;
-          
-          await saveTaskToDatabase(instanceWithoutId as Omit<Task, "id">);
-        }
-        
-        console.log(`Generated ${todayInstances.length} recurring task instances for today`);
-      }
-    };
-
-    if (tasks.length > 0 && !loading && !authLoading && currentUser) {
-      generateTodayInstances();
-    }
-
-    // Check for new instances every hour, but only if authenticated
-    if (currentUser && !authLoading) {
-      const interval = setInterval(generateTodayInstances, 60 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [tasks, loading, authLoading, currentUser, saveTaskToDatabase]);
 
   // Show loading only when auth is loading or when we're loading data for authenticated users
   if (authLoading || (currentUser && loading)) {
@@ -120,35 +80,22 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getUserTasks = (userId: string) => {
     console.log('Getting tasks for user:', userId);
     console.log('All tasks count:', tasks.length);
-    console.log('Current user role:', currentUser?.role);
-    console.log('All task assignees:', tasks.map(t => ({ id: t.id, title: t.title, assignee: t.assignee })));
     
-    // FIXED: Remove restrictive filtering - show ALL tasks for the user
     let userTasks;
     
     if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
-      // Admin/manager can see all tasks, but when getting tasks for a specific user, filter by that user
       userTasks = tasks.filter((task) => task.assignee === userId);
       console.log('Admin/Manager viewing tasks for user:', userId, 'Found:', userTasks.length);
     } else {
-      // Regular users can only see their own tasks
       userTasks = tasks.filter((task) => task.assignee === userId && task.assignee === currentUser.id);
       console.log('Regular user viewing own tasks. User ID:', currentUser.id, 'Found:', userTasks.length);
     }
-    
-    console.log('Final filtered user tasks:', userTasks.map(t => ({ 
-      id: t.id, 
-      title: t.title, 
-      status: t.status, 
-      assignee: t.assignee 
-    })));
     
     return userTasks;
   };
 
   const getTasksByCategory = (userId: string, category: string) => {
     const userTasks = getUserTasks(userId);
-    console.log('Getting tasks by category:', { userId, category, userTasks });
     return userTasks.filter(
       (task) => category === "completed" ? task.status === "completed" : task.category === category
     );
@@ -159,15 +106,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     console.log('Adding new task:', taskData);
     
-    // Prepare task data without ID - let database generate UUID
     const newTaskData = {
       ...taskData,
-      assignedBy: currentUser.id, // Ensure the current user is set as the creator
+      assignedBy: currentUser.id,
       createdAt: new Date().toISOString(),
-      // For recurring tasks, set the next occurrence date
-      nextOccurrenceDate: taskData.recurrence !== "once" 
-        ? calculateNextOccurrence(taskData.dueDate, taskData.recurrence)
-        : undefined,
     };
 
     try {
@@ -176,6 +118,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Task creation successful, saved task:', savedTask);
       toast.success("Task created successfully");
+      forceRefresh(); // Force immediate UI update
     } catch (error) {
       console.error("Error creating task:", error);
       toast.error("Failed to create task. Please try again.");
@@ -193,24 +136,25 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const updatedTask = { ...task, ...updates };
-      
-      // If updating a recurring template, update the next occurrence date
-      if (updatedTask.recurrence !== "once" && !updatedTask.isRecurringInstance && updates.dueDate) {
-        updatedTask.nextOccurrenceDate = calculateNextOccurrence(updates.dueDate, updatedTask.recurrence);
-      }
 
       const { error } = await supabase
         .from('tasks')
         .update({
           title: updatedTask.title,
           description: updatedTask.description,
-          assigned_to: updatedTask.assignee, // Map assignee to assigned_to
+          assigned_to: updatedTask.assignee,
           assigned_by: updatedTask.assignedBy,
           due_date: updatedTask.dueDate,
           status: updatedTask.status,
+          priority: updatedTask.priority,
+          category: updatedTask.category,
+          recurrence: updatedTask.recurrence,
           points: updatedTask.points,
           started_at: updatedTask.startedAt,
           completed_at: updatedTask.completedAt,
+          is_recurring_instance: updatedTask.isRecurringInstance,
+          parent_task_id: updatedTask.parentTaskId,
+          next_occurrence_date: updatedTask.nextOccurrenceDate,
           updated_at: new Date().toISOString()
         })
         .eq('id', taskId);
@@ -223,6 +167,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Task updated successfully');
       toast.success("Task updated successfully");
+      forceRefresh(); // Force immediate UI update
     } catch (error) {
       console.error("Error updating task:", error);
       toast.error("Failed to update task. Please try again.");
@@ -232,7 +177,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteTask = async (taskId: string) => {
     console.log('Deleting task:', taskId);
     
-    // Check if current user is admin
     if (currentUser?.role !== 'admin') {
       toast.error("Only administrators can delete tasks");
       return;
@@ -242,7 +186,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const taskToDelete = tasks.find(task => task.id === taskId);
       
       if (taskToDelete?.recurrence !== "once" && !taskToDelete?.isRecurringInstance) {
-        // Deleting a recurring template - also delete all its instances
         const { error } = await supabase
           .from('tasks')
           .delete()
@@ -254,7 +197,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         toast.success("Recurring task template and all instances deleted");
       } else {
-        // Deleting a single task or instance
         const { error } = await supabase
           .from('tasks')
           .delete()
@@ -268,6 +210,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       console.log('Task deleted successfully');
+      forceRefresh(); // Force immediate UI update
     } catch (error) {
       console.error("Error deleting task:", error);
       toast.error("Failed to delete task. Please try again.");
@@ -284,12 +227,30 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (task.status !== "pending") return;
 
     try {
+      // Optimistic update for immediate UI feedback
+      setTasks(prevTasks => 
+        prevTasks.map(t => 
+          t.id === taskId 
+            ? { ...t, status: "in_progress" as TaskStatus, startedAt: new Date().toISOString() }
+            : t
+        )
+      );
+
       await updateTask(taskId, {
         status: "in_progress" as TaskStatus,
         startedAt: new Date().toISOString(),
       });
+      
       toast.success("Task started!");
     } catch (error) {
+      // Revert optimistic update on error
+      setTasks(prevTasks => 
+        prevTasks.map(t => 
+          t.id === taskId 
+            ? { ...t, status: "pending" as TaskStatus, startedAt: undefined }
+            : t
+        )
+      );
       console.error("Error starting task:", error);
       toast.error("Failed to start task");
     }
@@ -305,19 +266,31 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (task.status !== "in_progress") return;
 
     try {
+      const completedAt = new Date().toISOString();
+      
+      // Optimistic update for immediate UI feedback
+      setTasks(prevTasks => 
+        prevTasks.map(t => 
+          t.id === taskId 
+            ? { ...t, status: "completed" as TaskStatus, completedAt }
+            : t
+        )
+      );
+
       await updateTask(taskId, {
         status: "completed" as TaskStatus,
-        completedAt: new Date().toISOString(),
+        completedAt,
       });
 
       // Award points
       const userId = task.assignee;
       const taskPoints = task.points || 0;
       
-      const currentMonth = new Date().getMonth() + 1;
-      const currentYear = new Date().getFullYear();
       const currentPoints = userPoints[userId] || 0;
       const newPoints = currentPoints + taskPoints;
+      
+      // Optimistic update for points
+      setUserPoints(prev => ({ ...prev, [userId]: newPoints }));
       
       await updateUserPointsInDatabase(userId, newPoints);
       
@@ -333,6 +306,18 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.success("Task completed!");
       }
     } catch (error) {
+      // Revert optimistic updates on error
+      setTasks(prevTasks => 
+        prevTasks.map(t => 
+          t.id === taskId 
+            ? { ...t, status: "in_progress" as TaskStatus, completedAt: undefined }
+            : t
+        )
+      );
+      const currentPoints = userPoints[task.assignee] || 0;
+      const revertedPoints = Math.max(0, currentPoints - (task.points || 0));
+      setUserPoints(prev => ({ ...prev, [task.assignee]: revertedPoints }));
+      
       console.error("Error completing task:", error);
       toast.error("Failed to complete task");
     }
@@ -341,14 +326,9 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getUserTaskStats = (userId: string): TaskStats => {
     const userTasks = getUserTasks(userId);
     const completed = userTasks.filter((task) => task.status === "completed").length;
-    
-    // Count ALL pending tasks, not just those available today
     const pending = userTasks.filter((task) => task.status !== "completed").length;
-    
     const total = userTasks.length;
     const percentComplete = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-    console.log('Task stats for user:', { userId, completed, pending, total, percentComplete });
 
     return {
       completed,
@@ -372,10 +352,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateRewardTiers = async (tiers: RewardTier[]) => {
     try {
-      // Delete all existing tiers
       await supabase.from('reward_tiers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       
-      // Insert new tiers
       const { error } = await supabase
         .from('reward_tiers')
         .insert(tiers.map(tier => ({
@@ -388,6 +366,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       toast.success("Reward tiers updated successfully");
+      forceRefresh();
     } catch (error) {
       console.error("Error updating reward tiers:", error);
       toast.error("Failed to update reward tiers");
@@ -414,14 +393,6 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getUserMonthlyPoints = (userId: string): number => {
     return userPoints[userId] || 0;
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading tasks from database...</div>
-      </div>
-    );
-  }
 
   return (
     <TaskContext.Provider

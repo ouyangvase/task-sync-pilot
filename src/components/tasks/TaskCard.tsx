@@ -1,10 +1,10 @@
+
 import { useState } from "react";
 import { Task } from "@/types";
 import { useTasks } from "@/contexts/task/TaskProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,35 +36,72 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const { startTask, completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { isMobile } = useScreenSize();
   
-  // Only admin users can delete tasks
+  // Track local state for immediate UI feedback
+  const [localTaskStatus, setLocalTaskStatus] = useState(task.status);
+  const [localStartedAt, setLocalStartedAt] = useState(task.startedAt);
+  const [localCompletedAt, setLocalCompletedAt] = useState(task.completedAt);
+  
+  // Use local state if different from prop, otherwise use prop
+  const currentStatus = localTaskStatus !== task.status ? localTaskStatus : task.status;
+  const currentStartedAt = localStartedAt !== task.startedAt ? localStartedAt : task.startedAt;
+  const currentCompletedAt = localCompletedAt !== task.completedAt ? localCompletedAt : task.completedAt;
+  
   const isAdmin = currentUser?.role === "admin";
-  const isCompleted = task.status === "completed";
-  const isPending = task.status === "pending";
-  const isInProgress = task.status === "in_progress";
+  const isCompleted = currentStatus === "completed";
+  const isPending = currentStatus === "pending";
+  const isInProgress = currentStatus === "in_progress";
   const isRecurring = task.recurrence !== "once";
-  const isActionable = isTaskActionable(task); // Use new actionable function
+  const isActionable = isTaskActionable(task);
   const availabilityStatus = getTaskAvailabilityStatus(task);
   
   console.log('TaskCard rendering:', {
     taskId: task.id,
     taskTitle: task.title,
-    status: task.status,
+    status: currentStatus,
     isActionable,
-    availabilityStatus,
     currentUserId: currentUser?.id,
     assignee: task.assignee
   });
   
-  const handleStartTask = () => {
-    if (!isActionable) return;
-    startTask(task.id);
+  const handleStartTask = async () => {
+    if (!isActionable || isProcessing) return;
+    
+    setIsProcessing(true);
+    // Immediate UI feedback
+    setLocalTaskStatus("in_progress");
+    setLocalStartedAt(new Date().toISOString());
+    
+    try {
+      await startTask(task.id);
+    } catch (error) {
+      // Revert on error
+      setLocalTaskStatus(task.status);
+      setLocalStartedAt(task.startedAt);
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
-  const handleCompleteTask = () => {
-    if (!isActionable) return;
-    completeTask(task.id);
+  const handleCompleteTask = async () => {
+    if (!isActionable || isProcessing) return;
+    
+    setIsProcessing(true);
+    // Immediate UI feedback
+    setLocalTaskStatus("completed");
+    setLocalCompletedAt(new Date().toISOString());
+    
+    try {
+      await completeTask(task.id);
+    } catch (error) {
+      // Revert on error
+      setLocalTaskStatus(task.status);
+      setLocalCompletedAt(task.completedAt);
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const handleDelete = async () => {
@@ -73,7 +110,6 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
       setDeleteDialogOpen(false);
     } catch (error) {
       console.error('Error deleting task:', error);
-      // Error handling is done in the deleteTask function
     }
   };
 
@@ -116,28 +152,6 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
     }
   };
 
-  const getRecurrenceText = (recurrence: string) => {
-    switch (recurrence) {
-      case "once":
-        return "One-time";
-      case "daily":
-        return "Daily";
-      case "weekly":
-        return "Weekly";
-      case "monthly":
-        return "Monthly";
-      default:
-        return recurrence;
-    }
-  };
-
-  const getDeleteMessage = () => {
-    if (isRecurring && !task.isRecurringInstance) {
-      return "Are you sure you want to delete this recurring task template? This will also delete all future instances of this task.";
-    }
-    return "Are you sure you want to delete this task? This action cannot be undone.";
-  };
-
   const getAvailabilityBadge = () => {
     if (isCompleted) return null;
     
@@ -164,10 +178,10 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   return (
     <div 
       className={cn(
-        "task-card group",
-        isCompleted && "completed",
+        "task-card group border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow",
+        isCompleted && "bg-gray-50 opacity-75",
         !isActionable && !isCompleted && "opacity-75",
-        "touch-manipulation" // Improve touch responsiveness
+        "touch-manipulation"
       )}
     >
       <div className="flex items-start gap-3">
@@ -184,14 +198,8 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               {isRecurring && (
                 <Repeat className="h-4 w-4 text-blue-500 shrink-0" />
               )}
-              {task.isRecurringInstance && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 shrink-0">
-                  Instance
-                </Badge>
-              )}
             </div>
             
-            {/* Show menu for edit/delete - only show delete for admin users */}
             {(isAdmin || (onEdit && currentUser?.id === task.assignee)) && (
               <div className="shrink-0">
                 <DropdownMenu>
@@ -215,7 +223,6 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                         Edit task
                       </DropdownMenuItem>
                     )}
-                    {/* Only show delete option for admin users */}
                     {isAdmin && (
                       <DropdownMenuItem 
                         onClick={() => setDeleteDialogOpen(true)}
@@ -227,26 +234,6 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                
-                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                  <AlertDialogContent className="mx-4 max-w-md">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Task (Admin Only)</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {getDeleteMessage()}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                      <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDelete}
-                        className="bg-red-500 hover:bg-red-600 min-h-[44px]"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </div>
             )}
           </div>
@@ -265,19 +252,12 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
             "flex flex-wrap items-center gap-2 mt-3",
             isMobile && "gap-1.5"
           )}>
-            <Badge variant="outline" className={cn(getStatusColor(task.status), "text-xs")}>
-              {getStatusText(task.status)}
+            <Badge variant="outline" className={cn(getStatusColor(currentStatus), "text-xs")}>
+              {getStatusText(currentStatus)}
             </Badge>
             
             <Badge variant="outline" className={cn(getPriorityColor(task.priority), "text-xs")}>
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-            </Badge>
-            
-            <Badge variant="outline" className={cn(
-              isRecurring ? "bg-blue-100 text-blue-800 border-blue-200" : "",
-              "text-xs"
-            )}>
-              {getRecurrenceText(task.recurrence)}
             </Badge>
 
             <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
@@ -300,15 +280,15 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleStartTask}
-                disabled={!isActionable}
+                disabled={!isActionable || isProcessing}
                 className={cn(
                   "flex items-center gap-1 touch-manipulation min-h-[44px]",
-                  !isActionable && "opacity-50 cursor-not-allowed",
+                  (!isActionable || isProcessing) && "opacity-50 cursor-not-allowed",
                   isMobile && "w-full justify-center"
                 )}
               >
                 <Play className="h-3 w-3" />
-                {isActionable ? "Take Job" : "Not Available Yet"}
+                {isProcessing ? "Starting..." : isActionable ? "Take Job" : "Not Available Yet"}
               </Button>
             )}
             
@@ -316,37 +296,46 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleCompleteTask}
-                disabled={!isActionable}
+                disabled={!isActionable || isProcessing}
                 className={cn(
                   "flex items-center gap-1 bg-green-600 hover:bg-green-700 touch-manipulation min-h-[44px]",
-                  !isActionable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
+                  (!isActionable || isProcessing) && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
                   isMobile && "w-full justify-center"
                 )}
               >
                 <CheckCircle className="h-3 w-3" />
-                {isActionable ? "Mark Complete" : "Not Available Yet"}
+                {isProcessing ? "Completing..." : isActionable ? "Mark Complete" : "Not Available Yet"}
               </Button>
             )}
           </div>
           
-          {isCompleted && task.completedAt && (
+          {isCompleted && currentCompletedAt && (
             <div className="text-xs text-muted-foreground mt-2">
-              Completed on {format(new Date(task.completedAt), "MMM d, yyyy 'at' h:mm a")}
-              {isRecurring && (
-                <span className="ml-2 text-blue-600">
-                  • Next occurrence scheduled
-                </span>
-              )}
-            </div>
-          )}
-          
-          {task.nextOccurrenceDate && !isCompleted && isRecurring && (
-            <div className="text-xs text-blue-600 mt-2">
-              Next occurrence: {format(new Date(task.nextOccurrenceDate), "MMM d, yyyy 'at' h:mm a")}
+              Completed on {format(new Date(currentCompletedAt), "MMM d, yyyy 'at' h:mm a")}
             </div>
           )}
         </div>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="mx-4 max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task (Admin Only)</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this task? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-500 hover:bg-red-600 min-h-[44px]"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

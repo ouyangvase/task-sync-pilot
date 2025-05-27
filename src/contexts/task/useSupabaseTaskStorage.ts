@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Task, RewardTier } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,22 +13,19 @@ export function useSupabaseTaskStorage() {
   const [loading, setLoading] = useState(true);
   const { currentUser, loading: authLoading } = useAuth();
 
+  // Force refresh function to trigger re-renders
+  const [refreshKey, setRefreshKey] = useState(0);
+  const forceRefresh = () => setRefreshKey(prev => prev + 1);
+
   // Load data from Supabase on mount
   useEffect(() => {
-    // If auth is still loading, wait for it to complete
-    if (authLoading) {
-      return;
-    }
-
-    // If user is not authenticated, stop loading
+    if (authLoading) return;
     if (!currentUser) {
       setLoading(false);
       return;
     }
-
-    // If user is authenticated, load data
     loadAllData();
-  }, [currentUser, authLoading]);
+  }, [currentUser, authLoading, refreshKey]);
 
   // Set up real-time subscriptions only when user is authenticated
   useEffect(() => {
@@ -36,45 +34,25 @@ export function useSupabaseTaskStorage() {
     console.log('Setting up real-time subscriptions for user:', currentUser.id);
 
     const tasksChannel = supabase
-      .channel('tasks-changes')
+      .channel('tasks-realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'tasks' },
         (payload) => {
           console.log('Tasks real-time update:', payload);
           loadTasks();
-        }
-      )
-      .subscribe();
-
-    const rewardsChannel = supabase
-      .channel('rewards-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'reward_tiers' },
-        (payload) => {
-          console.log('Reward tiers real-time update:', payload);
-          loadRewardTiers();
+          forceRefresh();
         }
       )
       .subscribe();
 
     const pointsChannel = supabase
-      .channel('points-changes')
+      .channel('points-realtime')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'user_points' },
         (payload) => {
           console.log('User points real-time update:', payload);
           loadUserPoints();
-        }
-      )
-      .subscribe();
-
-    const settingsChannel = supabase
-      .channel('settings-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'app_settings' },
-        (payload) => {
-          console.log('App settings real-time update:', payload);
-          loadMonthlyTarget();
+          forceRefresh();
         }
       )
       .subscribe();
@@ -82,9 +60,7 @@ export function useSupabaseTaskStorage() {
     return () => {
       console.log('Cleaning up real-time subscriptions');
       supabase.removeChannel(tasksChannel);
-      supabase.removeChannel(rewardsChannel);
       supabase.removeChannel(pointsChannel);
-      supabase.removeChannel(settingsChannel);
     };
   }, [currentUser, authLoading]);
 
@@ -99,7 +75,6 @@ export function useSupabaseTaskStorage() {
         loadRewardTiers(),
         loadUserPoints(),
         loadMonthlyTarget(),
-        migrateLocalStorageData(),
         initializeDefaultData()
       ]);
       console.log('All data loaded successfully');
@@ -116,16 +91,13 @@ export function useSupabaseTaskStorage() {
 
     console.log('Loading tasks for user:', currentUser.id);
     
-    // For admins and managers, load all tasks. For others, only load their own tasks
     const isAdminOrManager = ['admin', 'manager'].includes(currentUser.role);
     
     let query = supabase.from('tasks').select('*');
     
     if (isAdminOrManager) {
-      // Load all tasks for admin/manager users
       console.log('Loading all tasks for admin/manager user');
     } else {
-      // Load only tasks assigned to this user
       query = query.eq('assigned_to', currentUser.id);
       console.log('Loading tasks assigned to user:', currentUser.id);
     }
@@ -138,32 +110,29 @@ export function useSupabaseTaskStorage() {
       return;
     }
 
-    console.log(`Loaded ${data?.length || 0} tasks from database`, data);
+    console.log(`Loaded ${data?.length || 0} tasks from database`);
 
-    const formattedTasks: Task[] = (data || []).map(task => {
-      console.log('Formatting task:', task);
-      return {
-        id: task.id,
-        title: task.title,
-        description: task.description || '',
-        assignee: task.assigned_to, // Map assigned_to to assignee
-        assignedBy: task.assigned_by,
-        dueDate: task.due_date,
-        status: task.status as any,
-        priority: 'medium' as any, // Default since column doesn't exist yet
-        category: 'custom' as any, // Default since column doesn't exist yet
-        recurrence: 'once' as any, // Default since column doesn't exist yet
-        points: task.points,
-        createdAt: task.created_at,
-        startedAt: task.started_at,
-        completedAt: task.completed_at,
-        isRecurringInstance: false, // Default since column doesn't exist yet
-        parentTaskId: undefined, // Default since column doesn't exist yet
-        nextOccurrenceDate: undefined // Default since column doesn't exist yet
-      };
-    });
+    const formattedTasks: Task[] = (data || []).map(task => ({
+      id: task.id,
+      title: task.title,
+      description: task.description || '',
+      assignee: task.assigned_to,
+      assignedBy: task.assigned_by,
+      dueDate: task.due_date,
+      status: task.status as any,
+      priority: (task.priority || 'medium') as any,
+      category: (task.category || 'custom') as any,
+      recurrence: (task.recurrence || 'once') as any,
+      points: task.points,
+      createdAt: task.created_at,
+      startedAt: task.started_at,
+      completedAt: task.completed_at,
+      isRecurringInstance: task.is_recurring_instance || false,
+      parentTaskId: task.parent_task_id,
+      nextOccurrenceDate: task.next_occurrence_date
+    }));
 
-    console.log('Formatted tasks:', formattedTasks);
+    console.log('Formatted tasks:', formattedTasks.length);
     setTasks(formattedTasks);
   };
 
@@ -176,7 +145,6 @@ export function useSupabaseTaskStorage() {
 
     if (error) {
       console.error('Error loading reward tiers:', error);
-      toast.error('Failed to load reward tiers');
       return;
     }
 
@@ -197,7 +165,6 @@ export function useSupabaseTaskStorage() {
 
     if (error) {
       console.error('Error loading user points:', error);
-      toast.error('Failed to load user points');
       return;
     }
 
@@ -218,7 +185,7 @@ export function useSupabaseTaskStorage() {
       .eq('setting_key', 'monthly_target')
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+    if (error && error.code !== 'PGRST116') {
       console.error('Error loading monthly target:', error);
       return;
     }
@@ -227,24 +194,18 @@ export function useSupabaseTaskStorage() {
       const target = parseInt(data.setting_value as string);
       console.log('Loaded monthly target:', target);
       setMonthlyTarget(target);
-    } else {
-      console.log('No monthly target found, using default');
     }
   };
 
   const initializeDefaultData = async () => {
     if (!currentUser || currentUser.role !== 'admin') return;
     
-    console.log('Initializing default data');
-    
-    // Check if reward tiers exist, if not create defaults
     const { data: existingTiers } = await supabase
       .from('reward_tiers')
       .select('id')
       .limit(1);
 
     if (!existingTiers || existingTiers.length === 0) {
-      console.log('Creating default reward tiers');
       const defaultTiers: RewardTier[] = [
         { 
           id: "tier-bronze", 
@@ -272,95 +233,30 @@ export function useSupabaseTaskStorage() {
       for (const tier of defaultTiers) {
         await saveRewardTierToDatabase(tier);
       }
-      toast.success('Default reward tiers created');
-    }
-
-    // Check if monthly target exists, if not create default
-    const { data: existingTarget } = await supabase
-      .from('app_settings')
-      .select('setting_value')
-      .eq('setting_key', 'monthly_target')
-      .single();
-
-    if (!existingTarget) {
-      console.log('Creating default monthly target');
-      await updateMonthlyTargetInDatabase(500);
-      toast.success('Default monthly target set to 500 points');
-    }
-  };
-
-  const migrateLocalStorageData = async () => {
-    try {
-      // Check if there's data in localStorage to migrate
-      const savedTasks = localStorage.getItem("tasks");
-      const savedRewardTiers = localStorage.getItem("rewardTiers");
-      const savedMonthlyTarget = localStorage.getItem("monthlyTarget");
-      const savedUserPoints = localStorage.getItem("userPoints");
-
-      if (savedTasks) {
-        const localTasks = JSON.parse(savedTasks);
-        console.log(`Found ${localTasks.length} tasks in localStorage, migrating...`);
-        
-        for (const task of localTasks) {
-          // Remove the id field to let database generate it
-          const { id, ...taskWithoutId } = task;
-          await saveTaskToDatabase(taskWithoutId);
-        }
-        
-        // Clear localStorage after migration
-        localStorage.removeItem("tasks");
-        toast.success(`Migrated ${localTasks.length} tasks to database`);
-      }
-
-      if (savedRewardTiers && currentUser?.role === 'admin') {
-        const localRewardTiers = JSON.parse(savedRewardTiers);
-        console.log(`Found ${localRewardTiers.length} reward tiers in localStorage, migrating...`);
-        
-        for (const tier of localRewardTiers) {
-          await saveRewardTierToDatabase(tier);
-        }
-        
-        localStorage.removeItem("rewardTiers");
-        toast.success(`Migrated ${localRewardTiers.length} reward tiers to database`);
-      }
-
-      if (savedMonthlyTarget && currentUser?.role === 'admin') {
-        const localTarget = JSON.parse(savedMonthlyTarget);
-        await updateMonthlyTargetInDatabase(localTarget);
-        localStorage.removeItem("monthlyTarget");
-        toast.success('Migrated monthly target to database');
-      }
-
-      if (savedUserPoints) {
-        const localUserPoints = JSON.parse(savedUserPoints);
-        for (const [userId, points] of Object.entries(localUserPoints)) {
-          await updateUserPointsInDatabase(userId, points as number);
-        }
-        localStorage.removeItem("userPoints");
-        toast.success('Migrated user points to database');
-      }
-
-    } catch (error) {
-      console.error('Error migrating localStorage data:', error);
     }
   };
 
   const saveTaskToDatabase = async (task: Omit<Task, "id"> | Task) => {
-    console.log('Saving task to database:', 'title' in task ? task.title : 'Unknown task');
+    console.log('Saving task to database:', task.title);
     
     try {
-      // Prepare task data - map assignee to assigned_to for database
       const taskData = {
         title: task.title,
         description: task.description,
-        assigned_to: task.assignee, // Map assignee to assigned_to
-        assigned_by: task.assignedBy || currentUser?.id, // Ensure assigned_by is set
+        assigned_to: task.assignee,
+        assigned_by: task.assignedBy || currentUser?.id,
         due_date: task.dueDate,
         status: task.status,
+        priority: task.priority || 'medium',
+        category: task.category || 'custom',
+        recurrence: task.recurrence || 'once',
         points: task.points,
         created_at: task.createdAt || new Date().toISOString(),
         started_at: task.startedAt,
         completed_at: task.completedAt,
+        is_recurring_instance: task.isRecurringInstance || false,
+        parent_task_id: task.parentTaskId,
+        next_occurrence_date: task.nextOccurrenceDate,
         updated_at: new Date().toISOString()
       };
 
@@ -377,9 +273,9 @@ export function useSupabaseTaskStorage() {
         toast.error(`Failed to save task: ${error.message}`);
         throw error;
       } else {
-        console.log('Task saved successfully with generated UUID:', data.id);
-        toast.success('Task saved successfully');
-        return data; // Return the task with generated UUID
+        console.log('Task saved successfully with UUID:', data.id);
+        forceRefresh(); // Force immediate UI update
+        return data;
       }
     } catch (error) {
       console.error('Exception saving task:', error);
@@ -388,8 +284,6 @@ export function useSupabaseTaskStorage() {
   };
 
   const saveRewardTierToDatabase = async (tier: RewardTier) => {
-    console.log('Saving reward tier to database:', tier.name);
-    
     try {
       const { data, error } = await supabase
         .from('reward_tiers')
@@ -402,14 +296,9 @@ export function useSupabaseTaskStorage() {
         .select()
         .single();
 
-      if (error) {
+      if (error && !error.message.includes('duplicate key')) {
         console.error('Database error saving reward tier:', error);
-        if (!error.message.includes('duplicate key')) {
-          toast.error(`Failed to save reward tier: ${error.message}`);
-          throw error;
-        }
-      } else {
-        console.log('Reward tier saved successfully:', data);
+        throw error;
       }
     } catch (error) {
       console.error('Exception saving reward tier:', error);
@@ -418,8 +307,6 @@ export function useSupabaseTaskStorage() {
   };
 
   const updateMonthlyTargetInDatabase = async (target: number) => {
-    console.log('Updating monthly target in database:', target);
-    
     try {
       const { data, error } = await supabase
         .from('app_settings')
@@ -434,9 +321,9 @@ export function useSupabaseTaskStorage() {
         console.error('Database error updating monthly target:', error);
         toast.error(`Failed to update monthly target: ${error.message}`);
         throw error;
-      } else {
-        console.log('Monthly target updated successfully:', data);
       }
+      
+      forceRefresh();
     } catch (error) {
       console.error('Exception updating monthly target:', error);
       throw error;
@@ -465,9 +352,9 @@ export function useSupabaseTaskStorage() {
         console.error('Database error updating user points:', error);
         toast.error(`Failed to update user points: ${error.message}`);
         throw error;
-      } else {
-        console.log('User points updated successfully:', data);
       }
+      
+      forceRefresh(); // Force immediate UI update
     } catch (error) {
       console.error('Exception updating user points:', error);
       throw error;
@@ -487,6 +374,7 @@ export function useSupabaseTaskStorage() {
     saveTaskToDatabase,
     saveRewardTierToDatabase,
     updateMonthlyTargetInDatabase,
-    updateUserPointsInDatabase
+    updateUserPointsInDatabase,
+    forceRefresh
   };
 }
