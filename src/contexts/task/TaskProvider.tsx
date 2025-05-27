@@ -7,6 +7,7 @@ import { useSupabaseTaskStorage } from "./useSupabaseTaskStorage";
 import { useTaskCalculations } from "./useTaskCalculations";
 import { supabase } from "@/integrations/supabase/client";
 import { isTaskActionable } from "@/lib/taskAvailability";
+import { updateTaskInDatabase } from "./database/taskOperations";
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
@@ -129,41 +130,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Updating task:', taskId, updates);
     
     try {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) {
-        console.error('Task not found for update:', taskId);
-        return;
-      }
-
-      const updatedTask = { ...task, ...updates };
-
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          title: updatedTask.title,
-          description: updatedTask.description,
-          assigned_to: updatedTask.assignee,
-          assigned_by: updatedTask.assignedBy,
-          due_date: updatedTask.dueDate,
-          status: updatedTask.status,
-          priority: updatedTask.priority,
-          category: updatedTask.category,
-          recurrence: updatedTask.recurrence,
-          points: updatedTask.points,
-          started_at: updatedTask.startedAt,
-          completed_at: updatedTask.completedAt,
-          is_recurring_instance: updatedTask.isRecurringInstance,
-          parent_task_id: updatedTask.parentTaskId,
-          next_occurrence_date: updatedTask.nextOccurrenceDate,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', taskId);
-
-      if (error) {
-        console.error('Database error updating task:', error);
-        toast.error(`Failed to update task: ${error.message}`);
-        throw error;
-      }
+      // Use the new dedicated update function
+      await updateTaskInDatabase(taskId, updates);
       
       console.log('Task updated successfully');
       toast.success("Task updated successfully");

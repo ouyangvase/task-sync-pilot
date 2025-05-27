@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 import { toast } from "@/components/ui/sonner";
@@ -45,6 +44,52 @@ export const saveTaskToDatabase = async (task: Omit<Task, "id"> | Task, currentU
     }
   } catch (error) {
     console.error('Exception saving task:', error);
+    throw error;
+  }
+};
+
+export const updateTaskInDatabase = async (taskId: string, updates: Partial<Task>) => {
+  console.log('Updating task in database:', taskId, updates);
+  
+  try {
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    // Map frontend field names to database column names
+    if (updates.title !== undefined) updateData.title = updates.title;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.assignee !== undefined) updateData.assigned_to = updates.assignee;
+    if (updates.assignedBy !== undefined) updateData.assigned_by = updates.assignedBy;
+    if (updates.dueDate !== undefined) updateData.due_date = updates.dueDate;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.priority !== undefined) updateData.priority = updates.priority;
+    if (updates.category !== undefined) updateData.category = updates.category;
+    if (updates.recurrence !== undefined) updateData.recurrence = updates.recurrence;
+    if (updates.points !== undefined) updateData.points = updates.points;
+    if (updates.startedAt !== undefined) updateData.started_at = updates.startedAt;
+    if (updates.completedAt !== undefined) updateData.completed_at = updates.completedAt;
+    if (updates.isRecurringInstance !== undefined) updateData.is_recurring_instance = updates.isRecurringInstance;
+    if (updates.parentTaskId !== undefined) updateData.parent_task_id = updates.parentTaskId;
+    if (updates.nextOccurrenceDate !== undefined) updateData.next_occurrence_date = updates.nextOccurrenceDate;
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database error updating task:', error);
+      toast.error(`Failed to update task: ${error.message}`);
+      throw error;
+    }
+    
+    console.log('Task updated successfully in database:', data);
+    return data;
+  } catch (error) {
+    console.error('Exception updating task:', error);
     throw error;
   }
 };
