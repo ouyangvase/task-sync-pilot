@@ -10,7 +10,26 @@ export const loadTasks = async (currentUser: any) => {
   
   const isAdminOrManager = ['admin', 'manager'].includes(currentUser.role);
   
-  let query = supabase.from('tasks').select('*');
+  let query = supabase.from('tasks').select(`
+    id,
+    title,
+    description,
+    assigned_to,
+    assigned_by,
+    due_date,
+    status,
+    priority,
+    category,
+    recurrence,
+    points,
+    created_at,
+    started_at,
+    completed_at,
+    is_recurring_instance,
+    parent_task_id,
+    next_occurrence_date,
+    updated_at
+  `);
   
   if (isAdminOrManager) {
     console.log('Loading all tasks for admin/manager user');
