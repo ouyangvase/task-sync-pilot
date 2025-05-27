@@ -30,83 +30,50 @@ import { useScreenSize } from "@/hooks/use-mobile";
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
-  onTaskUpdate?: () => void;
 }
 
-const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const { startTask, completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [localTaskStatus, setLocalTaskStatus] = useState(task.status); // Add local state for immediate UI updates
   const { isMobile } = useScreenSize();
   
   // Only admin users can delete tasks
   const isAdmin = currentUser?.role === "admin";
-  const isCompleted = localTaskStatus === "completed";
-  const isPending = localTaskStatus === "pending";
-  const isInProgress = localTaskStatus === "in_progress";
+  const isCompleted = task.status === "completed";
+  const isPending = task.status === "pending";
+  const isInProgress = task.status === "in_progress";
   const isRecurring = task.recurrence !== "once";
-  const isActionable = isTaskActionable(task);
+  const isActionable = isTaskActionable(task); // Use new actionable function
   const availabilityStatus = getTaskAvailabilityStatus(task);
   
   console.log('TaskCard rendering:', {
     taskId: task.id,
     taskTitle: task.title,
     status: task.status,
-    localTaskStatus,
     isActionable,
     availabilityStatus,
     currentUserId: currentUser?.id,
-    assignee: task.assignee,
-    isPending,
-    isInProgress,
-    isCompleted
+    assignee: task.assignee
   });
   
-  const handleStartTask = async () => {
+  const handleStartTask = () => {
     if (!isActionable) return;
-    setIsLoading(true);
-    try {
-      // Immediately update local state for instant UI feedback
-      setLocalTaskStatus("in_progress");
-      
-      await startTask(task.id);
-      console.log('Task started successfully, triggering update');
-      
-      // Trigger parent refresh
-      if (onTaskUpdate) {
-        onTaskUpdate();
-      }
-    } catch (error) {
-      // Revert local state on error
-      setLocalTaskStatus(task.status);
-      console.error('Error starting task:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    startTask(task.id);
   };
   
-  const handleCompleteTask = async () => {
-    if (!isActionable && localTaskStatus !== "in_progress") return;
-    setIsLoading(true);
+  const handleCompleteTask = () => {
+    if (!isActionable) return;
+    completeTask(task.id);
+  };
+  
+  const handleDelete = async () => {
     try {
-      // Immediately update local state for instant UI feedback
-      setLocalTaskStatus("completed");
-      
-      await completeTask(task.id);
-      console.log('Task completed successfully, triggering update');
-      
-      // Trigger parent refresh
-      if (onTaskUpdate) {
-        onTaskUpdate();
-      }
+      await deleteTask(task.id);
+      setDeleteDialogOpen(false);
     } catch (error) {
-      // Revert local state on error
-      setLocalTaskStatus(task.status);
-      console.error('Error completing task:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error deleting task:', error);
+      // Error handling is done in the deleteTask function
     }
   };
 
@@ -200,7 +167,7 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
         "task-card group",
         isCompleted && "completed",
         !isActionable && !isCompleted && "opacity-75",
-        "touch-manipulation"
+        "touch-manipulation" // Improve touch responsiveness
       )}
     >
       <div className="flex items-start gap-3">
@@ -236,7 +203,6 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
                         "h-8 w-8 touch-manipulation min-h-[44px] min-w-[44px]",
                         isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                       )}
-                      disabled={isLoading}
                     >
                       <MoreVertical className="h-4 w-4" />
                       <span className="sr-only">Menu</span>
@@ -271,26 +237,12 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                      <AlertDialogCancel className="min-h-[44px]" disabled={isLoading}>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={async () => {
-                          setIsLoading(true);
-                          try {
-                            await deleteTask(task.id);
-                            setDeleteDialogOpen(false);
-                            if (onTaskUpdate) {
-                              onTaskUpdate();
-                            }
-                          } catch (error) {
-                            console.error('Error deleting task:', error);
-                          } finally {
-                            setIsLoading(false);
-                          }
-                        }}
-                        disabled={isLoading}
+                        onClick={handleDelete}
                         className="bg-red-500 hover:bg-red-600 min-h-[44px]"
                       >
-                        {isLoading ? "Deleting..." : "Delete"}
+                        Delete
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -313,8 +265,8 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
             "flex flex-wrap items-center gap-2 mt-3",
             isMobile && "gap-1.5"
           )}>
-            <Badge variant="outline" className={cn(getStatusColor(localTaskStatus), "text-xs")}>
-              {getStatusText(localTaskStatus)}
+            <Badge variant="outline" className={cn(getStatusColor(task.status), "text-xs")}>
+              {getStatusText(task.status)}
             </Badge>
             
             <Badge variant="outline" className={cn(getPriorityColor(task.priority), "text-xs")}>
@@ -339,17 +291,16 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
             </Badge>
           </div>
           
-          {/* Task Action Buttons - Fixed logic */}
+          {/* Task Action Buttons */}
           <div className={cn(
             "flex gap-2 mt-3",
             isMobile && "flex-col"
           )}>
-            {/* Show "Take Job" button only when task is pending and user is assignee */}
             {isPending && currentUser?.id === task.assignee && (
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleStartTask}
-                disabled={!isActionable || isLoading}
+                disabled={!isActionable}
                 className={cn(
                   "flex items-center gap-1 touch-manipulation min-h-[44px]",
                   !isActionable && "opacity-50 cursor-not-allowed",
@@ -357,23 +308,23 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
                 )}
               >
                 <Play className="h-3 w-3" />
-                {isLoading ? "Taking..." : isActionable ? "Take Job" : "Not Available Yet"}
+                {isActionable ? "Take Job" : "Not Available Yet"}
               </Button>
             )}
             
-            {/* Show "Mark Complete" button when task is in progress and user is assignee */}
             {isInProgress && currentUser?.id === task.assignee && (
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleCompleteTask}
-                disabled={isLoading}
+                disabled={!isActionable}
                 className={cn(
                   "flex items-center gap-1 bg-green-600 hover:bg-green-700 touch-manipulation min-h-[44px]",
+                  !isActionable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
                   isMobile && "w-full justify-center"
                 )}
               >
                 <CheckCircle className="h-3 w-3" />
-                {isLoading ? "Completing..." : "Mark Complete"}
+                {isActionable ? "Mark Complete" : "Not Available Yet"}
               </Button>
             )}
           </div>

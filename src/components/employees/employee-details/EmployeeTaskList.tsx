@@ -1,5 +1,4 @@
 
-import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task } from "@/types";
 import { TaskItem } from "./TaskItem";
@@ -7,23 +6,17 @@ import { TaskItem } from "./TaskItem";
 interface EmployeeTaskListProps {
   pendingTasks: Task[];
   completedTasks: Task[];
-  onTaskUpdate?: () => void; // Add callback for parent refresh
 }
 
 export const EmployeeTaskList = ({ 
   pendingTasks, 
-  completedTasks,
-  onTaskUpdate
+  completedTasks 
 }: EmployeeTaskListProps) => {
-  const [refreshKey, setRefreshKey] = useState(Date.now());
-  
   console.log('EmployeeTaskList received:', { 
     pendingTasks: pendingTasks.length, 
     completedTasks: completedTasks.length,
     pendingTaskIds: pendingTasks.map(t => t.id),
-    pendingTaskTitles: pendingTasks.map(t => t.title),
-    completedTaskIds: completedTasks.map(t => t.id),
-    completedTaskTitles: completedTasks.map(t => t.title)
+    pendingTaskTitles: pendingTasks.map(t => t.title)
   });
   
   // Show ALL pending tasks - no availability filtering for display
@@ -38,16 +31,9 @@ export const EmployeeTaskList = ({
     availableTaskTitles: availableTasks.map(t => t.title),
     inProgressTaskTitles: inProgressTasks.map(t => t.title)
   });
-
-  const handleTaskUpdate = useCallback(() => {
-    setRefreshKey(Date.now());
-    if (onTaskUpdate) {
-      onTaskUpdate();
-    }
-  }, [onTaskUpdate]);
   
   return (
-    <Tabs defaultValue="current" key={refreshKey}>
+    <Tabs defaultValue="current">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="current">Current Tasks ({pendingTasks.length})</TabsTrigger>
         <TabsTrigger value="history">Task History ({completedTasks.length})</TabsTrigger>
@@ -60,7 +46,7 @@ export const EmployeeTaskList = ({
             <h3 className="text-lg font-medium mb-4">Pending Tasks ({availableTasks.length})</h3>
             <div className="space-y-4">
               {availableTasks.map((task) => (
-                <TaskItem key={`${task.id}-${refreshKey}`} task={task} onTaskUpdate={handleTaskUpdate} />
+                <TaskItem key={task.id} task={task} />
               ))}
             </div>
           </div>
@@ -72,7 +58,7 @@ export const EmployeeTaskList = ({
             <h3 className="text-lg font-medium mb-4">In Progress Tasks ({inProgressTasks.length})</h3>
             <div className="space-y-4">
               {inProgressTasks.map((task) => (
-                <TaskItem key={`${task.id}-${refreshKey}`} task={task} onTaskUpdate={handleTaskUpdate} />
+                <TaskItem key={task.id} task={task} />
               ))}
             </div>
           </div>
@@ -98,7 +84,7 @@ export const EmployeeTaskList = ({
         ) : (
           <div className="space-y-4">
             {completedTasks.map((task) => (
-              <TaskItem key={`${task.id}-${refreshKey}`} task={task} isCompleted onTaskUpdate={handleTaskUpdate} />
+              <TaskItem key={task.id} task={task} isCompleted />
             ))}
           </div>
         )}

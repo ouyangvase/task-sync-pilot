@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { User } from "@/types";
-import { useTasks } from "@/contexts/TaskContext";
+import { useTasks } from "@/contexts/task";
 import { useAuth } from "@/contexts/auth";
 import TaskForm from "@/components/tasks/TaskForm";
 import { ShieldOff } from "lucide-react";
@@ -30,13 +30,6 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const navigate = useNavigate();
 
-  console.log('EmployeeDetails rendering for employee:', {
-    employeeId: employee.id,
-    employeeName: employee.name,
-    currentUserId: currentUser?.id,
-    currentUserRole: currentUser?.role
-  });
-
   // Check permissions
   if (currentUser && !canViewUser(currentUser.id, employee.id)) {
     return (
@@ -61,37 +54,19 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   const taskStats = getUserTaskStats(employee.id);
   const pointsStats = getUserPointsStats(employee.id);
   
-  console.log('Employee tasks data:', {
-    employeeId: employee.id,
-    totalTasks: tasks.length,
-    taskTitles: tasks.map(t => t.title),
-    taskStatuses: tasks.map(t => t.status)
-  });
-  
   const pendingTasks = tasks.filter(task => task.status !== "completed");
   const completedTasks = tasks.filter(task => task.status === "completed");
   const titleIcons = getTitleIcons();
 
-  console.log('Filtered tasks:', {
-    pendingCount: pendingTasks.length,
-    completedCount: completedTasks.length,
-    pendingTitles: pendingTasks.map(t => t.title),
-    completedTitles: completedTasks.map(t => t.title)
-  });
-
   const handleTaskDialogOpen = () => {
-    console.log('Opening task dialog for employee:', employee.id);
     setIsTaskDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
-    console.log('Closing task dialog and refreshing tasks');
     setIsTaskDialogOpen(false);
-    // The TaskProvider's real-time subscriptions should handle the refresh
   };
 
   const handleUserDelete = async (userId: string) => {
-    console.log('Attempting to delete user:', userId);
     const success = await deleteUser(userId);
     if (success && onUserDeleted) {
       onUserDeleted();
