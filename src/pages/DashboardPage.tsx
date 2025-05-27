@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTasks } from "@/contexts/task/TaskProvider";
+import { useTasks } from "@/contexts/TaskContext";
 import ProgressCard from "@/components/dashboard/ProgressCard";
 import TaskSummaryCard from "@/components/dashboard/TaskSummaryCard";
 import TaskList from "@/components/tasks/TaskList";

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Task } from "@/types";
 import { formatTaskStatusForDisplay, getTaskColor } from "@/lib/taskUtils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTasks } from "@/contexts/task/TaskProvider";
+import { useTasks } from "@/contexts/TaskContext";
 import { useState } from "react";
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
   const { currentUser } = useAuth();
   const { deleteTask } = useTasks();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Only show delete button for admin users
   const isAdmin = currentUser?.role === "admin";
@@ -40,12 +41,16 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
   });
 
   const handleDelete = async () => {
+    console.log('Deleting task:', task.id, task.title);
+    setIsDeleting(true);
     try {
       await deleteTask(task.id);
       setDeleteDialogOpen(false);
+      console.log('Task deleted successfully:', task.id);
     } catch (error) {
       console.error('Error deleting task:', error);
-      // Error handling is done in the deleteTask function
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -93,6 +98,7 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
                 onClick={() => setDeleteDialogOpen(true)}
                 className="text-red-500 hover:text-red-500 hover:bg-red-50"
                 title="Delete task (Admin only)"
+                disabled={isDeleting}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -121,12 +127,13 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              disabled={isDeleting}
               className="bg-red-500 hover:bg-red-600"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
