@@ -1,5 +1,5 @@
 
-import { Calendar, CheckCircle, Trash2 } from "lucide-react";
+import { Calendar, CheckCircle, Trash2, Play } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,20 +18,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { isTaskActionable } from "@/lib/taskAvailability";
 
 interface TaskItemProps {
   task: Task;
   isCompleted?: boolean;
+  onTaskUpdate?: () => void; // Add callback for immediate UI refresh
 }
 
-export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
+export const TaskItem = ({ task, isCompleted = false, onTaskUpdate }: TaskItemProps) => {
   const { currentUser } = useAuth();
-  const { deleteTask } = useTasks();
+  const { deleteTask, startTask, completeTask } = useTasks();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Only show delete button for admin users
   const isAdmin = currentUser?.role === "admin";
+  const isPending = task.status === "pending";
+  const isInProgress = task.status === "in_progress";
+  const isActionable = isTaskActionable(task);
 
   console.log('TaskItem rendering:', {
     taskId: task.id,
@@ -47,10 +53,42 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
       await deleteTask(task.id);
       setDeleteDialogOpen(false);
       console.log('Task deleted successfully:', task.id);
+      // Trigger immediate UI refresh
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (error) {
       console.error('Error deleting task:', error);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleStartTask = async () => {
+    if (!isActionable) return;
+    setIsLoading(true);
+    try {
+      await startTask(task.id);
+      // Trigger immediate UI refresh
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCompleteTask = async () => {
+    if (!isActionable) return;
+    setIsLoading(true);
+    try {
+      await completeTask(task.id);
+      // Trigger immediate UI refresh
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -98,7 +136,7 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
                 onClick={() => setDeleteDialogOpen(true)}
                 className="text-red-500 hover:text-red-500 hover:bg-red-50"
                 title="Delete task (Admin only)"
-                disabled={isDeleting}
+                disabled={isDeleting || isLoading}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -107,7 +145,7 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-3">
           <p className="line-clamp-2 text-sm">{task.description || "No description"}</p>
           <Badge 
             variant={isCompleted ? "secondary" : "default"}
@@ -116,6 +154,35 @@ export const TaskItem = ({ task, isCompleted = false }: TaskItemProps) => {
             {task.points} pts
           </Badge>
         </div>
+        
+        {/* Task Action Buttons */}
+        {!isCompleted && currentUser?.id === task.assignee && (
+          <div className="flex gap-2">
+            {isPending && (
+              <Button
+                size="sm"
+                onClick={handleStartTask}
+                disabled={!isActionable || isLoading}
+                className="flex items-center gap-1"
+              >
+                <Play className="h-3 w-3" />
+                {isLoading ? "Taking..." : isActionable ? "Take Job" : "Not Available Yet"}
+              </Button>
+            )}
+            
+            {isInProgress && (
+              <Button
+                size="sm"
+                onClick={handleCompleteTask}
+                disabled={!isActionable || isLoading}
+                className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-3 w-3" />
+                {isLoading ? "Completing..." : isActionable ? "Mark Complete" : "Not Available Yet"}
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

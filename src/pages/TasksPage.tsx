@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/contexts/TaskContext";
 import TaskList from "@/components/tasks/TaskList";
@@ -9,9 +9,14 @@ const TasksPage = () => {
   const { currentUser } = useAuth();
   const { getUserTasks, getTasksByCategory } = useTasks();
   const [activeTab, setActiveTab] = useState("all");
+  const [refreshKey, setRefreshKey] = useState(Date.now());
   
   useEffect(() => {
     document.title = "Tasks | TaskSync Pilot";
+  }, []);
+
+  const handleTaskUpdate = useCallback(() => {
+    setRefreshKey(Date.now());
   }, []);
   
   if (!currentUser) {
@@ -30,7 +35,7 @@ const TasksPage = () => {
   const pendingTasks = allTasks.filter(task => task.status !== "completed");
   
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" key={refreshKey}>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
       </div>
@@ -53,6 +58,7 @@ const TasksPage = () => {
             tasks={pendingTasks}
             emptyMessage="No pending tasks"
             showAddButton={true}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
         
@@ -62,6 +68,7 @@ const TasksPage = () => {
             tasks={followUpTasks.filter(task => task.status !== "completed")}
             emptyMessage="No follow up tasks"
             showAddButton={true}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
         
@@ -71,6 +78,7 @@ const TasksPage = () => {
             tasks={newSalesTasks.filter(task => task.status !== "completed")}
             emptyMessage="No sales tasks"
             showAddButton={true}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
         
@@ -80,6 +88,7 @@ const TasksPage = () => {
             tasks={adminTasks.filter(task => task.status !== "completed")}
             emptyMessage="No admin tasks"
             showAddButton={true}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
         
@@ -89,6 +98,7 @@ const TasksPage = () => {
             tasks={contentTasks.filter(task => task.status !== "completed")}
             emptyMessage="No content tasks"
             showAddButton={true}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
         
@@ -98,6 +108,7 @@ const TasksPage = () => {
             tasks={customerServiceTasks.filter(task => task.status !== "completed")}
             emptyMessage="No customer service tasks"
             showAddButton={true}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
         
@@ -107,6 +118,7 @@ const TasksPage = () => {
             tasks={customTasks.filter(task => task.status !== "completed")}
             emptyMessage="No custom tasks"
             showAddButton={true}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
         
@@ -116,6 +128,7 @@ const TasksPage = () => {
             tasks={completedTasks}
             emptyMessage="No completed tasks yet"
             showAddButton={false}
+            onTaskUpdate={handleTaskUpdate}
           />
         </TabsContent>
       </Tabs>

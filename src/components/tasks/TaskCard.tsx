@@ -30,12 +30,14 @@ import { useScreenSize } from "@/hooks/use-mobile";
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
+  onTaskUpdate?: () => void; // Add callback for immediate UI refresh
 }
 
-const TaskCard = ({ task, onEdit }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
   const { startTask, completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
   const { isMobile } = useScreenSize();
   
   // Only admin users can delete tasks
@@ -44,7 +46,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const isPending = task.status === "pending";
   const isInProgress = task.status === "in_progress";
   const isRecurring = task.recurrence !== "once";
-  const isActionable = isTaskActionable(task); // Use new actionable function
+  const isActionable = isTaskActionable(task);
   const availabilityStatus = getTaskAvailabilityStatus(task);
   
   console.log('TaskCard rendering:', {
@@ -57,23 +59,48 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
     assignee: task.assignee
   });
   
-  const handleStartTask = () => {
+  const handleStartTask = async () => {
     if (!isActionable) return;
-    startTask(task.id);
+    setIsLoading(true);
+    try {
+      await startTask(task.id);
+      // Trigger immediate UI refresh
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleCompleteTask = () => {
+  const handleCompleteTask = async () => {
     if (!isActionable) return;
-    completeTask(task.id);
+    setIsLoading(true);
+    try {
+      await completeTask(task.id);
+      // Trigger immediate UI refresh
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleDelete = async () => {
+    setIsLoading(true);
     try {
       await deleteTask(task.id);
       setDeleteDialogOpen(false);
+      // Trigger immediate UI refresh
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (error) {
       console.error('Error deleting task:', error);
       // Error handling is done in the deleteTask function
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -203,6 +230,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                         "h-8 w-8 touch-manipulation min-h-[44px] min-w-[44px]",
                         isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                       )}
+                      disabled={isLoading}
                     >
                       <MoreVertical className="h-4 w-4" />
                       <span className="sr-only">Menu</span>
@@ -237,12 +265,13 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                      <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
+                      <AlertDialogCancel className="min-h-[44px]" disabled={isLoading}>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDelete}
+                        disabled={isLoading}
                         className="bg-red-500 hover:bg-red-600 min-h-[44px]"
                       >
-                        Delete
+                        {isLoading ? "Deleting..." : "Delete"}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -300,7 +329,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleStartTask}
-                disabled={!isActionable}
+                disabled={!isActionable || isLoading}
                 className={cn(
                   "flex items-center gap-1 touch-manipulation min-h-[44px]",
                   !isActionable && "opacity-50 cursor-not-allowed",
@@ -308,7 +337,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                 )}
               >
                 <Play className="h-3 w-3" />
-                {isActionable ? "Take Job" : "Not Available Yet"}
+                {isLoading ? "Taking..." : isActionable ? "Take Job" : "Not Available Yet"}
               </Button>
             )}
             
@@ -316,7 +345,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleCompleteTask}
-                disabled={!isActionable}
+                disabled={!isActionable || isLoading}
                 className={cn(
                   "flex items-center gap-1 bg-green-600 hover:bg-green-700 touch-manipulation min-h-[44px]",
                   !isActionable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
@@ -324,7 +353,7 @@ const TaskCard = ({ task, onEdit }: TaskCardProps) => {
                 )}
               >
                 <CheckCircle className="h-3 w-3" />
-                {isActionable ? "Mark Complete" : "Not Available Yet"}
+                {isLoading ? "Completing..." : isActionable ? "Mark Complete" : "Not Available Yet"}
               </Button>
             )}
           </div>

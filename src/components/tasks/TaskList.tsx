@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Task } from "@/types";
 import TaskCard from "./TaskCard";
 import TaskForm from "./TaskForm";
@@ -18,6 +18,7 @@ interface TaskListProps {
   tasks: Task[];
   emptyMessage?: string;
   showAddButton?: boolean;
+  onTaskUpdate?: () => void; // Add callback for parent refresh
 }
 
 const TaskList = ({
@@ -25,9 +26,11 @@ const TaskList = ({
   tasks,
   emptyMessage = "No tasks to display",
   showAddButton = false,
+  onTaskUpdate,
 }: TaskListProps) => {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(Date.now()); // Add refresh key
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === "admin";
 
@@ -40,13 +43,26 @@ const TaskList = ({
     setIsFormOpen(true);
   };
 
-  const handleCloseForm = () => {
+  const handleCloseForm = useCallback(() => {
     setIsFormOpen(false);
     setTaskToEdit(null);
-  };
+    // Trigger refresh when form is closed
+    setRefreshKey(Date.now());
+    if (onTaskUpdate) {
+      onTaskUpdate();
+    }
+  }, [onTaskUpdate]);
+
+  const handleTaskUpdate = useCallback(() => {
+    // Force component re-render
+    setRefreshKey(Date.now());
+    if (onTaskUpdate) {
+      onTaskUpdate();
+    }
+  }, [onTaskUpdate]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" key={refreshKey}>
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">{title}</h2>
         {(showAddButton && isAdmin) && (
@@ -68,7 +84,12 @@ const TaskList = ({
       ) : (
         <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-1">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onEdit={isAdmin ? handleOpenForm : undefined} />
+            <TaskCard 
+              key={`${task.id}-${refreshKey}`} 
+              task={task} 
+              onEdit={isAdmin ? handleOpenForm : undefined}
+              onTaskUpdate={handleTaskUpdate}
+            />
           ))}
         </div>
       )}
