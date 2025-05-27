@@ -30,21 +30,22 @@ import { useScreenSize } from "@/hooks/use-mobile";
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
-  onTaskUpdate?: () => void; // Add callback for immediate UI refresh
+  onTaskUpdate?: () => void;
 }
 
 const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
   const { startTask, completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
+  const [isLoading, setIsLoading] = useState(false);
+  const [localTaskStatus, setLocalTaskStatus] = useState(task.status); // Add local state for immediate UI updates
   const { isMobile } = useScreenSize();
   
   // Only admin users can delete tasks
   const isAdmin = currentUser?.role === "admin";
-  const isCompleted = task.status === "completed";
-  const isPending = task.status === "pending";
-  const isInProgress = task.status === "in_progress";
+  const isCompleted = localTaskStatus === "completed";
+  const isPending = localTaskStatus === "pending";
+  const isInProgress = localTaskStatus === "in_progress";
   const isRecurring = task.recurrence !== "once";
   const isActionable = isTaskActionable(task);
   const availabilityStatus = getTaskAvailabilityStatus(task);
@@ -53,52 +54,57 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
     taskId: task.id,
     taskTitle: task.title,
     status: task.status,
+    localTaskStatus,
     isActionable,
     availabilityStatus,
     currentUserId: currentUser?.id,
-    assignee: task.assignee
+    assignee: task.assignee,
+    isPending,
+    isInProgress,
+    isCompleted
   });
   
   const handleStartTask = async () => {
     if (!isActionable) return;
     setIsLoading(true);
     try {
+      // Immediately update local state for instant UI feedback
+      setLocalTaskStatus("in_progress");
+      
       await startTask(task.id);
-      // Trigger immediate UI refresh
+      console.log('Task started successfully, triggering update');
+      
+      // Trigger parent refresh
       if (onTaskUpdate) {
         onTaskUpdate();
       }
+    } catch (error) {
+      // Revert local state on error
+      setLocalTaskStatus(task.status);
+      console.error('Error starting task:', error);
     } finally {
       setIsLoading(false);
     }
   };
   
   const handleCompleteTask = async () => {
-    if (!isActionable) return;
+    if (!isActionable && localTaskStatus !== "in_progress") return;
     setIsLoading(true);
     try {
+      // Immediately update local state for instant UI feedback
+      setLocalTaskStatus("completed");
+      
       await completeTask(task.id);
-      // Trigger immediate UI refresh
-      if (onTaskUpdate) {
-        onTaskUpdate();
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleDelete = async () => {
-    setIsLoading(true);
-    try {
-      await deleteTask(task.id);
-      setDeleteDialogOpen(false);
-      // Trigger immediate UI refresh
+      console.log('Task completed successfully, triggering update');
+      
+      // Trigger parent refresh
       if (onTaskUpdate) {
         onTaskUpdate();
       }
     } catch (error) {
-      console.error('Error deleting task:', error);
-      // Error handling is done in the deleteTask function
+      // Revert local state on error
+      setLocalTaskStatus(task.status);
+      console.error('Error completing task:', error);
     } finally {
       setIsLoading(false);
     }
@@ -194,7 +200,7 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
         "task-card group",
         isCompleted && "completed",
         !isActionable && !isCompleted && "opacity-75",
-        "touch-manipulation" // Improve touch responsiveness
+        "touch-manipulation"
       )}
     >
       <div className="flex items-start gap-3">
@@ -267,7 +273,20 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                       <AlertDialogCancel className="min-h-[44px]" disabled={isLoading}>Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={handleDelete}
+                        onClick={async () => {
+                          setIsLoading(true);
+                          try {
+                            await deleteTask(task.id);
+                            setDeleteDialogOpen(false);
+                            if (onTaskUpdate) {
+                              onTaskUpdate();
+                            }
+                          } catch (error) {
+                            console.error('Error deleting task:', error);
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
                         disabled={isLoading}
                         className="bg-red-500 hover:bg-red-600 min-h-[44px]"
                       >
@@ -294,8 +313,8 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
             "flex flex-wrap items-center gap-2 mt-3",
             isMobile && "gap-1.5"
           )}>
-            <Badge variant="outline" className={cn(getStatusColor(task.status), "text-xs")}>
-              {getStatusText(task.status)}
+            <Badge variant="outline" className={cn(getStatusColor(localTaskStatus), "text-xs")}>
+              {getStatusText(localTaskStatus)}
             </Badge>
             
             <Badge variant="outline" className={cn(getPriorityColor(task.priority), "text-xs")}>
@@ -320,11 +339,12 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
             </Badge>
           </div>
           
-          {/* Task Action Buttons */}
+          {/* Task Action Buttons - Fixed logic */}
           <div className={cn(
             "flex gap-2 mt-3",
             isMobile && "flex-col"
           )}>
+            {/* Show "Take Job" button only when task is pending and user is assignee */}
             {isPending && currentUser?.id === task.assignee && (
               <Button
                 size={isMobile ? "default" : "sm"}
@@ -341,19 +361,19 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
               </Button>
             )}
             
+            {/* Show "Mark Complete" button when task is in progress and user is assignee */}
             {isInProgress && currentUser?.id === task.assignee && (
               <Button
                 size={isMobile ? "default" : "sm"}
                 onClick={handleCompleteTask}
-                disabled={!isActionable || isLoading}
+                disabled={isLoading}
                 className={cn(
                   "flex items-center gap-1 bg-green-600 hover:bg-green-700 touch-manipulation min-h-[44px]",
-                  !isActionable && "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400",
                   isMobile && "w-full justify-center"
                 )}
               >
                 <CheckCircle className="h-3 w-3" />
-                {isLoading ? "Completing..." : isActionable ? "Mark Complete" : "Not Available Yet"}
+                {isLoading ? "Completing..." : "Mark Complete"}
               </Button>
             )}
           </div>
