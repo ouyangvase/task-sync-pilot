@@ -50,19 +50,19 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
     }
   }, [task, form]);
 
-  const onSubmit = (values: TaskFormValues) => {
+  const onSubmit = async (values: TaskFormValues) => {
     // Convert datetime-local format back to ISO string
     const dueDateISO = new Date(values.dueDate).toISOString();
 
     if (task) {
-      updateTask(task.id, {
+      await updateTask(task.id, {
         ...values,
         dueDate: dueDateISO,
         status: task.status,
       });
     } else {
       // Ensure we have required fields for a new task
-      const newTask: Omit<Task, "id" | "createdAt"> = {
+      const taskData = {
         title: values.title,
         description: values.description,
         assignee: values.assignee,
@@ -72,9 +72,10 @@ const TaskForm = ({ task, onClose }: TaskFormProps) => {
         priority: values.priority,
         points: values.points,
         status: "pending" as TaskStatus,
+        assignedBy: currentUser?.id || '',
       };
       
-      addTask(newTask);
+      await addTask(taskData);
     }
     
     if (onClose) {
