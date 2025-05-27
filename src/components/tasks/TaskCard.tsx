@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Task } from "@/types";
 import { useTasks } from "@/contexts/task/TaskProvider";
@@ -31,10 +30,9 @@ import { useScreenSize } from "@/hooks/use-mobile";
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
-  onTaskUpdate?: () => void;
 }
 
-const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit }: TaskCardProps) => {
   const { startTask, completeTask, deleteTask } = useTasks();
   const { currentUser } = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -59,29 +57,20 @@ const TaskCard = ({ task, onEdit, onTaskUpdate }: TaskCardProps) => {
     assignee: task.assignee
   });
   
-  const handleStartTask = async () => {
+  const handleStartTask = () => {
     if (!isActionable) return;
-    await startTask(task.id);
-    if (onTaskUpdate) {
-      onTaskUpdate();
-    }
+    startTask(task.id);
   };
   
-  const handleCompleteTask = async () => {
+  const handleCompleteTask = () => {
     if (!isActionable) return;
-    await completeTask(task.id);
-    if (onTaskUpdate) {
-      onTaskUpdate();
-    }
+    completeTask(task.id);
   };
   
   const handleDelete = async () => {
     try {
       await deleteTask(task.id);
       setDeleteDialogOpen(false);
-      if (onTaskUpdate) {
-        onTaskUpdate();
-      }
     } catch (error) {
       console.error('Error deleting task:', error);
       // Error handling is done in the deleteTask function

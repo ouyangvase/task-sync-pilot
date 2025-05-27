@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/contexts/TaskContext";
 import ProgressCard from "@/components/dashboard/ProgressCard";
@@ -26,16 +26,10 @@ const DashboardPage = () => {
     rewardTiers
   } = useTasks();
   const [showRewardsSettings, setShowRewardsSettings] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const { isMobile, isTablet } = useScreenSize();
   
   useEffect(() => {
     document.title = "Dashboard | TaskSync Pilot";
-  }, []);
-
-  const forceRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-    console.log('Dashboard: Forcing refresh');
   }, []);
   
   if (!currentUser) {
@@ -65,7 +59,7 @@ const DashboardPage = () => {
   ).length;
   
   return (
-    <div className="space-y-6 sm:space-y-8 w-full" key={refreshKey}>
+    <div className="space-y-6 sm:space-y-8 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
         {isAdmin && (
@@ -126,31 +120,25 @@ const DashboardPage = () => {
       
       <div className="grid gap-6 sm:gap-8">
         <TaskList
-          key={`daily-${refreshKey}`}
           title="Daily Fixed Tasks"
           tasks={dailyTasks.filter(task => task.status !== "completed")}
           emptyMessage="No daily tasks assigned"
           showAddButton={false}
-          onTaskUpdate={forceRefresh}
         />
         
         <TaskList
-          key={`custom-${refreshKey}`}
           title="Custom Tasks"
           tasks={customTasks.filter(task => task.status !== "completed")}
           emptyMessage="No custom tasks assigned"
           showAddButton={true}
-          onTaskUpdate={forceRefresh}
         />
         
         {completedTasks.length > 0 && (
           <TaskList
-            key={`completed-${refreshKey}`}
             title="Recently Completed"
             tasks={completedTasks.slice(0, 5)}
             emptyMessage="No completed tasks"
             showAddButton={false}
-            onTaskUpdate={forceRefresh}
           />
         )}
       </div>

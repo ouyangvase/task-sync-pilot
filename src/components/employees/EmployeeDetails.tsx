@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { User } from "@/types";
@@ -28,7 +28,6 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   const { getUserTasks, getUserTaskStats, getUserPointsStats } = useTasks();
   const { currentUser, updateUserTitle, updateUserRole, canViewUser, canEditUser, deleteUser } = useAuth();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   console.log('EmployeeDetails rendering for employee:', {
@@ -80,11 +79,6 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
     completedTitles: completedTasks.map(t => t.title)
   });
 
-  const forceRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-    console.log('Forcing component refresh');
-  }, []);
-
   const handleTaskDialogOpen = () => {
     console.log('Opening task dialog for employee:', employee.id);
     setIsTaskDialogOpen(true);
@@ -93,8 +87,7 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
   const handleCloseDialog = () => {
     console.log('Closing task dialog and refreshing tasks');
     setIsTaskDialogOpen(false);
-    // Force immediate refresh of the component
-    forceRefresh();
+    // The TaskProvider's real-time subscriptions should handle the refresh
   };
 
   const handleUserDelete = async (userId: string) => {
@@ -117,7 +110,7 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
     : "No activity";
 
   return (
-    <div className="space-y-6" key={refreshKey}>
+    <div className="space-y-6">
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -159,10 +152,8 @@ const EmployeeDetails = ({ employee, onUserDeleted }: EmployeeDetailsProps) => {
       <UserAccessControl employee={employee} />
       
       <EmployeeTaskList 
-        key={`tasks-${refreshKey}`}
         pendingTasks={pendingTasks}
         completedTasks={completedTasks}
-        onTaskUpdate={forceRefresh}
       />
 
       <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>

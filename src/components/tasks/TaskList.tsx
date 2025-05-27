@@ -18,7 +18,6 @@ interface TaskListProps {
   tasks: Task[];
   emptyMessage?: string;
   showAddButton?: boolean;
-  onTaskUpdate?: () => void;
 }
 
 const TaskList = ({
@@ -26,7 +25,6 @@ const TaskList = ({
   tasks,
   emptyMessage = "No tasks to display",
   showAddButton = false,
-  onTaskUpdate,
 }: TaskListProps) => {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -45,10 +43,6 @@ const TaskList = ({
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setTaskToEdit(null);
-    // Trigger refresh when form closes
-    if (onTaskUpdate) {
-      onTaskUpdate();
-    }
   };
 
   return (
@@ -74,12 +68,7 @@ const TaskList = ({
       ) : (
         <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-1">
           {tasks.map((task) => (
-            <TaskCard 
-              key={task.id} 
-              task={task} 
-              onEdit={isAdmin ? handleOpenForm : undefined}
-              onTaskUpdate={onTaskUpdate}
-            />
+            <TaskCard key={task.id} task={task} onEdit={isAdmin ? handleOpenForm : undefined} />
           ))}
         </div>
       )}
